@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Encomendas — Real Stiles</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo"><img src="img/logo.png" alt="Real Stiles" style="height:52px;"/></a>
+  <div class="nav-actions" style="margin-left:auto">
+    <div id="nav-user" style="display:none;align-items:center;gap:12px;">
+      <span id="nav-nome" style="font-size:14px;font-weight:500;"></span>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm">Sair</button>
+    </div>
+    <a href="carrinho.html" class="nav-cart-btn">🛒 <span class="cart-count" style="display:none">0</span></a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="container">
+    <div class="page-header">
+      <h1>As minhas encomendas</h1>
+      <p>Histórico de todas as tuas encomendas</p>
+    </div>
+
+    <!-- Alerta encomenda nova -->
+    <div id="alerta-nova" style="display:none;background:#D1FAE5;color:#065F46;padding:16px 20px;border-radius:12px;margin-bottom:24px;font-weight:500;">
+      ✅ Encomenda realizada com sucesso! Entraremos em contacto em breve.
+    </div>
+
+    <div id="encomendas-lista">
+      <div class="loading"><div class="spinner"></div> A carregar...</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { requireAuth, logout, initNav } from './js/auth.js';
+  import { getEncomendasCliente, badgeEstado, formatarData } from './js/encomendas.js';
+  import { actualizarContador } from './js/carrinho.js';
+
+  initNav();
+  actualizarContador();
+  window._logout = logout;
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('nova')) document.getElementById('alerta-nova').style.display = 'block';
+
+  const user = await requireAuth();
+  const encomendas = await getEncomendasCliente(user.uid);
+  const container = document.getElementById('encomendas-lista');
+
+  if (encomendas.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📦</div>
+        <h3>Ainda não tens encomendas</h3>
+        <p>Quando fizeres uma encomenda ela aparecerá aqui.</p>
+        <a href="index.html" class="btn btn-primary" style="margin-top:20px">Ir às compras</a>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = encomendas.map(e => `
+    <div style="background:white;border:1px solid var(--gray-200);border-radius:16px;padding:24px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+        <div>
+          <code style="font-size:13px;background:var(--gray-100);padding:4px 10px;border-radius:6px;">#${e.id.substring(0,8).toUpperCase()}</code>
+          <span style="font-size:13px;color:var(--gray-400);margin-left:10px;">${formatarData(e.criado_em)}</span>
+        </div>
+        ${badgeEstado(e.estado)}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        ${(e.itens || []).map(i => `
+          <div style="display:flex;align-items:center;gap:8px;background:var(--gray-100);padding:8px 12px;border-radius:8px;">
+            <img src="${i.imagem || 'https://via.placeholder.com/32x40'}" style="width:28px;height:36px;object-fit:cover;border-radius:4px;"/>
+            <div>
+              <p style="font-size:12px;font-weight:500;">${i.nome}</p>
+              <p style="font-size:11px;color:var(--gray-400);">${i.tamanho || ''} × ${i.quantidade}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--gray-200);">
+        <span style="font-size:13px;color:var(--gray-600);">Morada: ${e.morada_entrega || '—'}</span>
+        <strong style="font-size:16px;">${e.total?.toFixed(2)} MZN</strong>
+      </div>
+      ${e.notas_admin ? `<div style="margin-top:10px;background:var(--accent-light);padding:10px 14px;border-radius:8px;font-size:13px;"><strong>Mensagem da loja:</strong> ${e.notas_admin}</div>` : ''}
+    </div>
+  `).join('');
+</script>
+</body>
+</html>
