@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Produto — Real Stiles</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .produto-detalhe {
+      padding: calc(var(--nav-h) + 48px) 5% 80px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .breadcrumb {
+      font-size: 13px; color: var(--gray-400); margin-bottom: 32px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .breadcrumb a { color: var(--gray-600); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--black); }
+    .produto-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start;
+    }
+    @media (max-width: 768px) { .produto-grid { grid-template-columns: 1fr; gap: 32px; } }
+
+    /* Galeria */
+    .galeria { position: sticky; top: calc(var(--nav-h) + 20px); }
+    .galeria-main {
+      aspect-ratio: 3/4; background: var(--gray-100); border-radius: 16px;
+      overflow: hidden; margin-bottom: 12px;
+    }
+    .galeria-main img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: opacity 0.2s;
+    }
+    .galeria-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .galeria-thumb {
+      width: 72px; height: 90px; border-radius: 10px; overflow: hidden;
+      cursor: pointer; border: 2px solid transparent; flex-shrink: 0;
+      background: var(--gray-100); transition: border-color 0.2s;
+    }
+    .galeria-thumb.active { border-color: var(--black); }
+    .galeria-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Info */
+    .produto-info { padding-top: 8px; }
+    .produto-info-cat {
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+    }
+    .produto-info h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.5rem, 2.5vw, 2rem);
+      line-height: 1.2; margin-bottom: 16px;
+    }
+    .produto-precos {
+      display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px;
+    }
+    .produto-preco-atual { font-size: 2rem; font-weight: 700; color: var(--black); }
+    .produto-preco-orig { font-size: 1.1rem; color: var(--gray-400); text-decoration: line-through; }
+    .produto-badge-sale {
+      background: var(--red); color: white; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+    }
+    .produto-descricao {
+      font-size: 14px; color: var(--gray-600); line-height: 1.8;
+      margin-bottom: 28px; border-bottom: 1px solid var(--gray-200); padding-bottom: 28px;
+    }
+    .opcao-label {
+      font-size: 13px; font-weight: 600; color: var(--gray-600);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .opcao-label span { font-weight: 400; color: var(--black); }
+    .tamanhos-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .tamanho-btn {
+      min-width: 48px; height: 48px; padding: 0 14px;
+      border: 1.5px solid var(--gray-200); border-radius: 10px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: white; color: var(--black); transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .tamanho-btn:hover { border-color: var(--black); }
+    .tamanho-btn.active { background: var(--black); color: white; border-color: var(--black); }
+    .cores-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+    .cor-btn {
+      padding: 8px 16px; border: 1.5px solid var(--gray-200); border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer; background: white;
+      color: var(--black); transition: all 0.15s; font-family: 'Inter', sans-serif;
+    }
+    .cor-btn:hover { border-color: var(--black); }
+    .cor-btn.active { background: var(--black); color: white; border-color: var(--black); }
+    .stock-info {
+      font-size: 13px; margin-bottom: 20px;
+    }
+    .stock-ok { color: var(--green); font-weight: 500; }
+    .stock-low { color: var(--accent-dark); font-weight: 500; }
+    .stock-out { color: var(--red); font-weight: 500; }
+    .btn-carrinho {
+      width: 100%; padding: 16px; font-size: 16px; font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .tags-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 24px; }
+    .tag-chip {
+      font-size: 12px; background: var(--gray-100); color: var(--gray-600);
+      padding: 4px 12px; border-radius: 100px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><img src="img/logo.png" alt="Real Stiles" style="height:52px;"/></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Loja</a></li>
+    <li><a href="quem-somos.html">Quem Somos</a></li>
+  </ul>
+  <div class="nav-actions">
+    <div id="nav-auth"><a href="conta.html" class="btn btn-outline btn-sm">Entrar</a></div>
+    <div id="nav-user">
+      <span id="nav-nome" style="font-size:14px;font-weight:500;"></span>
+      <a href="encomendas.html" style="font-size:13px;color:var(--gray-600);text-decoration:none;">Encomendas</a>
+      <a id="nav-admin-link" href="admin/index.html" style="display:none;font-size:13px;color:var(--accent);text-decoration:none;font-weight:600;">Admin</a>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm">Sair</button>
+    </div>
+    <a href="carrinho.html" class="nav-cart-btn">🛒 <span class="cart-count" style="display:none">0</span></a>
+  </div>
+  <button class="nav-menu-btn" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="produto-detalhe">
+  <div class="breadcrumb">
+    <a href="index.html">Loja</a>
+    <span>›</span>
+    <span id="bc-cat">Produto</span>
+    <span>›</span>
+    <span id="bc-nome" style="color:var(--black);font-weight:500;">A carregar...</span>
+  </div>
+
+  <div id="loading-state" class="loading" style="padding:60px 0;">
+    <div class="spinner"></div> A carregar produto...
+  </div>
+
+  <div id="produto-detalhe-grid" class="produto-grid" style="display:none;">
+    <!-- Galeria -->
+    <div class="galeria">
+      <div class="galeria-main">
+        <img id="img-main" src="" alt=""/>
+      </div>
+      <div class="galeria-thumbs" id="galeria-thumbs"></div>
+    </div>
+
+    <!-- Info -->
+    <div class="produto-info">
+      <div class="produto-info-cat" id="info-cat"></div>
+      <h1 id="info-nome"></h1>
+      <div class="produto-precos">
+        <span class="produto-preco-atual" id="info-preco"></span>
+        <span class="produto-preco-orig" id="info-preco-orig" style="display:none;"></span>
+        <span class="produto-badge-sale" id="info-badge-sale" style="display:none;"></span>
+      </div>
+      <p class="produto-descricao" id="info-descricao"></p>
+
+      <!-- Tamanhos -->
+      <div id="wrap-tamanhos" style="display:none;margin-bottom:24px;">
+        <div class="opcao-label">Tamanho: <span id="tamanho-sel">—</span></div>
+        <div class="tamanhos-grid" id="tamanhos-grid"></div>
+      </div>
+
+      <!-- Cores -->
+      <div id="wrap-cores" style="display:none;margin-bottom:24px;">
+        <div class="opcao-label">Cor: <span id="cor-sel">—</span></div>
+        <div class="cores-grid" id="cores-grid"></div>
+      </div>
+
+      <!-- Stock -->
+      <div class="stock-info" id="stock-info"></div>
+
+      <button class="btn btn-primary btn-carrinho" id="btn-adicionar" onclick="adicionarAoCarrinho()">
+        + Adicionar ao carrinho
+      </button>
+      <button class="btn btn-outline btn-full" onclick="window.location.href='carrinho.html'">
+        Ver carrinho
+      </button>
+
+      <!-- Tags -->
+      <div class="tags-wrap" id="tags-wrap"></div>
+    </div>
+  </div>
+
+  <div id="erro-state" style="display:none;" class="empty-state">
+    <div class="icon">😕</div>
+    <h3>Produto não encontrado</h3>
+    <p>Este produto pode ter sido removido ou o link está incorrecto.</p>
+    <a href="index.html" class="btn btn-primary" style="margin-top:20px;">Voltar à loja</a>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { initNav, logout } from './js/auth.js';
+  import { getProduto } from './js/produtos.js';
+  import { adicionarItem, actualizarContador } from './js/carrinho.js';
+  import { mostrarToast } from './js/carrinho.js';
+
+  initNav();
+  actualizarContador();
+  window._logout = logout;
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) { mostrarErro(); } else { carregarProduto(id); }
+
+  let produto = null;
+  let tamanhoSel = '', corSel = '';
+
+  async function carregarProduto(id) {
+    try {
+      produto = await getProduto(id);
+      if (!produto) return mostrarErro();
+      renderProduto(produto);
+    } catch (e) {
+      console.error(e);
+      mostrarErro();
+    }
+  }
+
+  function renderProduto(p) {
+    document.title = `${p.nome} — Real Stiles`;
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('produto-detalhe-grid').style.display = 'grid';
+
+    // Breadcrumb
+    document.getElementById('bc-cat').textContent = p.categoria || 'Produto';
+    document.getElementById('bc-nome').textContent = p.nome;
+
+    // Galeria
+    const imagens = p.imagens?.length ? p.imagens : ['https://via.placeholder.com/600x800?text=Sem+Imagem'];
+    const imgMain = document.getElementById('img-main');
+    imgMain.src = imagens[0];
+    imgMain.alt = p.nome;
+
+    const thumbs = document.getElementById('galeria-thumbs');
+    if (imagens.length > 1) {
+      thumbs.innerHTML = imagens.map((src, i) => `
+        <div class="galeria-thumb ${i === 0 ? 'active' : ''}" onclick="trocarImagem('${src}', this)">
+          <img src="${src}" alt="${p.nome}" loading="lazy"/>
+        </div>
+      `).join('');
+    }
+
+    // Info
+    document.getElementById('info-cat').textContent = p.categoria ? p.categoria.charAt(0).toUpperCase() + p.categoria.slice(1) : '';
+    document.getElementById('info-nome').textContent = p.nome;
+    document.getElementById('info-preco').textContent = `${p.preco?.toFixed(2)} MZN`;
+
+    if (p.preco_original && p.preco_original > p.preco) {
+      document.getElementById('info-preco-orig').style.display = 'inline';
+      document.getElementById('info-preco-orig').textContent = `${p.preco_original.toFixed(2)} MZN`;
+      const pct = Math.round((1 - p.preco / p.preco_original) * 100);
+      const badge = document.getElementById('info-badge-sale');
+      badge.style.display = 'inline';
+      badge.textContent = `-${pct}%`;
+    }
+
+    document.getElementById('info-descricao').textContent = p.descricao || 'Sem descrição disponível.';
+
+    // Tamanhos
+    if (p.tamanhos?.length) {
+      document.getElementById('wrap-tamanhos').style.display = 'block';
+      document.getElementById('tamanhos-grid').innerHTML = p.tamanhos.map(t => `
+        <button class="tamanho-btn" onclick="selecionarTamanho('${t}', this)">${t}</button>
+      `).join('');
+    }
+
+    // Cores
+    if (p.cores?.length) {
+      document.getElementById('wrap-cores').style.display = 'block';
+      document.getElementById('cores-grid').innerHTML = p.cores.map(c => `
+        <button class="cor-btn" onclick="selecionarCor('${c}', this)">${c}</button>
+      `).join('');
+    }
+
+    // Stock
+    const stockEl = document.getElementById('stock-info');
+    if (p.stock === 0) {
+      stockEl.innerHTML = '<span class="stock-out">✕ Esgotado</span>';
+      document.getElementById('btn-adicionar').disabled = true;
+    } else if (p.stock <= 3) {
+      stockEl.innerHTML = `<span class="stock-low">⚠ Últimas ${p.stock} unidades</span>`;
+    } else {
+      stockEl.innerHTML = '<span class="stock-ok">✓ Em stock</span>';
+    }
+
+    // Tags
+    if (p.tags?.length) {
+      document.getElementById('tags-wrap').innerHTML = p.tags.map(t => `<span class="tag-chip">${t}</span>`).join('');
+    }
+  }
+
+  window.trocarImagem = (src, el) => {
+    document.getElementById('img-main').src = src;
+    document.querySelectorAll('.galeria-thumb').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  };
+
+  window.selecionarTamanho = (t, el) => {
+    tamanhoSel = t;
+    document.querySelectorAll('.tamanho-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tamanho-sel').textContent = t;
+  };
+
+  window.selecionarCor = (c, el) => {
+    corSel = c;
+    document.querySelectorAll('.cor-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('cor-sel').textContent = c;
+  };
+
+  window.adicionarAoCarrinho = () => {
+    if (!produto) return;
+    if (produto.tamanhos?.length && !tamanhoSel) {
+      mostrarToast('Selecciona um tamanho', 'error');
+      document.getElementById('wrap-tamanhos').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    adicionarItem(produto, tamanhoSel, corSel);
+    actualizarContador();
+    mostrarToast('Adicionado ao carrinho!', 'success');
+  };
+
+  function mostrarErro() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('erro-state').style.display = 'block';
+  }
+</script>
+</body>
+</html>
