@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Encomenda — Real Stiles</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .detalhe-card {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 16px; padding: 28px; margin-bottom: 20px;
+    }
+    .detalhe-card h3 {
+      font-size: 15px; font-weight: 600; margin-bottom: 18px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--gray-200);
+    }
+    .item-row {
+      display: flex; gap: 14px; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+    }
+    .item-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .item-img {
+      width: 56px; height: 72px; border-radius: 8px;
+      object-fit: cover; background: var(--gray-100); flex-shrink: 0;
+    }
+    .item-info { flex: 1; }
+    .item-info-nome { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+    .item-info-sub { font-size: 12px; color: var(--gray-400); }
+    .item-preco { font-size: 15px; font-weight: 600; white-space: nowrap; }
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 580px) { .info-grid { grid-template-columns: 1fr; } }
+    .info-item label { font-size: 12px; color: var(--gray-400); display: block; margin-bottom: 3px; }
+    .info-item span { font-size: 14px; font-weight: 500; }
+    .timeline { padding: 0; list-style: none; }
+    .timeline li {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding-bottom: 20px; position: relative;
+    }
+    .timeline li:not(:last-child)::before {
+      content: ''; position: absolute; left: 15px; top: 30px;
+      bottom: 0; width: 2px; background: var(--gray-200);
+    }
+    .tl-dot {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; border: 2px solid var(--gray-200); background: white;
+    }
+    .tl-dot.done { background: var(--black); border-color: var(--black); }
+    .tl-body { padding-top: 4px; }
+    .tl-body strong { font-size: 14px; display: block; margin-bottom: 2px; }
+    .tl-body span { font-size: 12px; color: var(--gray-400); }
+    .total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 0; border-top: 2px solid var(--gray-200); margin-top: 8px;
+    }
+    .nota-admin {
+      background: var(--accent-light); border-left: 3px solid var(--accent);
+      padding: 14px 16px; border-radius: 8px; font-size: 14px; margin-top: 16px;
+    }
+    .nota-admin strong { display: block; margin-bottom: 4px; font-size: 13px; color: var(--accent-dark); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><img src="img/logo.png" alt="Real Stiles" style="height:52px;"/></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Loja</a></li>
+    <li><a href="quem-somos.html">Quem Somos</a></li>
+  </ul>
+  <div class="nav-actions">
+    <div id="nav-auth"><a href="conta.html" class="btn btn-outline btn-sm">Entrar</a></div>
+    <div id="nav-user">
+      <span id="nav-nome" style="font-size:14px;font-weight:500;"></span>
+      <a href="encomendas.html" style="font-size:13px;color:var(--gray-600);text-decoration:none;">Encomendas</a>
+      <a id="nav-admin-link" href="admin/index.html" style="display:none;font-size:13px;color:var(--accent);text-decoration:none;font-weight:600;">Admin</a>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm">Sair</button>
+    </div>
+    <a href="carrinho.html" class="nav-cart-btn">🛒 <span class="cart-count" style="display:none">0</span></a>
+  </div>
+  <button class="nav-menu-btn" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="page-wrapper">
+  <div class="container" style="max-width:800px;">
+    <div class="page-header" style="padding-bottom:24px;">
+      <a href="encomendas.html" style="font-size:13px;color:var(--gray-400);text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;">
+        ← Voltar às encomendas
+      </a>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 style="font-size:1.6rem;">Encomenda <span id="enc-id" style="font-family:monospace;font-size:1.2rem;"></span></h1>
+          <p id="enc-data" style="margin-top:4px;"></p>
+        </div>
+        <div id="enc-badge"></div>
+      </div>
+    </div>
+
+    <div id="loading-state" class="loading" style="padding:60px 0;">
+      <div class="spinner"></div> A carregar encomenda...
+    </div>
+
+    <div id="conteudo" style="display:none;">
+      <!-- Itens -->
+      <div class="detalhe-card">
+        <h3>Artigos encomendados</h3>
+        <div id="itens-lista"></div>
+        <div class="total-row">
+          <span style="font-size:15px;color:var(--gray-600);">Total</span>
+          <span id="enc-total" style="font-size:22px;font-weight:700;"></span>
+        </div>
+      </div>
+
+      <!-- Entrega -->
+      <div class="detalhe-card">
+        <h3>Informações de entrega</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Morada</label>
+            <span id="enc-morada"></span>
+          </div>
+          <div class="info-item">
+            <label>Cidade</label>
+            <span id="enc-cidade"></span>
+          </div>
+          <div class="info-item">
+            <label>Telefone</label>
+            <span id="enc-telefone"></span>
+          </div>
+          <div class="info-item">
+            <label>Email</label>
+            <span id="enc-email"></span>
+          </div>
+        </div>
+        <div id="enc-notas-cliente" style="display:none;margin-top:16px;">
+          <label style="font-size:12px;color:var(--gray-400);display:block;margin-bottom:4px;">Notas</label>
+          <span id="enc-notas-texto" style="font-size:14px;"></span>
+        </div>
+      </div>
+
+      <!-- Estado / Timeline -->
+      <div class="detalhe-card">
+        <h3>Estado da encomenda</h3>
+        <ul class="timeline" id="timeline"></ul>
+        <div id="enc-nota-admin" style="display:none;" class="nota-admin">
+          <strong>Mensagem da loja</strong>
+          <span id="enc-nota-texto"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="erro-state" style="display:none;" class="empty-state">
+      <div class="icon">📦</div>
+      <h3>Encomenda não encontrada</h3>
+      <p>Não tens acesso a esta encomenda ou ela não existe.</p>
+      <a href="encomendas.html" class="btn btn-primary" style="margin-top:20px;">Ver encomendas</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { requireAuth, initNav, logout } from './js/auth.js';
+  import { getEncomenda, badgeEstado, formatarData } from './js/encomendas.js';
+  import { actualizarContador } from './js/carrinho.js';
+
+  initNav();
+  actualizarContador();
+  window._logout = logout;
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) return mostrarErro();
+
+  const user = await requireAuth();
+  const enc = await getEncomenda(id);
+
+  // Verificar que a encomenda pertence ao utilizador
+  if (!enc || enc.cliente_id !== user.uid) return mostrarErro();
+
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('conteudo').style.display = 'block';
+  document.title = `Encomenda #${id.substring(0,8).toUpperCase()} — Real Stiles`;
+
+  document.getElementById('enc-id').textContent = `#${id.substring(0,8).toUpperCase()}`;
+  document.getElementById('enc-data').textContent = formatarData(enc.criado_em);
+  document.getElementById('enc-badge').innerHTML = badgeEstado(enc.estado);
+
+  // Itens
+  document.getElementById('itens-lista').innerHTML = (enc.itens || []).map(i => `
+    <div class="item-row">
+      <img class="item-img" src="${i.imagem || 'https://via.placeholder.com/56x72?text=?'}" alt="${i.nome}"
+        onerror="this.src='https://via.placeholder.com/56x72?text=?'"/>
+      <div class="item-info">
+        <div class="item-info-nome">${i.nome}</div>
+        <div class="item-info-sub">
+          ${i.tamanho ? `Tamanho: ${i.tamanho}` : ''}
+          ${i.cor ? ` · Cor: ${i.cor}` : ''}
+          · Qtd: ${i.quantidade}
+        </div>
+      </div>
+      <div class="item-preco">${(i.preco * i.quantidade).toFixed(2)} MZN</div>
+    </div>
+  `).join('');
+  document.getElementById('enc-total').textContent = `${enc.total?.toFixed(2)} MZN`;
+
+  // Entrega
+  document.getElementById('enc-morada').textContent = enc.morada_entrega || '—';
+  document.getElementById('enc-cidade').textContent = enc.cidade_entrega || '—';
+  document.getElementById('enc-telefone').textContent = enc.telefone_contacto || '—';
+  document.getElementById('enc-email').textContent = enc.cliente_email || '—';
+
+  if (enc.notas) {
+    document.getElementById('enc-notas-cliente').style.display = 'block';
+    document.getElementById('enc-notas-texto').textContent = enc.notas;
+  }
+
+  // Timeline
+  const estados = [
+    { key: 'pendente',   icon: '⏳', label: 'Encomenda recebida',       sub: 'A aguardar confirmação da loja' },
+    { key: 'confirmada', icon: '✅', label: 'Encomenda confirmada',      sub: 'A loja confirmou a tua encomenda' },
+    { key: 'enviada',    icon: '🚚', label: 'Encomenda enviada',         sub: 'A encomenda está a caminho' },
+    { key: 'entregue',   icon: '📦', label: 'Encomenda entregue',        sub: 'Entregue com sucesso' },
+  ];
+  if (enc.estado === 'cancelada') {
+    document.getElementById('timeline').innerHTML = `
+      <li>
+        <div class="tl-dot done" style="background:var(--red);border-color:var(--red);">❌</div>
+        <div class="tl-body">
+          <strong>Encomenda cancelada</strong>
+          <span>${formatarData(enc.actualizado_em || enc.criado_em)}</span>
+        </div>
+      </li>`;
+  } else {
+    const ordemActual = estados.findIndex(e => e.key === enc.estado);
+    document.getElementById('timeline').innerHTML = estados.map((e, i) => `
+      <li>
+        <div class="tl-dot ${i <= ordemActual ? 'done' : ''}">${i <= ordemActual ? e.icon : ''}</div>
+        <div class="tl-body">
+          <strong style="color:${i <= ordemActual ? 'var(--black)' : 'var(--gray-400)'};">${e.label}</strong>
+          <span>${i === ordemActual ? formatarData(enc.actualizado_em || enc.criado_em) : (i < ordemActual ? 'Concluído' : 'Pendente')}</span>
+        </div>
+      </li>
+    `).join('');
+  }
+
+  // Nota admin
+  if (enc.notas_admin) {
+    document.getElementById('enc-nota-admin').style.display = 'block';
+    document.getElementById('enc-nota-texto').textContent = enc.notas_admin;
+  }
+
+  function mostrarErro() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('erro-state').style.display = 'block';
+  }
+</script>
+</body>
+</html>
