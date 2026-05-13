@@ -123,7 +123,18 @@
     }
     .tamanho-btn:hover { border-color: var(--black); }
     .tamanho-btn.active { background: var(--black); color: white; border-color: var(--black); }
-    .cores-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+    .cores-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
+    /* Cor com imagem (swatch) */
+    .cor-swatch {
+      width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+      border: 2.5px solid transparent; cursor: pointer; padding: 0;
+      background: var(--gray-100); flex-shrink: 0; transition: all 0.15s;
+      outline: none;
+    }
+    .cor-swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cor-swatch:hover { border-color: var(--gray-400); transform: scale(1.1); }
+    .cor-swatch.active { border-color: var(--black); box-shadow: 0 0 0 2px white, 0 0 0 4px var(--black); }
+    /* Cor com texto (fallback) */
     .cor-btn {
       padding: 8px 16px; border: 1.5px solid var(--gray-200); border-radius: 8px;
       font-size: 13px; font-weight: 500; cursor: pointer; background: white;
@@ -337,12 +348,20 @@
       `).join('');
     }
 
-    // Cores
+    // Cores — suporta strings e { nome, imagem }
     if (p.cores?.length) {
       document.getElementById('wrap-cores').style.display = 'block';
-      document.getElementById('cores-grid').innerHTML = p.cores.map(c => `
-        <button class="cor-btn" onclick="selecionarCor('${c}', this)">${c}</button>
-      `).join('');
+      document.getElementById('cores-grid').innerHTML = p.cores.map(c => {
+        const nome = typeof c === 'string' ? c : c.nome;
+        const img  = typeof c === 'string' ? null : c.imagem;
+        const nomeEsc = nome.replace(/'/g, "\\'");
+        if (img) {
+          return `<button class="cor-swatch" title="${nome}" onclick="selecionarCor('${nomeEsc}', this)">
+            <img src="${img}" alt="${nome}" loading="lazy" onerror="this.parentElement.classList.add('cor-btn');this.parentElement.innerHTML='${nomeEsc}'"/>
+          </button>`;
+        }
+        return `<button class="cor-btn" onclick="selecionarCor('${nomeEsc}', this)">${nome}</button>`;
+      }).join('');
     }
 
     // Stock
@@ -387,11 +406,11 @@
     document.getElementById('tamanho-sel').textContent = t;
   };
 
-  window.selecionarCor = (c, el) => {
-    corSel = c;
-    document.querySelectorAll('.cor-btn').forEach(b => b.classList.remove('active'));
+  window.selecionarCor = (nome, el) => {
+    corSel = nome;
+    document.querySelectorAll('.cor-swatch, .cor-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    document.getElementById('cor-sel').textContent = c;
+    document.getElementById('cor-sel').textContent = nome;
   };
 
   window.adicionarAoCarrinho = () => {
