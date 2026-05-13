@@ -10,14 +10,16 @@ const COL = 'produtos';
 
 // ── LISTAR PRODUTOS ──
 export async function getProdutos({ categoria = null, activo = true, destaque = null, max = 20, ultimo = null } = {}) {
-  const needsClientFilter = categoria || destaque !== null;
-  const fetchLimit = needsClientFilter ? Math.min(max * 10, 200) : max;
+  const needsClientFilter = categoria || destaque !== null || activo === null;
+  const fetchLimit = needsClientFilter ? Math.min(max * 10, 500) : max;
 
-  const filters = [where('activo', '==', activo), orderBy('criado_em', 'desc'), limit(fetchLimit)];
+  const filters = [orderBy('criado_em', 'desc'), limit(fetchLimit)];
+  if (activo !== null) filters.unshift(where('activo', '==', activo));
   if (ultimo && !needsClientFilter) filters.push(startAfter(ultimo));
   const snap = await getDocs(query(collection(db, COL), ...filters));
 
   let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (activo !== null && needsClientFilter) results = results.filter(p => p.activo === activo);
   if (categoria) results = results.filter(p => p.categoria === categoria);
   if (destaque !== null) results = results.filter(p => p.destaque === destaque);
   return results.slice(0, max);
