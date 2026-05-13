@@ -126,6 +126,7 @@ nav {
   background: white; border-radius: var(--radius);
   overflow: hidden; transition: all 0.3s; cursor: pointer;
   border: 1px solid var(--gray-200);
+  display: flex; flex-direction: column;
 }
 .produto-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 .produto-card-img {
@@ -143,7 +144,7 @@ nav {
   font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
 }
 .produto-card-badge.sale { background: var(--red); }
-.produto-card-body { padding: 14px; }
+.produto-card-body { padding: 14px; display: flex; flex-direction: column; flex: 1; }
 .produto-card-nome { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
 .produto-card-preco {
   display: flex; align-items: center; gap: 8px;
@@ -151,7 +152,7 @@ nav {
 .preco-atual { font-size: 16px; font-weight: 700; }
 .preco-original { font-size: 13px; color: var(--gray-400); text-decoration: line-through; }
 .produto-card-actions {
-  display: flex; gap: 8px; margin-top: 12px;
+  display: flex; gap: 8px; margin-top: auto; padding-top: 12px;
 }
 
 /* ── GRID PRODUTOS ── */
