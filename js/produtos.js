@@ -110,13 +110,17 @@ export function renderCard(produto, opts = {}) {
         </div>
         ${showActions ? `
         <div class="produto-card-actions">
-          ${produto.stock === 0
-            ? `<span style="flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--red);padding:8px 0;">Stock insuficiente</span>`
-            : `<button class="btn btn-primary btn-sm" style="flex:1"
-                onclick="event.stopPropagation(); adicionarAoCarrinho('${produto.id}')">
-                + Carrinho
-               </button>`
-          }
+          <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
+            <button class="btn btn-primary btn-sm" style="width:100%;"
+              ${produto.stock === 0 ? 'disabled style="width:100%;opacity:0.45;cursor:not-allowed;"' : ''}
+              onclick="event.stopPropagation(); adicionarAoCarrinho('${produto.id}')">
+              + Carrinho
+            </button>
+            <span style="font-size:11px;font-weight:600;text-align:center;letter-spacing:.3px;
+              color:${produto.stock === 0 ? 'var(--red)' : 'var(--green)'};">
+              ${produto.stock === 0 ? '● Sem stock' : '● Em stock'}
+            </span>
+          </div>
         </div>` : ''}
       </div>
     </div>

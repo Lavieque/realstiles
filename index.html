@@ -263,6 +263,9 @@
     }
     adicionarItem(produto, '', '');
     actualizarContador();
+    document.getElementById('cart-drawer')?.classList.add('open');
+    document.getElementById('cart-overlay')?.classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
 
   init();
