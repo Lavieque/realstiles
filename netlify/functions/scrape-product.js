@@ -284,34 +284,25 @@ function extrairTamanhosSheinHtml(html) {
   return [...new Set(spans)];
 }
 
-// Extrai cores da classe main-sales-attr__color-container
-// Cada cor está em .radio-container__circleImage com title ou aria-label
+// Extrai cores — cada cor está numa tag com classe radio-container__circleImage
+// e o nome da cor no atributo title ou aria-label dessa mesma tag
 function extrairCoresSheinHtml(html) {
-  // 1. Bloco principal de cores
-  const blockMatch = html.match(/class=["'][^"']*main-sales-attr__color-container[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|ul|section)>/i);
-  const block = blockMatch ? blockMatch[1] : html;
+  const cores = [];
 
-  // Extrair title/aria-label dos elementos radio-container__circleImage
-  const cores = [...block.matchAll(/radio-container__circleImage[^>]*(?:title|aria-label)=["']([^"']+)["']/gi)]
-    .map(m => m[1].trim());
+  // Encontrar todas as tags de abertura que contêm a classe radio-container__circleImage
+  const tags = [...html.matchAll(/<[a-z][^>]*class=["'][^"']*radio-container__circleImage[^"']*["'][^>]*>/gi)];
+  for (const [tag] of tags) {
+    const m = tag.match(/(?:title|aria-label)=["']([^"']+)["']/i);
+    if (m) cores.push(m[1].trim());
+  }
 
-  // Também tenta a ordem invertida (title antes da classe)
+  // Fallback: title/aria-label pode aparecer antes da class na mesma tag
   if (!cores.length) {
-    const alt = [...block.matchAll(/(?:title|aria-label)=["']([^"']+)["'][^>]*radio-container__circleImage/gi)]
-      .map(m => m[1].trim());
-    if (alt.length) return [...new Set(alt)];
+    const tagsInv = [...html.matchAll(/<[a-z][^>]*(?:title|aria-label)=["']([^"']+)["'][^>]*radio-container__circleImage[^>]*>/gi)];
+    tagsInv.forEach(([, cor]) => cores.push(cor.trim()));
   }
 
-  // Fallback: qualquer title/aria-label dentro do bloco de cores
-  if (!cores.length && blockMatch) {
-    return [...new Set(
-      [...block.matchAll(/(?:title|aria-label)=["']([^"']{1,30})["']/gi)]
-        .map(m => m[1].trim())
-        .filter(s => s && !s.toLowerCase().includes('image') && !s.toLowerCase().includes('http'))
-    )];
-  }
-
-  return [...new Set(cores)];
+  return [...new Set(cores)].filter(c => c.length > 0 && c.length < 40);
 }
 
 function extrairImagensSheinHtml(html) {
