@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
   <meta charset="UTF-8"/>
@@ -220,5 +220,11 @@
     }
   };
 </script>
+<style>
+.whatsapp-float{position:fixed;bottom:28px;right:28px;z-index:9000;width:56px;height:56px;border-radius:50%;background:#25D366;color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,.45);text-decoration:none;transition:transform .2s,box-shadow .2s}
+.whatsapp-float:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(37,211,102,.6)}
+.whatsapp-float-tooltip{position:absolute;right:66px;top:50%;transform:translateY(-50%);background:#111;color:white;font-size:12px;font-weight:500;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;font-family:Inter,sans-serif}
+.whatsapp-float:hover .whatsapp-float-tooltip{opacity:1}
+</style>
 </body>
 </html>

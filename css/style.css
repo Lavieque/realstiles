@@ -233,6 +233,28 @@ footer ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 footer ul a { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 14px; transition: color 0.2s; }
 footer ul a:hover { color: var(--accent); }
 .footer-logo img { display: block; height: 56px; margin-bottom: 12px; }
+/* ── WHATSAPP FLUTUANTE ── */
+.whatsapp-float {
+  position: fixed; bottom: 28px; right: 28px; z-index: 890;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: #25D366; color: white;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(37,211,102,0.45);
+  text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+}
+.whatsapp-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 28px rgba(37,211,102,0.6);
+}
+.whatsapp-float svg { width: 30px; height: 30px; fill: white; }
+.whatsapp-float-tooltip {
+  position: absolute; right: 66px; top: 50%; transform: translateY(-50%);
+  background: #111; color: white; font-size: 12px; font-weight: 500;
+  padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.whatsapp-float:hover .whatsapp-float-tooltip { opacity: 1; }
+
 .footer-bottom {
   border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;
   display: flex; justify-content: space-between; font-size: 13px; flex-wrap: wrap; gap: 8px;
