@@ -123,9 +123,16 @@
               <input type="text" id="prod-cores" placeholder="Preto, Branco, Azul"/>
             </div>
             <div class="form-group" style="grid-column:1/-1">
-              <label>URL da imagem principal</label>
-              <input type="url" id="prod-imagem" placeholder="https://..." oninput="previewImagem(this.value)"/>
-              <div class="img-preview-grid" id="imagem-preview"></div>
+              <label>Imagens do produto <span style="font-weight:400;color:var(--gray-400)">(a primeira é a principal)</span></label>
+              <div class="imgs-grid" id="imgs-grid"></div>
+              <div class="imgs-add-row">
+                <input type="url" id="nova-img-url" placeholder="https://... (URL da imagem)" style="flex:1;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;"
+                  onfocus="this.style.borderColor='var(--black)'" onblur="this.style.borderColor='var(--gray-200)'"
+                  onkeydown="if(event.key==='Enter'){adicionarUrlImagem();event.preventDefault()}"/>
+                <button class="btn btn-outline btn-sm" onclick="adicionarUrlImagem()" type="button">+ URL</button>
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('imp-upload').click()" type="button">📁 Upload</button>
+              </div>
+              <input type="file" id="imp-upload" accept="image/*" multiple style="display:none;" onchange="uploadImagensImport(this)"/>
             </div>
             <div class="form-group" style="grid-column:1/-1">
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -149,10 +156,43 @@
 
 <div id="toast"></div>
 
+<style>
+  .imgs-grid { display: flex; flex-wrap: wrap; gap: 10px; min-height: 20px; margin-bottom: 4px; }
+  .img-item { position: relative; width: 84px; flex-shrink: 0; }
+  .img-item-thumb {
+    width: 84px; height: 106px; object-fit: cover;
+    border-radius: 8px; border: 1.5px solid var(--gray-200); display: block;
+  }
+  .img-item-badge {
+    position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; background: var(--black); color: white;
+    padding: 2px 7px; border-radius: 4px; white-space: nowrap; pointer-events: none;
+  }
+  .img-item-remove {
+    position: absolute; top: -7px; right: -7px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--red); color: white; border: 2px solid white;
+    cursor: pointer; font-size: 13px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-weight: 700;
+  }
+  .img-item-order {
+    display: flex; justify-content: center; gap: 4px; margin-top: 4px;
+  }
+  .img-item-order button {
+    border: 1px solid var(--gray-200); background: white; border-radius: 4px;
+    width: 26px; height: 22px; cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .img-item-order button:hover { background: var(--gray-100); }
+  .imgs-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .imgs-vazia { font-size: 13px; color: var(--gray-400); padding: 8px 0; }
+</style>
 <script type="module">
   import { requireAdmin, logout, getPerfil } from '../js/auth.js';
   import { criarProduto } from '../js/produtos.js';
   import { mostrarToast } from '../js/carrinho.js';
+  import { uploadParaCloudinary } from '../js/cloudinary.js';
 
   window._logout = logout;
 
@@ -161,6 +201,64 @@
   document.getElementById('admin-nome').textContent = perfil?.nome || user.email;
   document.getElementById('admin-avatar').textContent = (perfil?.nome || 'A')[0].toUpperCase();
 
+  // ── GESTOR DE IMAGENS ──
+  let imagens = [];
+
+  function renderImagens() {
+    const grid = document.getElementById('imgs-grid');
+    if (!imagens.length) {
+      grid.innerHTML = '<p class="imgs-vazia">Nenhuma imagem adicionada.</p>';
+      return;
+    }
+    grid.innerHTML = imagens.map((src, i) => `
+      <div class="img-item">
+        <img class="img-item-thumb" src="${src}" alt="Imagem ${i+1}"
+          onerror="this.src='https://via.placeholder.com/84x106?text=Erro'"/>
+        ${i === 0 ? '<span class="img-item-badge">Principal</span>' : ''}
+        <button class="img-item-remove" onclick="removerImagem(${i})" title="Remover">×</button>
+        <div class="img-item-order">
+          <button onclick="moverImagem(${i},-1)" ${i===0?'disabled':''} title="Mover para a esquerda">‹</button>
+          <button onclick="moverImagem(${i},1)" ${i===imagens.length-1?'disabled':''} title="Mover para a direita">›</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.removerImagem = (i) => { imagens.splice(i, 1); renderImagens(); };
+  window.moverImagem = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= imagens.length) return;
+    [imagens[i], imagens[j]] = [imagens[j], imagens[i]];
+    renderImagens();
+  };
+
+  window.adicionarUrlImagem = () => {
+    const input = document.getElementById('nova-img-url');
+    const url = input.value.trim();
+    if (!url) return;
+    if (!url.startsWith('http')) return mostrarToast('URL inválido', 'error');
+    if (imagens.includes(url)) return mostrarToast('Imagem já adicionada', 'error');
+    imagens.push(url);
+    renderImagens();
+    input.value = '';
+  };
+
+  window.uploadImagensImport = async (input) => {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    const btn = document.getElementById('btn-guardar');
+    mostrarToast(`A fazer upload de ${files.length} imagem(ns)...`);
+    for (const file of files) {
+      try {
+        const url = await uploadParaCloudinary(file);
+        imagens.push(url);
+      } catch (e) { mostrarToast('Erro upload: ' + e.message, 'error'); }
+    }
+    renderImagens();
+    input.value = '';
+  };
+
+  // ── ANALISAR LINK ──
   window.analisarLink = async () => {
     const url = document.getElementById('url-input').value.trim();
     if (!url) return mostrarToast('Introduz um URL', 'error');
@@ -177,10 +275,8 @@
         body: JSON.stringify({ url })
       });
       const data = await res.json();
-
       if (data.error) throw new Error(data.error);
 
-      // Preencher form
       document.getElementById('prod-nome').value = data.nome || '';
       document.getElementById('prod-descricao').value = data.descricao || '';
       document.getElementById('prod-preco').value = data.preco || '';
@@ -188,10 +284,12 @@
       document.getElementById('prod-cores').value = (data.cores || []).join(', ');
       document.getElementById('preview-fonte').textContent = data.fonte_site || 'desconhecido';
 
-      if (data.imagens?.[0]) {
-        document.getElementById('prod-imagem').value = data.imagens[0];
-        previewImagem(data.imagens[0]);
-        document.getElementById('preview-img').src = data.imagens[0];
+      // Carregar TODAS as imagens
+      imagens = (data.imagens || []).filter(Boolean);
+      renderImagens();
+
+      if (imagens[0]) {
+        document.getElementById('preview-img').src = imagens[0];
         document.getElementById('preview-img').style.display = 'block';
       }
 
@@ -202,7 +300,6 @@
       const errEl = document.getElementById('scrape-error');
       errEl.textContent = err.message || 'Erro ao analisar o link. Podes preencher manualmente.';
       errEl.style.display = 'block';
-      // Mostrar form vazio para preenchimento manual
       document.getElementById('form-produto').style.display = 'block';
     } finally {
       document.getElementById('scrape-loading').style.display = 'none';
@@ -210,12 +307,7 @@
     }
   };
 
-  window.previewImagem = (url) => {
-    const container = document.getElementById('imagem-preview');
-    if (!url) { container.innerHTML = ''; return; }
-    container.innerHTML = `<div class="img-preview"><img src="${url}" onerror="this.src='https://via.placeholder.com/80x80?text=Erro'"/></div>`;
-  };
-
+  // ── GUARDAR ──
   window.guardarProduto = async () => {
     const nome = document.getElementById('prod-nome').value.trim();
     const preco = parseFloat(document.getElementById('prod-preco').value);
@@ -226,25 +318,19 @@
     btn.disabled = true; btn.textContent = 'A guardar...';
 
     try {
-      const tamanhos = document.getElementById('prod-tamanhos').value.split(',').map(t => t.trim()).filter(Boolean);
-      const cores = document.getElementById('prod-cores').value.split(',').map(c => c.trim()).filter(Boolean);
-      const imgUrl = document.getElementById('prod-imagem').value.trim();
-
       await criarProduto({
-        nome,
-        preco,
+        nome, preco,
         preco_original: parseFloat(document.getElementById('prod-preco-orig').value) || null,
         descricao: document.getElementById('prod-descricao').value.trim(),
         categoria: document.getElementById('prod-categoria').value,
         stock: parseInt(document.getElementById('prod-stock').value) || 0,
-        tamanhos,
-        cores,
-        imagens: imgUrl ? [imgUrl] : [],
+        tamanhos: document.getElementById('prod-tamanhos').value.split(',').map(t => t.trim()).filter(Boolean),
+        cores: document.getElementById('prod-cores').value.split(',').map(c => c.trim()).filter(Boolean),
+        imagens,
         destaque: document.getElementById('prod-destaque').checked,
         fonte_url: document.getElementById('url-input').value.trim(),
         activo: true
       });
-
       mostrarToast('Produto guardado com sucesso!', 'success');
       setTimeout(() => window.location.href = 'produtos.html', 1500);
     } catch (e) {
@@ -256,24 +342,24 @@
   window.resetForm = () => {
     document.getElementById('form-produto').style.display = 'none';
     document.getElementById('url-input').value = '';
+    imagens = []; renderImagens();
   };
 
   window.adicionarManualmente = () => {
     document.getElementById('scrape-error').style.display = 'none';
-    ['prod-nome','prod-descricao','prod-tamanhos','prod-cores'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+    ['prod-nome','prod-descricao','prod-tamanhos','prod-cores'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('prod-preco').value = '';
     document.getElementById('prod-preco-orig').value = '';
     document.getElementById('prod-stock').value = '10';
-    document.getElementById('prod-imagem').value = '';
     document.getElementById('prod-destaque').checked = false;
     document.getElementById('preview-fonte').textContent = 'preenchimento manual';
     document.getElementById('preview-img').style.display = 'none';
-    document.getElementById('imagem-preview').innerHTML = '';
+    imagens = []; renderImagens();
     document.getElementById('form-produto').style.display = 'block';
     document.getElementById('form-produto').scrollIntoView({ behavior: 'smooth' });
   };
+
+  renderImagens();
 </script>
 </body>
 </html>
