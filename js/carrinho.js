@@ -91,6 +91,110 @@ export function mostrarToast(msg, tipo = '') {
   toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+// ── CART DRAWER ──
+export function initCarrinhoDrawer() {
+  // Injectar HTML do drawer se ainda não existir
+  if (document.getElementById('cart-drawer')) return;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="cart-overlay" id="cart-overlay" onclick="window._fecharDrawer()"></div>
+    <div class="cart-drawer" id="cart-drawer">
+      <div class="cart-drawer-header">
+        <h3>O meu carrinho <span id="cd-header-count" style="color:var(--gray-400);font-weight:400;font-size:14px;"></span></h3>
+        <button class="cart-drawer-close" onclick="window._fecharDrawer()">✕</button>
+      </div>
+      <div class="cart-drawer-items" id="cd-items"></div>
+      <div class="cart-drawer-footer" id="cd-footer"></div>
+    </div>
+  `);
+
+  // Substituir comportamento do botão do carrinho na nav
+  document.querySelectorAll('.nav-cart-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      abrirDrawer();
+    });
+  });
+
+  window._fecharDrawer = fecharDrawer;
+
+  // Actualizar drawer quando o carrinho muda
+  window.addEventListener('carritoUpdated', () => {
+    if (document.getElementById('cart-drawer').classList.contains('open')) {
+      renderDrawer();
+    }
+  });
+}
+
+function abrirDrawer() {
+  renderDrawer();
+  document.getElementById('cart-drawer').classList.add('open');
+  document.getElementById('cart-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharDrawer() {
+  document.getElementById('cart-drawer').classList.remove('open');
+  document.getElementById('cart-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderDrawer() {
+  const carrinho = getCarrinho();
+  const total = getTotalPreco();
+  const count = getTotalItems();
+
+  document.getElementById('cd-header-count').textContent = count > 0 ? `(${count})` : '';
+
+  const itemsEl = document.getElementById('cd-items');
+  const footerEl = document.getElementById('cd-footer');
+
+  if (carrinho.length === 0) {
+    itemsEl.innerHTML = `
+      <div class="cd-empty">
+        <div class="icon">🛍️</div>
+        <p>O teu carrinho está vazio</p>
+      </div>`;
+    footerEl.innerHTML = `
+      <a href="index.html" class="btn btn-primary btn-full">Ver produtos</a>`;
+    return;
+  }
+
+  itemsEl.innerHTML = carrinho.map(item => `
+    <div class="cd-item">
+      <img class="cd-item-img" src="${item.imagem || 'https://via.placeholder.com/64x80?text=?'}"
+        alt="${item.nome}" onerror="this.src='https://via.placeholder.com/64x80?text=?'"/>
+      <div class="cd-item-info">
+        <div class="cd-item-nome">${item.nome}</div>
+        <div class="cd-item-meta">
+          ${item.tamanho ? `<span>Tam: ${item.tamanho}</span>` : ''}
+          ${item.cor ? `<span>Cor: ${item.cor}</span>` : ''}
+        </div>
+        <div class="cd-item-preco">${(item.preco * item.quantidade).toFixed(2)} MZN</div>
+        <div class="cd-item-qty">
+          <button onclick="window._cdQty('${item.key}', ${item.quantidade - 1})">−</button>
+          <span>${item.quantidade}</span>
+          <button onclick="window._cdQty('${item.key}', ${item.quantidade + 1})">+</button>
+        </div>
+      </div>
+      <button class="cd-item-remove" onclick="window._cdRemove('${item.key}')" title="Remover">✕</button>
+    </div>
+  `).join('');
+
+  footerEl.innerHTML = `
+    <div class="cd-total-row">
+      <span>Total</span>
+      <strong>${total.toFixed(2)} MZN</strong>
+    </div>
+    <a href="carrinho.html" class="btn btn-primary btn-full">Ir para o checkout →</a>
+    <button onclick="window._fecharDrawer()" class="btn btn-outline btn-full" style="margin-top:8px;">
+      Continuar a comprar
+    </button>`;
+
+  window._cdQty = (key, qty) => { actualizarQuantidade(key, qty); renderDrawer(); };
+  window._cdRemove = (key) => { removerItem(key); renderDrawer(); };
+}
+
 // ── RENDER CARRINHO ──
 export function renderCarrinho(containerId) {
   const container = document.getElementById(containerId);
