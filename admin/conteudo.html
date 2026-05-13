@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Conteúdo do Site — Real Stiles Admin</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+  <style>
+    .config-section {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+    }
+    .config-section h3 {
+      font-size: 14px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--black);
+      padding-bottom: 14px; border-bottom: 1px solid var(--gray-200);
+      margin-bottom: 20px;
+    }
+    .config-field { margin-bottom: 18px; }
+    .config-field label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--gray-600); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .config-field input, .config-field textarea {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--gray-200); border-radius: 8px;
+      font-size: 14px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color 0.2s; color: var(--black);
+    }
+    .config-field input:focus, .config-field textarea:focus {
+      border-color: var(--black);
+    }
+    .config-field textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    .config-field .hint { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
+    .save-bar {
+      position: sticky; bottom: 0; background: white;
+      border-top: 1px solid var(--gray-200);
+      padding: 16px 32px; display: flex; align-items: center;
+      justify-content: space-between; gap: 12px; z-index: 50;
+    }
+    .save-bar p { font-size: 13px; color: var(--gray-400); }
+    #save-status { font-size: 13px; font-weight: 500; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <a href="../index.html"><img src="../img/logo.png" alt="Real Stiles" style="height:48px;"/></a>
+      <p>Painel de administração</p>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="index.html"><span class="icon">📊</span> Dashboard</a>
+      <a href="encomendas.html"><span class="icon">📦</span> Encomendas</a>
+      <div class="sidebar-section">Catálogo</div>
+      <a href="produtos.html"><span class="icon">👕</span> Produtos</a>
+      <a href="importar.html"><span class="icon">🔗</span> Importar via link</a>
+      <div class="sidebar-section">Clientes</div>
+      <a href="clientes.html"><span class="icon">👥</span> Clientes</a>
+      <div class="sidebar-section">Site</div>
+      <a href="conteudo.html" class="active"><span class="icon">✏️</span> Conteúdo do site</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-nome" id="admin-nome">Admin</div>
+          <div class="sidebar-user-role">Administrador</div>
+        </div>
+      </div>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm btn-full" style="margin-top:8px">Sair</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>Conteúdo do site</h1>
+      <span id="save-status"></span>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- PÁGINA PRINCIPAL -->
+      <div class="config-section">
+        <h3>📄 Página Principal — Hero</h3>
+        <div class="config-field">
+          <label>Título principal</label>
+          <input type="text" id="hero_titulo" placeholder="ex: Veste o teu estilo."/>
+        </div>
+        <div class="config-field">
+          <label>Subtítulo / Descrição</label>
+          <textarea id="hero_subtitulo" rows="3"></textarea>
+        </div>
+        <div class="config-field">
+          <label>Texto do botão</label>
+          <input type="text" id="hero_btn" placeholder="ex: Ver colecção"/>
+        </div>
+      </div>
+
+      <!-- QUEM SOMOS -->
+      <div class="config-section">
+        <h3>🏢 Quem Somos — Sobre nós</h3>
+        <div class="config-field">
+          <label>Título da secção</label>
+          <input type="text" id="qs_sobre_titulo"/>
+        </div>
+        <div class="config-field">
+          <label>Parágrafo 1</label>
+          <textarea id="qs_sobre_texto1" rows="4"></textarea>
+        </div>
+        <div class="config-field">
+          <label>Parágrafo 2</label>
+          <textarea id="qs_sobre_texto2" rows="3"></textarea>
+        </div>
+        <div class="config-field">
+          <label>Título do call-to-action</label>
+          <input type="text" id="qs_cta_titulo"/>
+        </div>
+        <div class="config-field">
+          <label>Subtítulo do call-to-action</label>
+          <input type="text" id="qs_cta_subtitulo"/>
+        </div>
+      </div>
+
+      <!-- CONTACTOS -->
+      <div class="config-section">
+        <h3>📞 Contactos</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="config-field">
+            <label>Telefone 1</label>
+            <input type="text" id="tel1" placeholder="ex: 878 753 754"/>
+          </div>
+          <div class="config-field">
+            <label>Telefone 2</label>
+            <input type="text" id="tel2" placeholder="ex: 852 471 608"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER / GERAL -->
+      <div class="config-section">
+        <h3>🌐 Geral e Rodapé</h3>
+        <div class="config-field">
+          <label>Slogan</label>
+          <input type="text" id="slogan" placeholder="ex: Excelência em Compras"/>
+        </div>
+        <div class="config-field">
+          <label>Descrição no rodapé</label>
+          <textarea id="footer_descricao" rows="2"></textarea>
+        </div>
+        <div class="config-field">
+          <label>Texto de copyright</label>
+          <input type="text" id="copyright"/>
+          <p class="hint">Aparece no rodapé de todas as páginas.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BARRA DE GUARDAR -->
+    <div class="save-bar">
+      <p>As alterações ficam visíveis no site imediatamente após guardar.</p>
+      <button class="btn btn-primary" onclick="guardar()" id="btn-guardar">💾 Guardar alterações</button>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { requireAdmin, logout, getPerfil } from '../js/auth.js';
+  import { getConfig, saveConfig, DEFAULTS } from '../js/config-site.js';
+  import { mostrarToast } from '../js/carrinho.js';
+
+  window._logout = logout;
+
+  const CAMPOS = [
+    'hero_titulo', 'hero_subtitulo', 'hero_btn',
+    'qs_sobre_titulo', 'qs_sobre_texto1', 'qs_sobre_texto2',
+    'qs_cta_titulo', 'qs_cta_subtitulo',
+    'tel1', 'tel2',
+    'slogan', 'footer_descricao', 'copyright',
+  ];
+
+  const user = await requireAdmin();
+  const perfil = await getPerfil(user.uid);
+  document.getElementById('admin-nome').textContent = perfil?.nome || user.email;
+  document.getElementById('admin-avatar').textContent = (perfil?.nome || 'A')[0].toUpperCase();
+
+  // Carregar valores actuais
+  const config = await getConfig();
+  CAMPOS.forEach(campo => {
+    const el = document.getElementById(campo);
+    if (el) el.value = config[campo] ?? DEFAULTS[campo] ?? '';
+  });
+
+  window.guardar = async () => {
+    const btn = document.getElementById('btn-guardar');
+    const status = document.getElementById('save-status');
+    btn.disabled = true; btn.textContent = 'A guardar...';
+
+    const dados = {};
+    CAMPOS.forEach(campo => {
+      const el = document.getElementById(campo);
+      if (el) dados[campo] = el.value.trim();
+    });
+
+    try {
+      await saveConfig(dados);
+      status.textContent = '✓ Guardado';
+      status.style.color = 'var(--green)';
+      mostrarToast('Conteúdo actualizado!', 'success');
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } catch (e) {
+      mostrarToast('Erro ao guardar: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Guardar alterações';
+    }
+  };
+</script>
+</body>
+</html>
