@@ -132,61 +132,144 @@ async function scrapeZara(url) {
 }
 
 // ══════════════════════════════════════════
-// SHEIN — dados embebidos em window.gbSsrData / window.SaPageInfo
+// SHEIN — API interna + HTML fallback
+// URL: https://pt.shein.com/...-p-190526205.html
 // ══════════════════════════════════════════
 async function scrapeShein(url) {
-  const html = await fetchHtml(url);
-  const meta = extrairMetaTags(html);
+  // Extrair goods_id e locale do URL
+  const goodsIdMatch = url.match(/-p-(\d+)\.html/);
+  const goodsId = goodsIdMatch?.[1];
+  const localeMatch = url.match(/https?:\/\/([a-z]{2})\.shein\./);
+  const locale = localeMatch?.[1] || 'pt';
+  const baseUrl = `https://${locale}.shein.com`;
 
-  // Todas as imagens og:image (Shein coloca várias)
-  const ogImagens = [...html.matchAll(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/gi)]
-    .map(m => m[1]).filter(Boolean).slice(0, 5);
+  let nome = '', descricao = '', preco = 0, precoOriginal = null;
+  let imagens = [], tamanhos = [], cores = [], tags = [];
 
-  let nome = limparNome(meta.title, 'shein');
-  let descricao = meta.description;
-  let preco = 0, precoOriginal = null;
-  let tamanhos = [], cores = [], tags = [];
-  let imagens = ogImagens.length ? ogImagens : [meta.image].filter(Boolean);
-
-  // Tentar extrair window.gbSsrData
-  const ssrPatterns = [
-    /window\.gbSsrData\s*=\s*(\{[\s\S]+?\})(?=;\s*(?:window|<\/script>))/,
-    /window\.SaPageInfo\s*=\s*(\{[\s\S]+?\})(?=;\s*(?:window|<\/script>))/,
-    /window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]+?\})(?=;\s*(?:window|<\/script>))/,
-    /"goods_detail"\s*:\s*(\{[\s\S]{100,5000}?\})(?=,\s*")/,
-  ];
-
-  for (const pattern of ssrPatterns) {
-    const m = html.match(pattern);
-    if (!m) continue;
+  // ── 1. Tentar API interna da Shein ──
+  if (goodsId) {
     try {
-      const data = JSON.parse(m[1]);
-      const info = encontrarSheinProduto(data);
-      if (info) {
-        nome = info.goods_name || nome;
-        descricao = info.goods_desc || descricao;
-        preco = parsePreco(info.salePrice?.amount || info.retailPrice?.amount) || preco;
-        precoOriginal = parsePreco(info.retailPrice?.amount);
-        if (precoOriginal === preco) precoOriginal = null;
+      const apiHeaders = {
+        ...HEADERS_BROWSER,
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': url,
+        'X-Requested-With': 'XMLHttpRequest',
+      };
 
-        const imgs = info.goods_imgs || info.images || [];
-        if (imgs.length) {
+      // API de detalhe do produto
+      const apiUrl = `${baseUrl}/api/productInfo/v3/description?goods_id=${goodsId}&cat_id=0&goods_sn=&goods_color_id=0&mall_code=1&main_sale_attr_id=0&_ver=1.2.0&_lang=${locale}`;
+      const res = await fetch(apiUrl, { headers: apiHeaders, timeout: 12000 });
+      if (res.ok) {
+        const data = await res.json();
+        const info = data?.info || data?.data?.info || data?.data;
+        if (info?.goods_name) {
+          nome = info.goods_name;
+          descricao = info.goods_desc || '';
+          preco = parsePreco(info.salePrice?.amount || info.retailPrice?.amount) || 0;
+          precoOriginal = parsePreco(info.retailPrice?.amount);
+          if (precoOriginal && precoOriginal <= preco) precoOriginal = null;
+
+          // Imagens via API
+          const imgs = info.goods_imgs || info.images || [];
           imagens = imgs.map(i => {
-            const src = typeof i === 'string' ? i : (i.origin_image || i.thumbnail || i.src || '');
+            const src = typeof i === 'string' ? i : (i.origin_image || i.medium_image || i.thumbnail || '');
             return src.startsWith('//') ? 'https:' + src : src;
-          }).filter(Boolean).slice(0, 5);
-        }
+          }).filter(Boolean).slice(0, 8);
 
-        tamanhos = (info.attrSizeList || info.sizeList || []).map(s => s.attr_value_name || s.name || '').filter(Boolean);
-        cores = (info.colorList || info.color_list || []).map(c => c.color_name || c.goods_color_image || '').filter(Boolean);
-        tags = (info.productTagInfoList || []).map(t => t.tagName || '').filter(Boolean);
-        break;
+          // Tamanhos via API
+          tamanhos = (info.attrSizeList || info.sizeAttrList || [])
+            .map(s => s.attr_value_name || s.attr_value || s.name || '')
+            .filter(Boolean);
+
+          // Cores via API
+          cores = (info.colorList || info.color_list || [])
+            .map(c => c.color_name || c.goods_color_name || '')
+            .filter(Boolean);
+
+          tags = (info.productTagInfoList || info.tag_list || [])
+            .map(t => t.tagName || t.tag_name || '')
+            .filter(Boolean);
+        }
       }
-    } catch {}
+
+      // API separada para atributos (tamanhos/cores) se ainda vazia
+      if (!tamanhos.length || !cores.length) {
+        const attrUrl = `${baseUrl}/api/productInfo/v3/saleProp?goods_id=${goodsId}&cat_id=0&goods_sn=&goods_color_id=0&mall_code=1&_ver=1.2.0&_lang=${locale}`;
+        const attrRes = await fetch(attrUrl, { headers: apiHeaders, timeout: 8000 });
+        if (attrRes.ok) {
+          const attrData = await attrRes.json();
+          const attrs = attrData?.info || attrData?.data || {};
+          if (!tamanhos.length) {
+            tamanhos = (attrs.saleAttr || attrs.attrSizeList || [])
+              .flatMap(a => a.attr_value_list || [a])
+              .map(v => v.attr_value_name || v.name || '')
+              .filter(Boolean);
+          }
+          if (!cores.length) {
+            cores = (attrs.colorList || [])
+              .map(c => c.color_name || c.goods_color_name || '')
+              .filter(Boolean);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Shein API error:', err.message);
+    }
   }
 
-  // Fallback preço
-  if (!preco) preco = extrairPrecoHtml(html);
+  // ── 2. Fallback HTML ──
+  if (!nome || !imagens.length) {
+    const html = await fetchHtml(url);
+    const meta = extrairMetaTags(html);
+
+    if (!nome) nome = limparNome(meta.title, 'shein');
+    if (!descricao) descricao = meta.description;
+
+    // Imagens: todas as og:image + regex no CDN da Shein
+    if (!imagens.length) {
+      const ogImgs = [...html.matchAll(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/gi)]
+        .map(m => m[1]).filter(Boolean);
+
+      // Regex directo nas URLs do CDN da Shein (img.ltwebstatic.com)
+      const cdnImgs = [...new Set(
+        [...html.matchAll(/https?:\/\/img\.ltwebstatic\.com\/[^\s"'<>]+\.(?:jpg|jpeg|webp|png)/gi)]
+          .map(m => m[0])
+          .filter(src => !src.includes('_thumbnail') && !src.includes('/60/') && !src.includes('/80/'))
+      )];
+
+      imagens = [...new Set([...ogImgs, ...cdnImgs])].slice(0, 8);
+      if (!imagens.length && meta.image) imagens = [meta.image];
+    }
+
+    // Tamanhos e cores via JSON embebido no HTML
+    if (!tamanhos.length || !cores.length) {
+      const ssrPatterns = [
+        /window\.gbSsrData\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
+        /window\.SaPageInfo\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
+        /window\.__INITIAL_STATE__\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
+        /"goods_id"\s*:\s*"?(?:\d+)"?.{0,20}"goods_name"\s*:\s*"([^"]+)"/s,
+      ];
+      for (const pattern of ssrPatterns) {
+        const m = html.match(pattern);
+        if (!m) continue;
+        try {
+          const data = JSON.parse(m[1]);
+          const info = encontrarSheinProduto(data);
+          if (info) {
+            if (!nome || nome === limparNome(meta.title, 'shein')) nome = info.goods_name || nome;
+            if (!preco) preco = parsePreco(info.salePrice?.amount || info.retailPrice?.amount) || 0;
+            if (!tamanhos.length)
+              tamanhos = (info.attrSizeList || info.sizeList || []).map(s => s.attr_value_name || s.name || '').filter(Boolean);
+            if (!cores.length)
+              cores = (info.colorList || info.color_list || []).map(c => c.color_name || '').filter(Boolean);
+            break;
+          }
+        } catch {}
+      }
+    }
+
+    if (!preco) preco = extrairPrecoHtml(html);
+  }
 
   return resultado(nome, descricao, preco, precoOriginal, imagens, tamanhos, cores, tags);
 }
