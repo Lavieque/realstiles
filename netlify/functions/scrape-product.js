@@ -217,61 +217,110 @@ async function scrapeShein(url) {
     }
   }
 
-  // ── 2. Fallback HTML ──
-  if (!nome || !imagens.length) {
-    const html = await fetchHtml(url);
-    const meta = extrairMetaTags(html);
+  // ── 2. HTML — sempre buscado para imagens e dados em falta ──
+  const html = await fetchHtml(url);
+  const meta = extrairMetaTags(html);
 
-    if (!nome) nome = limparNome(meta.title, 'shein');
-    if (!descricao) descricao = meta.description;
+  if (!nome) nome = limparNome(meta.title, 'shein');
+  if (!descricao) descricao = meta.description;
 
-    // Imagens: todas as og:image + regex no CDN da Shein
-    if (!imagens.length) {
-      const ogImgs = [...html.matchAll(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/gi)]
-        .map(m => m[1]).filter(Boolean);
-
-      // Regex directo nas URLs do CDN da Shein (img.ltwebstatic.com)
-      const cdnImgs = [...new Set(
-        [...html.matchAll(/https?:\/\/img\.ltwebstatic\.com\/[^\s"'<>]+\.(?:jpg|jpeg|webp|png)/gi)]
-          .map(m => m[0])
-          .filter(src => !src.includes('_thumbnail') && !src.includes('/60/') && !src.includes('/80/'))
-      )];
-
-      imagens = [...new Set([...ogImgs, ...cdnImgs])].slice(0, 8);
-      if (!imagens.length && meta.image) imagens = [meta.image];
-    }
-
-    // Tamanhos e cores via JSON embebido no HTML
-    if (!tamanhos.length || !cores.length) {
-      const ssrPatterns = [
-        /window\.gbSsrData\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
-        /window\.SaPageInfo\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
-        /window\.__INITIAL_STATE__\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
-        /"goods_id"\s*:\s*"?(?:\d+)"?.{0,20}"goods_name"\s*:\s*"([^"]+)"/s,
-      ];
-      for (const pattern of ssrPatterns) {
-        const m = html.match(pattern);
-        if (!m) continue;
-        try {
-          const data = JSON.parse(m[1]);
-          const info = encontrarSheinProduto(data);
-          if (info) {
-            if (!nome || nome === limparNome(meta.title, 'shein')) nome = info.goods_name || nome;
-            if (!preco) preco = parsePreco(info.salePrice?.amount || info.retailPrice?.amount) || 0;
-            if (!tamanhos.length)
-              tamanhos = (info.attrSizeList || info.sizeList || []).map(s => s.attr_value_name || s.name || '').filter(Boolean);
-            if (!cores.length)
-              cores = (info.colorList || info.color_list || []).map(c => c.color_name || '').filter(Boolean);
-            break;
-          }
-        } catch {}
-      }
-    }
-
-    if (!preco) preco = extrairPrecoHtml(html);
+  // Imagens a partir da estrutura HTML da Shein
+  if (!imagens.length) {
+    imagens = extrairImagensSheinHtml(html);
+    if (!imagens.length && meta.image) imagens = [meta.image];
   }
 
+  // Tamanhos, cores, preço via JSON embebido
+  if (!tamanhos.length || !cores.length || !preco) {
+    const ssrPatterns = [
+      /window\.gbSsrData\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
+      /window\.SaPageInfo\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
+      /window\.__INITIAL_STATE__\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
+    ];
+    for (const pattern of ssrPatterns) {
+      const m = html.match(pattern);
+      if (!m) continue;
+      try {
+        const data = JSON.parse(m[1]);
+        const info = encontrarSheinProduto(data);
+        if (info) {
+          if (!preco) preco = parsePreco(info.salePrice?.amount || info.retailPrice?.amount) || 0;
+          if (!tamanhos.length)
+            tamanhos = (info.attrSizeList || info.sizeList || []).map(s => s.attr_value_name || s.name || '').filter(Boolean);
+          if (!cores.length)
+            cores = (info.colorList || info.color_list || []).map(c => c.color_name || '').filter(Boolean);
+          // Imagens do JSON se ainda vazias
+          if (!imagens.length) {
+            const imgs = info.goods_imgs || info.images || [];
+            imagens = imgs.map(i => {
+              const s = typeof i === 'string' ? i : (i.origin_image || i.medium_image || i.thumbnail || '');
+              return s.startsWith('//') ? 'https:' + s : s;
+            }).filter(Boolean).slice(0, 8);
+          }
+          break;
+        }
+      } catch {}
+    }
+  }
+
+  if (!preco) preco = extrairPrecoHtml(html);
+
   return resultado(nome, descricao, preco, precoOriginal, imagens, tamanhos, cores, tags);
+}
+
+// Extrai imagens do HTML renderizado pela Shein
+// Procura: .thums-picture li .crop-image-container img
+// e fallback para qualquer img do CDN ltwebstatic de tamanho adequado
+function extrairImagensSheinHtml(html) {
+  const vistas = new Set();
+
+  // 1. Bloco .thums-picture — extrai src e data-src de imgs dentro de crop-image-container
+  const thumsMatch = html.match(/class=["'][^"']*thums-picture[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i);
+  if (thumsMatch) {
+    const block = thumsMatch[1];
+    // Dentro de cada crop-image-container pega o img
+    const cropBlocks = [...block.matchAll(/crop-image-container[\s\S]{0,600}?<img([^>]+)>/gi)];
+    for (const [, attrs] of cropBlocks) {
+      const src = extrairAttrImg(attrs);
+      if (src) vistas.add(normalizeSheinImg(src));
+    }
+  }
+
+  // 2. Qualquer .crop-image-container na página (galeria principal)
+  if (!vistas.size) {
+    const allCrop = [...html.matchAll(/crop-image-container[\s\S]{0,600}?<img([^>]+)>/gi)];
+    for (const [, attrs] of allCrop) {
+      const src = extrairAttrImg(attrs);
+      if (src) vistas.add(normalizeSheinImg(src));
+    }
+  }
+
+  // 3. Fallback: CDN ltwebstatic — exclui miniaturas pequenas
+  if (!vistas.size) {
+    const cdnUrls = [...html.matchAll(/["']((?:https?:)?\/\/img\.ltwebstatic\.com\/[^"'<>\s]+\.(?:jpg|jpeg|webp|png))["']/gi)]
+      .map(m => normalizeSheinImg(m[1]))
+      .filter(src => !src.includes('/60/') && !src.includes('/80/') && !src.includes('_thumbnail') && !src.includes('/120/'));
+    cdnUrls.forEach(s => vistas.add(s));
+  }
+
+  return [...vistas].slice(0, 8);
+}
+
+function extrairAttrImg(attrs) {
+  // Prefere data-src (lazy load), depois src
+  for (const attr of ['data-src', 'data-original', 'data-lazy', 'src']) {
+    const m = attrs.match(new RegExp(`${attr}=["']([^"']+)["']`, 'i'));
+    if (m && m[1] && !m[1].includes('data:') && (m[1].includes('ltwebstatic') || m[1].startsWith('http') || m[1].startsWith('//'))) {
+      return m[1];
+    }
+  }
+  return null;
+}
+
+function normalizeSheinImg(src) {
+  src = src.startsWith('//') ? 'https:' + src : src;
+  // Trocar versões pequenas por versão grande (_thumbnail -> nada, _606x_ -> _)
+  return src.replace(/_\d+x\d+\./g, '.').replace(/\/\d{2,3}x\d{2,3}\//g, '/');
 }
 
 function encontrarSheinProduto(obj, depth = 0) {
