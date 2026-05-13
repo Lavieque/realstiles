@@ -1,0 +1,47 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "produtos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "categoria", "order": "ASCENDING" },
+        { "fieldPath": "criado_em", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "produtos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "destaque", "order": "ASCENDING" },
+        { "fieldPath": "criado_em", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "produtos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "criado_em", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "encomendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cliente_id", "order": "ASCENDING" },
+        { "fieldPath": "criado_em", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "encomendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "criado_em", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
