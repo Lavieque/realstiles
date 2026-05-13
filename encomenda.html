@@ -171,10 +171,11 @@
 <script type="module">
   import { requireAuth, initNav, logout } from './js/auth.js';
   import { getEncomenda, badgeEstado, formatarData } from './js/encomendas.js';
-  import { actualizarContador } from './js/carrinho.js';
+  import { actualizarContador, initCarrinhoDrawer } from './js/carrinho.js';
 
   initNav();
   actualizarContador();
+  initCarrinhoDrawer();
   window._logout = logout;
 
   const id = new URLSearchParams(window.location.search).get('id');

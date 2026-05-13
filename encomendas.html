@@ -110,10 +110,11 @@
 <script type="module">
   import { requireAuth, logout, initNav } from './js/auth.js';
   import { getEncomendasCliente, badgeEstado, formatarData } from './js/encomendas.js';
-  import { actualizarContador } from './js/carrinho.js';
+  import { actualizarContador, initCarrinhoDrawer } from './js/carrinho.js';
 
   initNav();
   actualizarContador();
+  initCarrinhoDrawer();
   window._logout = logout;
 
   const params = new URLSearchParams(window.location.search);

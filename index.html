@@ -152,11 +152,12 @@
 <script type="module">
   import { initNav, logout } from './js/auth.js';
   import { getProdutos, getCategorias, renderCard } from './js/produtos.js';
-  import { actualizarContador, adicionarItem } from './js/carrinho.js';
+  import { actualizarContador, adicionarItem, initCarrinhoDrawer } from './js/carrinho.js';
   import { getConfig } from './js/config-site.js';
 
   initNav();
   actualizarContador();
+  initCarrinhoDrawer();
   window._logout = logout;
 
   // Carregar textos dinâmicos do Firestore

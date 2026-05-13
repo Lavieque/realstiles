@@ -276,8 +276,11 @@
 <script type="module">
   import { initNav, logout } from './js/auth.js';
   import { getConfig } from './js/config-site.js';
+  import { actualizarContador, initCarrinhoDrawer } from './js/carrinho.js';
   window._logout = logout;
   initNav();
+  actualizarContador();
+  initCarrinhoDrawer();
 
   getConfig().then(cfg => {
     document.getElementById('qs-slogan').textContent        = cfg.slogan;

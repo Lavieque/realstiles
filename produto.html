@@ -267,11 +267,11 @@
 <script type="module">
   import { initNav, logout } from './js/auth.js';
   import { getProduto } from './js/produtos.js';
-  import { adicionarItem, actualizarContador } from './js/carrinho.js';
-  import { mostrarToast } from './js/carrinho.js';
+  import { adicionarItem, actualizarContador, initCarrinhoDrawer, mostrarToast } from './js/carrinho.js';
 
   initNav();
   actualizarContador();
+  initCarrinhoDrawer();
   window._logout = logout;
 
   const id = new URLSearchParams(window.location.search).get('id');
