@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Importar produto — Real Stiles Admin</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+</head>
+<body>
+
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="../index.html"><img src="../img/logo.png" alt="Real Stiles" style="height:48px;"/></a><p>Painel de administração</p></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="index.html"><span class="icon">📊</span> Dashboard</a>
+      <a href="encomendas.html"><span class="icon">📦</span> Encomendas</a>
+      <div class="sidebar-section">Catálogo</div>
+      <a href="produtos.html"><span class="icon">👕</span> Produtos</a>
+      <a href="importar.html" class="active"><span class="icon">🔗</span> Importar via link</a>
+      <div class="sidebar-section">Clientes</div>
+      <a href="clientes.html"><span class="icon">👥</span> Clientes</a>
+      <div class="sidebar-section">Site</div>
+      <a href="conteudo.html"><span class="icon">✏️</span> Conteúdo do site</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-nome" id="admin-nome">Admin</div>
+          <div class="sidebar-user-role">Administrador</div>
+        </div>
+      </div>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm btn-full" style="margin-top:8px">Sair</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>Importar produto via link</h1>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="adicionarManualmente()">+ Adicionar manualmente</button>
+        <a href="produtos.html" class="btn btn-outline btn-sm">← Produtos</a>
+      </div>
+    </div>
+
+    <div class="admin-content">
+      <div style="max-width:720px;">
+
+        <!-- STEP 1: URL -->
+        <div class="form-card">
+          <h2>1. Cola o link do produto</h2>
+          <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">
+            Suportado: Temu, Shein, AliExpress, Shopee, Zara, H&M e outros sites com meta tags.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <input type="url" id="url-input" placeholder="https://www.temu.com/produto/..."
+              style="flex:1;padding:12px 14px;border:1.5px solid var(--gray-200);border-radius:10px;font-size:14px;font-family:Inter,sans-serif;outline:none;min-width:200px;"
+              onfocus="this.style.borderColor='var(--black)'" onblur="this.style.borderColor='var(--gray-200)'"/>
+            <button class="btn btn-primary" onclick="analisarLink()" id="btn-analisar">
+              🔍 Analisar produto
+            </button>
+          </div>
+          <div id="scrape-loading" style="display:none;margin-top:12px;" class="loading">
+            <div class="spinner"></div> A analisar o link...
+          </div>
+          <div id="scrape-error" style="display:none;background:#FEE2E2;color:#991B1B;padding:12px;border-radius:8px;font-size:13px;margin-top:12px;"></div>
+        </div>
+
+        <!-- STEP 2: PREVIEW + EDIÇÃO -->
+        <div class="form-card" id="form-produto" style="display:none;">
+          <h2>2. Verifica e edita o produto</h2>
+
+          <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;" id="preview-wrap">
+            <img id="preview-img" src="" alt="" style="width:120px;height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--gray-200);display:none;"/>
+            <div style="flex:1;">
+              <p style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">Fonte detectada:</p>
+              <span id="preview-fonte" style="font-size:13px;background:var(--gray-100);padding:3px 10px;border-radius:6px;"></span>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Nome do produto *</label>
+              <input type="text" id="prod-nome" placeholder="Nome do produto"/>
+            </div>
+            <div class="form-group">
+              <label>Preço (MZN) *</label>
+              <input type="number" id="prod-preco" placeholder="0.00" step="0.01"/>
+            </div>
+            <div class="form-group">
+              <label>Preço original / riscado (MZN)</label>
+              <input type="number" id="prod-preco-orig" placeholder="0.00" step="0.01"/>
+            </div>
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="prod-categoria">
+                <option value="">Seleccionar...</option>
+                <option>camisas</option>
+                <option>calças</option>
+                <option>vestidos</option>
+                <option>casacos</option>
+                <option>sapatos</option>
+                <option>acessórios</option>
+                <option>outros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Stock</label>
+              <input type="number" id="prod-stock" value="10"/>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Descrição</label>
+              <textarea id="prod-descricao" rows="3" placeholder="Descrição do produto"></textarea>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Tamanhos disponíveis (separados por vírgula)</label>
+              <input type="text" id="prod-tamanhos" placeholder="XS, S, M, L, XL, XXL"/>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Cores disponíveis (separadas por vírgula)</label>
+              <input type="text" id="prod-cores" placeholder="Preto, Branco, Azul"/>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>URL da imagem principal</label>
+              <input type="url" id="prod-imagem" placeholder="https://..." oninput="previewImagem(this.value)"/>
+              <div class="img-preview-grid" id="imagem-preview"></div>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="prod-destaque"/> Produto em destaque
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn btn-outline" onclick="resetForm()">Cancelar</button>
+            <button class="btn btn-primary" onclick="guardarProduto()" id="btn-guardar">
+              💾 Guardar produto
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { requireAdmin, logout, getPerfil } from '../js/auth.js';
+  import { criarProduto } from '../js/produtos.js';
+  import { mostrarToast } from '../js/carrinho.js';
+
+  window._logout = logout;
+
+  const user = await requireAdmin();
+  const perfil = await getPerfil(user.uid);
+  document.getElementById('admin-nome').textContent = perfil?.nome || user.email;
+  document.getElementById('admin-avatar').textContent = (perfil?.nome || 'A')[0].toUpperCase();
+
+  window.analisarLink = async () => {
+    const url = document.getElementById('url-input').value.trim();
+    if (!url) return mostrarToast('Introduz um URL', 'error');
+
+    document.getElementById('scrape-loading').style.display = 'flex';
+    document.getElementById('scrape-error').style.display = 'none';
+    document.getElementById('btn-analisar').disabled = true;
+    document.getElementById('form-produto').style.display = 'none';
+
+    try {
+      const res = await fetch('/.netlify/functions/scrape-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      // Preencher form
+      document.getElementById('prod-nome').value = data.nome || '';
+      document.getElementById('prod-descricao').value = data.descricao || '';
+      document.getElementById('prod-preco').value = data.preco || '';
+      document.getElementById('prod-tamanhos').value = (data.tamanhos || []).join(', ');
+      document.getElementById('prod-cores').value = (data.cores || []).join(', ');
+      document.getElementById('preview-fonte').textContent = data.fonte_site || 'desconhecido';
+
+      if (data.imagens?.[0]) {
+        document.getElementById('prod-imagem').value = data.imagens[0];
+        previewImagem(data.imagens[0]);
+        document.getElementById('preview-img').src = data.imagens[0];
+        document.getElementById('preview-img').style.display = 'block';
+      }
+
+      document.getElementById('form-produto').style.display = 'block';
+      document.getElementById('form-produto').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+      const errEl = document.getElementById('scrape-error');
+      errEl.textContent = err.message || 'Erro ao analisar o link. Podes preencher manualmente.';
+      errEl.style.display = 'block';
+      // Mostrar form vazio para preenchimento manual
+      document.getElementById('form-produto').style.display = 'block';
+    } finally {
+      document.getElementById('scrape-loading').style.display = 'none';
+      document.getElementById('btn-analisar').disabled = false;
+    }
+  };
+
+  window.previewImagem = (url) => {
+    const container = document.getElementById('imagem-preview');
+    if (!url) { container.innerHTML = ''; return; }
+    container.innerHTML = `<div class="img-preview"><img src="${url}" onerror="this.src='https://via.placeholder.com/80x80?text=Erro'"/></div>`;
+  };
+
+  window.guardarProduto = async () => {
+    const nome = document.getElementById('prod-nome').value.trim();
+    const preco = parseFloat(document.getElementById('prod-preco').value);
+    if (!nome) return mostrarToast('O nome é obrigatório', 'error');
+    if (!preco || preco <= 0) return mostrarToast('Preço inválido', 'error');
+
+    const btn = document.getElementById('btn-guardar');
+    btn.disabled = true; btn.textContent = 'A guardar...';
+
+    try {
+      const tamanhos = document.getElementById('prod-tamanhos').value.split(',').map(t => t.trim()).filter(Boolean);
+      const cores = document.getElementById('prod-cores').value.split(',').map(c => c.trim()).filter(Boolean);
+      const imgUrl = document.getElementById('prod-imagem').value.trim();
+
+      await criarProduto({
+        nome,
+        preco,
+        preco_original: parseFloat(document.getElementById('prod-preco-orig').value) || null,
+        descricao: document.getElementById('prod-descricao').value.trim(),
+        categoria: document.getElementById('prod-categoria').value,
+        stock: parseInt(document.getElementById('prod-stock').value) || 0,
+        tamanhos,
+        cores,
+        imagens: imgUrl ? [imgUrl] : [],
+        destaque: document.getElementById('prod-destaque').checked,
+        fonte_url: document.getElementById('url-input').value.trim(),
+        activo: true
+      });
+
+      mostrarToast('Produto guardado com sucesso!', 'success');
+      setTimeout(() => window.location.href = 'produtos.html', 1500);
+    } catch (e) {
+      mostrarToast('Erro ao guardar: ' + e.message, 'error');
+      btn.disabled = false; btn.textContent = '💾 Guardar produto';
+    }
+  };
+
+  window.resetForm = () => {
+    document.getElementById('form-produto').style.display = 'none';
+    document.getElementById('url-input').value = '';
+  };
+
+  window.adicionarManualmente = () => {
+    document.getElementById('scrape-error').style.display = 'none';
+    ['prod-nome','prod-descricao','prod-tamanhos','prod-cores'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('prod-preco').value = '';
+    document.getElementById('prod-preco-orig').value = '';
+    document.getElementById('prod-stock').value = '10';
+    document.getElementById('prod-imagem').value = '';
+    document.getElementById('prod-destaque').checked = false;
+    document.getElementById('preview-fonte').textContent = 'preenchimento manual';
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('imagem-preview').innerHTML = '';
+    document.getElementById('form-produto').style.display = 'block';
+    document.getElementById('form-produto').scrollIntoView({ behavior: 'smooth' });
+  };
+</script>
+</body>
+</html>
