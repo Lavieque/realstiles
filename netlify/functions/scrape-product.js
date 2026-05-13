@@ -1,4 +1,4 @@
-// ── scrape-product.js ──
+// ── scrape-product.js — Netlify Function (CommonJS obrigatório) ──
 const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
 
 const HEADERS_BROWSER = {
@@ -274,14 +274,23 @@ async function scrapeShein(url) {
 // Extrai imagens do HTML renderizado pela Shein
 // Procura: .thums-picture li .crop-image-container img
 // e fallback para qualquer img do CDN ltwebstatic de tamanho adequado
-// Extrai tamanhos da classe product-intro__bsSize (spans dentro)
+// Extrai tamanhos de .product-intro__bsSize .product-intro__size-radio
 function extrairTamanhosSheinHtml(html) {
-  const blockMatch = html.match(/class=["'][^"']*product-intro__bsSize[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|ul|section)>/i);
-  if (!blockMatch) return [];
-  const spans = [...blockMatch[1].matchAll(/<span[^>]*>([^<]+)<\/span>/gi)]
-    .map(m => m[1].trim())
-    .filter(s => s && !/^\s*$/.test(s) && s.length < 10);
-  return [...new Set(spans)];
+  const tamanhos = [];
+  const vistos = new Set();
+
+  // Cada tamanho está numa tag com classe product-intro__size-radio
+  const re = /<[a-z]+[^>]*class=["'][^"']*product-intro__size-radio[^"']*["'][^>]*>([\s\S]{0,200}?)<\/[a-z]+>/gi;
+  for (const [, inner] of html.matchAll(re)) {
+    // Texto directo ou dentro de span
+    const texto = inner.replace(/<[^>]+>/g, '').trim();
+    if (texto && texto.length < 15 && !vistos.has(texto)) {
+      vistos.add(texto);
+      tamanhos.push(texto);
+    }
+  }
+
+  return tamanhos;
 }
 
 // Extrai nomes das cores a partir das tags radio-container__circleImage
