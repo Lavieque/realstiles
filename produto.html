@@ -22,23 +22,67 @@
     @media (max-width: 768px) { .produto-grid { grid-template-columns: 1fr; gap: 32px; } }
 
     /* Galeria */
-    .galeria { position: sticky; top: calc(var(--nav-h) + 20px); }
-    .galeria-main {
-      aspect-ratio: 3/4; background: var(--gray-100); border-radius: 16px;
-      overflow: hidden; margin-bottom: 12px;
+    .galeria {
+      position: sticky; top: calc(var(--nav-h) + 20px);
+      display: flex; gap: 12px;
     }
-    .galeria-main img {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: opacity 0.2s;
+    /* Thumbnails verticais à esquerda */
+    .galeria-thumbs {
+      display: flex; flex-direction: column; gap: 8px;
+      max-height: 560px; overflow-y: auto; flex-shrink: 0;
+      scrollbar-width: thin; scrollbar-color: var(--gray-200) transparent;
     }
-    .galeria-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .galeria-thumbs::-webkit-scrollbar { width: 4px; }
+    .galeria-thumbs::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
     .galeria-thumb {
       width: 72px; height: 90px; border-radius: 10px; overflow: hidden;
       cursor: pointer; border: 2px solid transparent; flex-shrink: 0;
       background: var(--gray-100); transition: border-color 0.2s;
     }
+    .galeria-thumb:hover { border-color: var(--gray-400); }
     .galeria-thumb.active { border-color: var(--black); }
-    .galeria-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .galeria-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Imagem principal + setas */
+    .galeria-principal { flex: 1; position: relative; }
+    .galeria-main {
+      aspect-ratio: 3/4; background: var(--gray-100); border-radius: 16px;
+      overflow: hidden; width: 100%;
+    }
+    .galeria-main img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: opacity 0.25s ease;
+    }
+    .galeria-main img.fade { opacity: 0; }
+    .galeria-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.92); border: 1px solid var(--gray-200);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      transition: all 0.15s; z-index: 2; user-select: none;
+    }
+    .galeria-arrow:hover { background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+    .galeria-arrow.prev { left: 10px; }
+    .galeria-arrow.next { right: 10px; }
+    .galeria-arrow[hidden] { display: none; }
+    .galeria-dots {
+      display: flex; gap: 6px; justify-content: center; margin-top: 10px;
+    }
+    .galeria-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--gray-200); cursor: pointer; transition: background 0.2s;
+      border: none; padding: 0;
+    }
+    .galeria-dot.active { background: var(--black); }
+    /* Mobile: thumbs abaixo em scroll horizontal */
+    @media (max-width: 600px) {
+      .galeria { flex-direction: column; }
+      .galeria-thumbs {
+        flex-direction: row; max-height: none; overflow-x: auto; overflow-y: hidden;
+        padding-bottom: 4px;
+      }
+      .galeria-thumb { width: 60px; height: 76px; flex-shrink: 0; }
+    }
 
     /* Info */
     .produto-info { padding-top: 8px; }
@@ -147,10 +191,15 @@
   <div id="produto-detalhe-grid" class="produto-grid" style="display:none;">
     <!-- Galeria -->
     <div class="galeria">
-      <div class="galeria-main">
-        <img id="img-main" src="" alt=""/>
-      </div>
       <div class="galeria-thumbs" id="galeria-thumbs"></div>
+      <div class="galeria-principal">
+        <div class="galeria-main">
+          <img id="img-main" src="" alt=""/>
+        </div>
+        <button class="galeria-arrow prev" id="arrow-prev" onclick="navegarGaleria(-1)" hidden>&#8249;</button>
+        <button class="galeria-arrow next" id="arrow-next" onclick="navegarGaleria(1)" hidden>&#8250;</button>
+        <div class="galeria-dots" id="galeria-dots"></div>
+      </div>
     </div>
 
     <!-- Info -->
@@ -216,6 +265,7 @@
 
   let produto = null;
   let tamanhoSel = '', corSel = '';
+  let galeriaImagens = [], galeriaIdx = 0;
 
   async function carregarProduto(id) {
     try {
@@ -239,17 +289,28 @@
 
     // Galeria
     const imagens = p.imagens?.length ? p.imagens : ['https://via.placeholder.com/600x800?text=Sem+Imagem'];
+    galeriaImagens = imagens;
+    galeriaIdx = 0;
+
     const imgMain = document.getElementById('img-main');
     imgMain.src = imagens[0];
     imgMain.alt = p.nome;
 
-    const thumbs = document.getElementById('galeria-thumbs');
+    // Thumbnails (só mostra se houver mais de 1)
+    const thumbsEl = document.getElementById('galeria-thumbs');
     if (imagens.length > 1) {
-      thumbs.innerHTML = imagens.map((src, i) => `
-        <div class="galeria-thumb ${i === 0 ? 'active' : ''}" onclick="trocarImagem('${src}', this)">
+      thumbsEl.innerHTML = imagens.map((src, i) => `
+        <div class="galeria-thumb ${i === 0 ? 'active' : ''}" onclick="irParaImagem(${i})">
           <img src="${src}" alt="${p.nome}" loading="lazy"/>
         </div>
       `).join('');
+      // Setas
+      document.getElementById('arrow-prev').hidden = false;
+      document.getElementById('arrow-next').hidden = false;
+      // Dots
+      document.getElementById('galeria-dots').innerHTML = imagens.map((_, i) =>
+        `<button class="galeria-dot ${i === 0 ? 'active' : ''}" onclick="irParaImagem(${i})"></button>`
+      ).join('');
     }
 
     // Info
@@ -301,11 +362,23 @@
     }
   }
 
-  window.trocarImagem = (src, el) => {
-    document.getElementById('img-main').src = src;
-    document.querySelectorAll('.galeria-thumb').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
+  window.irParaImagem = (idx) => {
+    galeriaIdx = (idx + galeriaImagens.length) % galeriaImagens.length;
+    const imgEl = document.getElementById('img-main');
+    imgEl.classList.add('fade');
+    setTimeout(() => {
+      imgEl.src = galeriaImagens[galeriaIdx];
+      imgEl.classList.remove('fade');
+    }, 150);
+    document.querySelectorAll('.galeria-thumb').forEach((t, i) => t.classList.toggle('active', i === galeriaIdx));
+    document.querySelectorAll('.galeria-dot').forEach((d, i) => d.classList.toggle('active', i === galeriaIdx));
+    // Scroll thumbnail visível
+    const thumbs = document.getElementById('galeria-thumbs');
+    const activeThumb = thumbs.querySelectorAll('.galeria-thumb')[galeriaIdx];
+    if (activeThumb) activeThumb.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   };
+
+  window.navegarGaleria = (dir) => irParaImagem(galeriaIdx + dir);
 
   window.selecionarTamanho = (t, el) => {
     tamanhoSel = t;
@@ -332,6 +405,14 @@
     actualizarContador();
     mostrarToast('Adicionado ao carrinho!', 'success');
   };
+
+  // Swipe no mobile
+  let touchX = 0;
+  document.getElementById('img-main').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.getElementById('img-main').addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) navegarGaleria(dx < 0 ? 1 : -1);
+  });
 
   function mostrarErro() {
     document.getElementById('loading-state').style.display = 'none';
