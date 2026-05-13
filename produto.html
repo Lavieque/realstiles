@@ -126,14 +126,17 @@
     .cores-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
     /* Cor com imagem (swatch) */
     .cor-swatch {
-      width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
-      border: 2.5px solid transparent; cursor: pointer; padding: 0;
+      width: 36px; height: 36px; border-radius: 50%; overflow: hidden;
+      border: 2.5px solid var(--gray-200); cursor: pointer; padding: 0;
       background: var(--gray-100); flex-shrink: 0; transition: all 0.15s;
-      outline: none;
+      outline: none; position: relative;
     }
     .cor-swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .cor-swatch:hover { border-color: var(--gray-400); transform: scale(1.1); }
-    .cor-swatch.active { border-color: var(--black); box-shadow: 0 0 0 2px white, 0 0 0 4px var(--black); }
+    .cor-swatch:hover { border-color: var(--gray-600); transform: scale(1.1); }
+    .cor-swatch.active { border-color: var(--black); box-shadow: 0 0 0 2px white, 0 0 0 4px var(--black); transform: scale(1.1); }
+    /* Cor branca precisa de borda visível */
+    .cor-swatch[style*="#fff"] { border-color: var(--gray-300); }
+    .cor-swatch[style*="white"] { border-color: var(--gray-300); }
     /* Cor com texto (fallback) */
     .cor-btn {
       padding: 8px 16px; border: 1.5px solid var(--gray-200); border-radius: 8px;
@@ -278,6 +281,43 @@
   let tamanhoSel = '', corSel = '';
   let galeriaImagens = [], galeriaIdx = 0;
 
+  // Converte nome de cor para CSS usável no circle
+  const COR_MAP = {
+    // Português
+    'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
+    'vermelho':'#e53e3e','azul':'#3182ce','verde':'#38a169','amarelo':'#ecc94b',
+    'laranja':'#ed8936','rosa':'#ed64a6','roxo':'#805ad5','púrpura':'#805ad5',
+    'castanho':'#a0522d','marrom':'#a0522d','bege':'#f5f0e0','creme':'#fffdd0',
+    'bordeaux':'#800020','vinho':'#722f37','camel':'#c19a6b','cáqui':'#c3b091',
+    'nude':'#e3bc9a','dourado':'#cfb53b','prateado':'#c0c0c0',
+    'azul-marinho':'#002366','marinho':'#002366','navy':'#001f5b',
+    'salmão':'#fa8072','salmon':'#fa8072','turquesa':'#40e0d0',
+    // Inglês (CSS já reconhece muitos directamente)
+    'grey':'#888','gray':'#888','black':'#111','white':'#fff',
+    'red':'#e53e3e','blue':'#3182ce','green':'#38a169','yellow':'#ecc94b',
+    'orange':'#ed8936','pink':'#ed64a6','purple':'#805ad5','brown':'#a0522d',
+    'beige':'#f5f0e0','cream':'#fffdd0','gold':'#cfb53b','silver':'#c0c0c0',
+    'khaki':'#c3b091','coral':'#ff7f50','mint':'#98ff98','lilac':'#c8a2c8',
+    'olive':'#808000','teal':'#008080','burgundy':'#800020','wine':'#722f37',
+    'camel':'#c19a6b','nude':'#e3bc9a','charcoal':'#36454f','ivory':'#fffff0',
+    'indigo':'#4b0082','violet':'#ee82ee','magenta':'#ff00ff','cyan':'#00bcd4',
+  };
+
+  function corParaCSS(nome) {
+    const chave = nome.toLowerCase().trim();
+    if (COR_MAP[chave]) return COR_MAP[chave];
+    // Testar se o browser reconhece directamente como cor CSS
+    const el = document.createElement('div');
+    el.style.color = chave;
+    if (el.style.color) return chave;
+    // Fallback: gerar cor a partir do hash do nome
+    let h = 0;
+    for (let i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) & 0xffffff;
+    const hex = '#' + (h & 0xffffff).toString(16).padStart(6, '0');
+    // Escurecer para ter contraste aceitável
+    return hex;
+  }
+
   async function carregarProduto(id) {
     try {
       produto = await getProduto(id);
@@ -348,19 +388,17 @@
       `).join('');
     }
 
-    // Cores — suporta strings e { nome, imagem }
+    // Cores — swatch com imagem, CSS color, ou hash do nome
     if (p.cores?.length) {
       document.getElementById('wrap-cores').style.display = 'block';
       document.getElementById('cores-grid').innerHTML = p.cores.map(c => {
         const nome = typeof c === 'string' ? c : c.nome;
         const img  = typeof c === 'string' ? null : c.imagem;
         const nomeEsc = nome.replace(/'/g, "\\'");
-        if (img) {
-          return `<button class="cor-swatch" title="${nome}" onclick="selecionarCor('${nomeEsc}', this)">
-            <img src="${img}" alt="${nome}" loading="lazy" onerror="this.parentElement.classList.add('cor-btn');this.parentElement.innerHTML='${nomeEsc}'"/>
-          </button>`;
-        }
-        return `<button class="cor-btn" onclick="selecionarCor('${nomeEsc}', this)">${nome}</button>`;
+        const bg = img ? '' : `background-color:${corParaCSS(nome)};`;
+        return `<button class="cor-swatch" title="${nome}" style="${bg}" onclick="selecionarCor('${nomeEsc}', this)">
+          ${img ? `<img src="${img}" alt="${nome}" loading="lazy"/>` : ''}
+        </button>`;
       }).join('');
     }
 
