@@ -5,6 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Encomendas — Real Stiles</title>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .filtros-estado {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px;
+    }
+    .filtro-estado-btn {
+      padding: 8px 18px; border-radius: 100px; font-size: 13px; font-weight: 500;
+      border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
+      cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+    }
+    .filtro-estado-btn:hover { border-color: var(--black); color: var(--black); }
+    .filtro-estado-btn.active { background: var(--black); color: white; border-color: var(--black); }
+    .enc-card {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 16px; padding: 24px; margin-bottom: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .enc-card:hover { box-shadow: var(--shadow); }
+    .enc-card-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+    }
+    .enc-id-data { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .enc-itens-preview {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+    }
+    .enc-item-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--gray-100); padding: 8px 12px; border-radius: 8px;
+    }
+    .enc-item-chip img {
+      width: 28px; height: 36px; object-fit: cover; border-radius: 4px; background: white;
+    }
+    .enc-item-chip-info p { font-size: 12px; font-weight: 500; line-height: 1.3; }
+    .enc-item-chip-info small { font-size: 11px; color: var(--gray-400); }
+    .enc-card-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 14px; border-top: 1px solid var(--gray-200); flex-wrap: wrap; gap: 10px;
+    }
+    .enc-nota-admin {
+      margin-top: 12px; background: var(--accent-light);
+      padding: 10px 14px; border-radius: 8px; font-size: 13px;
+      border-left: 3px solid var(--accent);
+    }
+    .enc-nota-admin strong { color: var(--accent-dark); }
+  </style>
 </head>
 <body>
 <nav>
@@ -19,15 +64,25 @@
 </nav>
 
 <div class="page-wrapper">
-  <div class="container">
+  <div class="container" style="max-width:900px;">
     <div class="page-header">
       <h1>As minhas encomendas</h1>
       <p>Histórico de todas as tuas encomendas</p>
     </div>
 
-    <!-- Alerta encomenda nova -->
+    <!-- Alerta nova encomenda -->
     <div id="alerta-nova" style="display:none;background:#D1FAE5;color:#065F46;padding:16px 20px;border-radius:12px;margin-bottom:24px;font-weight:500;">
       ✅ Encomenda realizada com sucesso! Entraremos em contacto em breve.
+    </div>
+
+    <!-- Filtros -->
+    <div class="filtros-estado" id="filtros">
+      <button class="filtro-estado-btn active" data-estado="" onclick="filtrar('', this)">Todas</button>
+      <button class="filtro-estado-btn" data-estado="pendente" onclick="filtrar('pendente', this)">⏳ Pendentes</button>
+      <button class="filtro-estado-btn" data-estado="confirmada" onclick="filtrar('confirmada', this)">✅ Confirmadas</button>
+      <button class="filtro-estado-btn" data-estado="enviada" onclick="filtrar('enviada', this)">🚚 Enviadas</button>
+      <button class="filtro-estado-btn" data-estado="entregue" onclick="filtrar('entregue', this)">📦 Entregues</button>
+      <button class="filtro-estado-btn" data-estado="cancelada" onclick="filtrar('cancelada', this)">❌ Canceladas</button>
     </div>
 
     <div id="encomendas-lista">
@@ -51,47 +106,71 @@
   if (params.get('nova')) document.getElementById('alerta-nova').style.display = 'block';
 
   const user = await requireAuth();
-  const encomendas = await getEncomendasCliente(user.uid);
-  const container = document.getElementById('encomendas-lista');
+  let todasEncomendas = [];
 
-  if (encomendas.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="icon">📦</div>
-        <h3>Ainda não tens encomendas</h3>
-        <p>Quando fizeres uma encomenda ela aparecerá aqui.</p>
-        <a href="index.html" class="btn btn-primary" style="margin-top:20px">Ir às compras</a>
-      </div>`;
-    return;
-  }
+  todasEncomendas = await getEncomendasCliente(user.uid);
+  renderLista(todasEncomendas);
 
-  container.innerHTML = encomendas.map(e => `
-    <div style="background:white;border:1px solid var(--gray-200);border-radius:16px;padding:24px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-        <div>
-          <code style="font-size:13px;background:var(--gray-100);padding:4px 10px;border-radius:6px;">#${e.id.substring(0,8).toUpperCase()}</code>
-          <span style="font-size:13px;color:var(--gray-400);margin-left:10px;">${formatarData(e.criado_em)}</span>
-        </div>
-        ${badgeEstado(e.estado)}
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-        ${(e.itens || []).map(i => `
-          <div style="display:flex;align-items:center;gap:8px;background:var(--gray-100);padding:8px 12px;border-radius:8px;">
-            <img src="${i.imagem || 'https://via.placeholder.com/32x40'}" style="width:28px;height:36px;object-fit:cover;border-radius:4px;"/>
-            <div>
-              <p style="font-size:12px;font-weight:500;">${i.nome}</p>
-              <p style="font-size:11px;color:var(--gray-400);">${i.tamanho || ''} × ${i.quantidade}</p>
-            </div>
+  window.filtrar = (estado, btn) => {
+    document.querySelectorAll('.filtro-estado-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filtradas = estado ? todasEncomendas.filter(e => e.estado === estado) : todasEncomendas;
+    renderLista(filtradas);
+  };
+
+  function renderLista(encomendas) {
+    const container = document.getElementById('encomendas-lista');
+
+    if (encomendas.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">📦</div>
+          <h3>Sem encomendas nesta categoria</h3>
+          <p>Tenta outro filtro ou vai às compras.</p>
+          <a href="index.html" class="btn btn-primary" style="margin-top:20px">Ir às compras</a>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = encomendas.map(e => `
+      <div class="enc-card">
+        <div class="enc-card-header">
+          <div class="enc-id-data">
+            <code style="font-size:13px;background:var(--gray-100);padding:4px 10px;border-radius:6px;">#${e.id.substring(0,8).toUpperCase()}</code>
+            <span style="font-size:13px;color:var(--gray-400);">${formatarData(e.criado_em)}</span>
           </div>
-        `).join('')}
+          ${badgeEstado(e.estado)}
+        </div>
+
+        <div class="enc-itens-preview">
+          ${(e.itens || []).slice(0, 4).map(i => `
+            <div class="enc-item-chip">
+              <img src="${i.imagem || 'https://via.placeholder.com/28x36?text=?'}" alt="${i.nome}"
+                onerror="this.src='https://via.placeholder.com/28x36?text=?'"/>
+              <div class="enc-item-chip-info">
+                <p>${i.nome.length > 24 ? i.nome.substring(0,24) + '…' : i.nome}</p>
+                <small>${i.tamanho ? i.tamanho + ' · ' : ''}× ${i.quantidade}</small>
+              </div>
+            </div>
+          `).join('')}
+          ${(e.itens || []).length > 4 ? `<div class="enc-item-chip" style="color:var(--gray-400);font-size:13px;">+${e.itens.length - 4} mais</div>` : ''}
+        </div>
+
+        <div class="enc-card-footer">
+          <span style="font-size:13px;color:var(--gray-600);">${e.cidade_entrega || e.morada_entrega || '—'}</span>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <strong style="font-size:17px;">${e.total?.toFixed(2)} MZN</strong>
+            <a href="encomenda.html?id=${e.id}" class="btn btn-outline btn-sm">Ver detalhe →</a>
+          </div>
+        </div>
+
+        ${e.notas_admin ? `
+          <div class="enc-nota-admin">
+            <strong>Mensagem da loja: </strong>${e.notas_admin}
+          </div>` : ''}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--gray-200);">
-        <span style="font-size:13px;color:var(--gray-600);">Morada: ${e.morada_entrega || '—'}</span>
-        <strong style="font-size:16px;">${e.total?.toFixed(2)} MZN</strong>
-      </div>
-      ${e.notas_admin ? `<div style="margin-top:10px;background:var(--accent-light);padding:10px 14px;border-radius:8px;font-size:13px;"><strong>Mensagem da loja:</strong> ${e.notas_admin}</div>` : ''}
-    </div>
-  `).join('');
+    `).join('');
+  }
 </script>
 </body>
 </html>
