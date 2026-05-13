@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Produtos — Real Stiles Admin</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="../index.html"><img src="../img/logo.png" alt="Real Stiles" style="height:48px;"/></a><p>Painel de administração</p></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="index.html"><span class="icon">📊</span> Dashboard</a>
+      <a href="encomendas.html"><span class="icon">📦</span> Encomendas</a>
+      <div class="sidebar-section">Catálogo</div>
+      <a href="produtos.html" class="active"><span class="icon">👕</span> Produtos</a>
+      <a href="importar.html"><span class="icon">🔗</span> Importar via link</a>
+      <div class="sidebar-section">Clientes</div>
+      <a href="clientes.html"><span class="icon">👥</span> Clientes</a>
+      <div class="sidebar-section">Site</div>
+      <a href="conteudo.html"><span class="icon">✏️</span> Conteúdo do site</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-nome" id="admin-nome">Admin</div>
+          <div class="sidebar-user-role">Administrador</div>
+        </div>
+      </div>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm btn-full" style="margin-top:8px">Sair</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-content">
+      <div class="table-card">
+        <div class="table-card-header">
+          <h2 id="total-label">Todos os produtos</h2>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div class="search-bar">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" placeholder="Pesquisar..." oninput="pesquisar(this.value)"/>
+            </div>
+            <a href="importar.html" class="btn btn-outline btn-sm">🔗 Importar via link</a>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalNovo()">+ Novo produto</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>Produto</th><th>Categoria</th><th>Preço</th>
+              <th>Stock</th><th>Estado</th><th>Acções</th>
+            </tr></thead>
+            <tbody id="tb-produtos">
+              <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL PRODUTO -->
+<div class="modal-overlay" id="modal-produto">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h2 id="modal-titulo">Novo produto</h2>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="form-grid-2">
+      <input type="hidden" id="edit-id"/>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome *</label>
+        <input type="text" id="edit-nome"/>
+      </div>
+      <div class="form-group">
+        <label>Preço (MZN) *</label>
+        <input type="number" id="edit-preco" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Preço original</label>
+        <input type="number" id="edit-preco-orig" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="edit-categoria">
+          <option value="">Seleccionar...</option>
+          <option>camisas</option><option>calças</option>
+          <option>vestidos</option><option>casacos</option>
+          <option>sapatos</option><option>acessórios</option><option>outros</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Stock</label>
+        <input type="number" id="edit-stock" value="0"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Descrição</label>
+        <textarea id="edit-descricao" rows="2"></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Tamanhos (vírgula)</label>
+        <input type="text" id="edit-tamanhos" placeholder="S, M, L, XL"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Imagem / Vídeo</label>
+        <!-- Área de upload (para produtos adicionados manualmente) -->
+        <div id="upload-area"
+          style="border:2px dashed var(--gray-200);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:10px;"
+          onclick="document.getElementById('edit-ficheiro').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--black)'"
+          ondragleave="this.style.borderColor='var(--gray-200)'"
+          ondrop="event.preventDefault();this.style.borderColor='var(--gray-200)';handleDrop(event)">
+          <div id="upload-placeholder">
+            <svg width="32" height="32" fill="none" stroke="var(--gray-400)" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:4px;">Clica ou arrasta imagem / vídeo</p>
+            <p style="font-size:11px;color:var(--gray-400);">JPG, PNG, WebP, MP4, MOV • Máx. 100MB</p>
+          </div>
+          <div id="upload-preview" style="display:none;">
+            <img id="preview-img-edit" style="max-height:140px;max-width:100%;border-radius:8px;display:none;"/>
+            <video id="preview-vid-edit" style="max-height:140px;max-width:100%;border-radius:8px;display:none;" muted playsinline></video>
+            <p id="preview-nome-edit" style="font-size:12px;color:var(--gray-500);margin-top:8px;"></p>
+            <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="limparFicheiro(event)">Remover ficheiro</button>
+          </div>
+        </div>
+        <input type="file" id="edit-ficheiro" accept="image/*,video/*" style="display:none;" onchange="previewFicheiro(this)"/>
+        <!-- Barra de progresso -->
+        <div id="upload-progress-wrap" style="display:none;margin-bottom:10px;">
+          <div style="background:var(--gray-100);border-radius:6px;height:6px;overflow:hidden;">
+            <div id="upload-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width 0.2s;border-radius:6px;"></div>
+          </div>
+          <p id="upload-progress-label" style="font-size:11px;color:var(--gray-500);margin-top:4px;">A carregar...</p>
+        </div>
+        <!-- URL existente (produtos importados via link) -->
+        <input type="url" id="edit-imagem" placeholder="URL da imagem (preenchido automaticamente ao importar via link)" style="font-size:13px;"/>
+        <p style="font-size:11px;color:var(--gray-400);margin-top:4px;">Se seleccionares um ficheiro acima, este campo é ignorado.</p>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="edit-activo" checked/> Activo (visível na loja)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+          <input type="checkbox" id="edit-destaque"/> Produto em destaque
+        </label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicao()" id="btn-guardar-edit">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { requireAdmin, logout, getPerfil } from '../js/auth.js';
+  import { getProdutos, criarProduto, actualizarProduto, apagarProduto } from '../js/produtos.js';
+  import { mostrarToast } from '../js/carrinho.js';
+  import { uploadParaCloudinary } from '../js/cloudinary.js';
+
+  window._logout = logout;
+  let todosProdutos = [];
+  let ficheiroSelecionado = null;
+
+  const user = await requireAdmin();
+  const perfil = await getPerfil(user.uid);
+  document.getElementById('admin-nome').textContent = perfil?.nome || user.email;
+  document.getElementById('admin-avatar').textContent = (perfil?.nome || 'A')[0].toUpperCase();
+
+  async function carregar() {
+    todosProdutos = await getProdutos({ max: 200, activo: null });
+    renderTabela(todosProdutos);
+    document.getElementById('total-label').textContent = `Todos os produtos (${todosProdutos.length})`;
+  }
+
+  function renderTabela(lista) {
+    const tb = document.getElementById('tb-produtos');
+    if (lista.length === 0) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray-400)">Sem produtos</td></tr>';
+      return;
+    }
+    tb.innerHTML = lista.map(p => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="${p.imagens?.[0] || 'https://via.placeholder.com/40x50'}" style="width:36px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200)"/>
+            <span style="font-weight:500;font-size:13px;">${p.nome}</span>
+          </div>
+        </td>
+        <td><span style="font-size:12px;background:var(--gray-100);padding:3px 8px;border-radius:6px;">${p.categoria || '—'}</span></td>
+        <td><strong>${p.preco?.toFixed(2)} MZN</strong></td>
+        <td><span style="color:${p.stock < 3 ? 'var(--red)' : 'inherit'}">${p.stock ?? 0}</span></td>
+        <td><span class="badge-estado ${p.activo ? 'badge-entregue' : 'badge-cancelada'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline btn-sm" onclick="editar('${p.id}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="apagar('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Apagar</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  window.pesquisar = (termo) => {
+    const t = termo.toLowerCase();
+    renderTabela(todosProdutos.filter(p =>
+      p.nome?.toLowerCase().includes(t) || p.categoria?.toLowerCase().includes(t)
+    ));
+  };
+
+  window.previewFicheiro = (input) => {
+    const file = input.files[0];
+    if (!file) return;
+    ficheiroSelecionado = file;
+    const url = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith('video/');
+    document.getElementById('preview-img-edit').style.display = isVideo ? 'none' : 'block';
+    document.getElementById('preview-vid-edit').style.display = isVideo ? 'block' : 'none';
+    if (isVideo) {
+      document.getElementById('preview-vid-edit').src = url;
+    } else {
+      document.getElementById('preview-img-edit').src = url;
+    }
+    document.getElementById('preview-nome-edit').textContent = file.name;
+    document.getElementById('upload-placeholder').style.display = 'none';
+    document.getElementById('upload-preview').style.display = 'block';
+  };
+
+  window.limparFicheiro = (e) => {
+    e.stopPropagation();
+    ficheiroSelecionado = null;
+    document.getElementById('edit-ficheiro').value = '';
+    document.getElementById('upload-placeholder').style.display = 'block';
+    document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('preview-img-edit').src = '';
+    document.getElementById('preview-vid-edit').src = '';
+  };
+
+  window.handleDrop = (e) => {
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const input = document.getElementById('edit-ficheiro');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    window.previewFicheiro(input);
+  };
+
+  function resetUpload() {
+    ficheiroSelecionado = null;
+    document.getElementById('edit-ficheiro').value = '';
+    document.getElementById('upload-placeholder').style.display = 'block';
+    document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('preview-img-edit').src = '';
+    document.getElementById('preview-vid-edit').src = '';
+    document.getElementById('upload-progress-wrap').style.display = 'none';
+    document.getElementById('upload-progress-bar').style.width = '0%';
+  }
+
+  window.abrirModalNovo = () => {
+    document.getElementById('edit-id').value = '';
+    document.getElementById('modal-titulo').textContent = 'Novo produto';
+    ['nome','descricao','tamanhos','imagem'].forEach(f => document.getElementById('edit-'+f).value = '');
+    document.getElementById('edit-preco').value = '';
+    document.getElementById('edit-preco-orig').value = '';
+    document.getElementById('edit-stock').value = '0';
+    document.getElementById('edit-activo').checked = true;
+    document.getElementById('edit-destaque').checked = false;
+    resetUpload();
+    document.getElementById('modal-produto').classList.add('open');
+  };
+
+  window.editar = (id) => {
+    const p = todosProdutos.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('edit-id').value = id;
+    document.getElementById('modal-titulo').textContent = 'Editar produto';
+    document.getElementById('edit-nome').value = p.nome || '';
+    document.getElementById('edit-preco').value = p.preco || '';
+    document.getElementById('edit-preco-orig').value = p.preco_original || '';
+    document.getElementById('edit-categoria').value = p.categoria || '';
+    document.getElementById('edit-stock').value = p.stock ?? 0;
+    document.getElementById('edit-descricao').value = p.descricao || '';
+    document.getElementById('edit-tamanhos').value = (p.tamanhos || []).join(', ');
+    document.getElementById('edit-imagem').value = p.imagens?.[0] || '';
+    document.getElementById('edit-activo').checked = p.activo !== false;
+    document.getElementById('edit-destaque').checked = p.destaque || false;
+    resetUpload();
+    document.getElementById('modal-produto').classList.add('open');
+  };
+
+  window.fecharModal = () => document.getElementById('modal-produto').classList.remove('open');
+
+  window.guardarEdicao = async () => {
+    const id = document.getElementById('edit-id').value;
+    const nome = document.getElementById('edit-nome').value.trim();
+    const preco = parseFloat(document.getElementById('edit-preco').value);
+    if (!nome || !preco) return mostrarToast('Nome e preço são obrigatórios', 'error');
+
+    const btn = document.getElementById('btn-guardar-edit');
+    btn.disabled = true;
+
+    // Se há ficheiro selecionado, fazer upload para Cloudinary
+    let imagemUrl = document.getElementById('edit-imagem').value.trim();
+    if (ficheiroSelecionado) {
+      btn.textContent = 'A fazer upload...';
+      const progressWrap = document.getElementById('upload-progress-wrap');
+      const progressBar = document.getElementById('upload-progress-bar');
+      const progressLabel = document.getElementById('upload-progress-label');
+      progressWrap.style.display = 'block';
+      try {
+        imagemUrl = await uploadParaCloudinary(ficheiroSelecionado, (pct) => {
+          progressBar.style.width = pct + '%';
+          progressLabel.textContent = `A carregar... ${pct}%`;
+        });
+        progressLabel.textContent = 'Upload concluído!';
+      } catch (e) {
+        mostrarToast('Erro no upload: ' + e.message, 'error');
+        btn.disabled = false; btn.textContent = 'Guardar';
+        progressWrap.style.display = 'none';
+        return;
+      }
+    }
+
+    btn.textContent = 'A guardar...';
+    const dados = {
+      nome, preco,
+      preco_original: parseFloat(document.getElementById('edit-preco-orig').value) || null,
+      categoria: document.getElementById('edit-categoria').value,
+      stock: parseInt(document.getElementById('edit-stock').value) || 0,
+      descricao: document.getElementById('edit-descricao').value.trim(),
+      tamanhos: document.getElementById('edit-tamanhos').value.split(',').map(t => t.trim()).filter(Boolean),
+      imagens: imagemUrl ? [imagemUrl] : [],
+      activo: document.getElementById('edit-activo').checked,
+      destaque: document.getElementById('edit-destaque').checked,
+    };
+
+    try {
+      if (id) { await actualizarProduto(id, dados); }
+      else { await criarProduto(dados); }
+      mostrarToast('Produto guardado!', 'success');
+      fecharModal();
+      await carregar();
+    } catch (e) {
+      mostrarToast('Erro: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar';
+    }
+  };
+
+  window.apagar = async (id, nome) => {
+    if (!confirm(`Tens a certeza que queres apagar "${nome}"?`)) return;
+    try {
+      await apagarProduto(id);
+      mostrarToast('Produto apagado', 'success');
+      await carregar();
+    } catch (e) { mostrarToast('Erro ao apagar', 'error'); }
+  };
+
+  carregar();
+</script>
+</body>
+</html>
