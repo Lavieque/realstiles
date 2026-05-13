@@ -181,19 +181,24 @@
   import { getEncomenda, badgeEstado, formatarData } from './js/encomendas.js';
   import { actualizarContador, initCarrinhoDrawer } from './js/carrinho.js';
 
+  function mostrarErro() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('erro-state').style.display = 'block';
+  }
+
   initNav();
   actualizarContador();
   initCarrinhoDrawer();
   window._logout = logout;
 
+  (async () => {
   const id = new URLSearchParams(window.location.search).get('id');
-  if (!id) return mostrarErro();
+  if (!id) { mostrarErro(); return; }
 
   const user = await requireAuth();
   const enc = await getEncomenda(id);
 
-  // Verificar que a encomenda pertence ao utilizador
-  if (!enc || enc.cliente_id !== user.uid) return mostrarErro();
+  if (!enc || enc.cliente_id !== user.uid) { mostrarErro(); return; }
 
   document.getElementById('loading-state').style.display = 'none';
   document.getElementById('conteudo').style.display = 'block';
@@ -267,10 +272,7 @@
     document.getElementById('enc-nota-texto').textContent = enc.notas_admin;
   }
 
-  function mostrarErro() {
-    document.getElementById('loading-state').style.display = 'none';
-    document.getElementById('erro-state').style.display = 'block';
-  }
+  })();
 </script>
 </body>
 </html>
