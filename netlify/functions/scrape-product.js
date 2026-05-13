@@ -284,25 +284,31 @@ function extrairTamanhosSheinHtml(html) {
   return [...new Set(spans)];
 }
 
-// Extrai cores — cada cor está numa tag com classe radio-container__circleImage
-// e o nome da cor no atributo title ou aria-label dessa mesma tag
+// Extrai cores como [{ nome, imagem }] ou fallback para strings
+// Estrutura Shein: <div class="radio-container__circleImage" title="Nome">...<img src="swatch.jpg"/>...</div>
 function extrairCoresSheinHtml(html) {
   const cores = [];
+  const vistos = new Set();
 
-  // Encontrar todas as tags de abertura que contêm a classe radio-container__circleImage
-  const tags = [...html.matchAll(/<[a-z][^>]*class=["'][^"']*radio-container__circleImage[^"']*["'][^>]*>/gi)];
-  for (const [tag] of tags) {
-    const m = tag.match(/(?:title|aria-label)=["']([^"']+)["']/i);
-    if (m) cores.push(m[1].trim());
+  // Captura tag completa + conteúdo interno de cada radio-container__circleImage
+  const re = /<([a-z]+)([^>]*class=["'][^"']*radio-container__circleImage[^"']*["'][^>]*)>([\s\S]{0,600}?)<\/\1>/gi;
+
+  for (const [, , fullAttrs, inner] of html.matchAll(re)) {
+    const nomeMatch = fullAttrs.match(/(?:title|aria-label)=["']([^"']{1,40})["']/i);
+    const nome = nomeMatch?.[1]?.trim();
+    if (!nome || vistos.has(nome)) continue;
+    vistos.add(nome);
+
+    // img dentro do bloco — prefere data-src (lazy), depois src
+    const imgMatch = inner.match(/<img[^>]+data-src=["']([^"']+)["']/i)
+                  || inner.match(/<img[^>]+src=["']([^"']+)["']/i);
+    let imagem = imgMatch?.[1] || null;
+    if (imagem?.startsWith('//')) imagem = 'https:' + imagem;
+
+    cores.push(imagem ? { nome, imagem } : nome);
   }
 
-  // Fallback: title/aria-label pode aparecer antes da class na mesma tag
-  if (!cores.length) {
-    const tagsInv = [...html.matchAll(/<[a-z][^>]*(?:title|aria-label)=["']([^"']+)["'][^>]*radio-container__circleImage[^>]*>/gi)];
-    tagsInv.forEach(([, cor]) => cores.push(cor.trim()));
-  }
-
-  return [...new Set(cores)].filter(c => c.length > 0 && c.length < 40);
+  return cores;
 }
 
 function extrairImagensSheinHtml(html) {
