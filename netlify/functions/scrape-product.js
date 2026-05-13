@@ -230,8 +230,12 @@ async function scrapeShein(url) {
     if (!imagens.length && meta.image) imagens = [meta.image];
   }
 
-  // Tamanhos, cores, preço via JSON embebido
-  if (!tamanhos.length || !cores.length || !preco) {
+  // Tamanhos e cores: primeiro pelo HTML renderizado (classes conhecidas)
+  if (!tamanhos.length) tamanhos = extrairTamanhosSheinHtml(html);
+  if (!cores.length) cores = extrairCoresSheinHtml(html);
+
+  // Complementar com JSON embebido (preço + dados em falta)
+  if (!preco || !tamanhos.length || !cores.length) {
     const ssrPatterns = [
       /window\.gbSsrData\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
       /window\.SaPageInfo\s*=\s*(\{.+?\});?\s*(?:window|<\/script>)/s,
@@ -249,7 +253,6 @@ async function scrapeShein(url) {
             tamanhos = (info.attrSizeList || info.sizeList || []).map(s => s.attr_value_name || s.name || '').filter(Boolean);
           if (!cores.length)
             cores = (info.colorList || info.color_list || []).map(c => c.color_name || '').filter(Boolean);
-          // Imagens do JSON se ainda vazias
           if (!imagens.length) {
             const imgs = info.goods_imgs || info.images || [];
             imagens = imgs.map(i => {
@@ -271,6 +274,31 @@ async function scrapeShein(url) {
 // Extrai imagens do HTML renderizado pela Shein
 // Procura: .thums-picture li .crop-image-container img
 // e fallback para qualquer img do CDN ltwebstatic de tamanho adequado
+// Extrai tamanhos da classe product-intro__bsSize (spans dentro)
+function extrairTamanhosSheinHtml(html) {
+  const blockMatch = html.match(/class=["'][^"']*product-intro__bsSize[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|ul|section)>/i);
+  if (!blockMatch) return [];
+  const spans = [...blockMatch[1].matchAll(/<span[^>]*>([^<]+)<\/span>/gi)]
+    .map(m => m[1].trim())
+    .filter(s => s && !/^\s*$/.test(s) && s.length < 10);
+  return [...new Set(spans)];
+}
+
+// Extrai cores da classe product-intro__color (spans dentro)
+function extrairCoresSheinHtml(html) {
+  const blockMatch = html.match(/class=["'][^"']*product-intro__color[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|ul|section)>/i);
+  if (!blockMatch) return [];
+  // Tenta primeiro spans com texto (nome da cor)
+  const spans = [...blockMatch[1].matchAll(/<span[^>]*>([^<\s][^<]+)<\/span>/gi)]
+    .map(m => m[1].trim())
+    .filter(s => s && s.length > 0 && s.length < 30);
+  if (spans.length) return [...new Set(spans)];
+  // Alternativa: atributo title ou aria-label em elementos dentro do bloco
+  const titles = [...blockMatch[1].matchAll(/(?:title|aria-label)=["']([^"']+)["']/gi)]
+    .map(m => m[1].trim()).filter(Boolean);
+  return [...new Set(titles)];
+}
+
 function extrairImagensSheinHtml(html) {
   const vistas = new Set();
 
