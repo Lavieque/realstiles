@@ -6,6 +6,18 @@
   <title>Produtos — Real Stiles Admin</title>
   <link rel="stylesheet" href="../css/style.css"/>
   <link rel="stylesheet" href="../css/admin.css"/>
+  <style>
+    .imgs-grid { display: flex; flex-wrap: wrap; gap: 10px; min-height: 20px; margin-bottom: 4px; }
+    .img-item { position: relative; width: 84px; flex-shrink: 0; }
+    .img-item-thumb { width: 84px; height: 106px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--gray-200); display: block; }
+    .img-item-badge { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); font-size: 10px; background: var(--black); color: white; padding: 2px 7px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
+    .img-item-remove { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; background: var(--red); color: white; border: 2px solid white; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-weight: 700; }
+    .img-item-order { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+    .img-item-order button { border: 1px solid var(--gray-200); background: white; border-radius: 4px; width: 26px; height: 22px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    .img-item-order button:hover { background: var(--gray-100); }
+    .imgs-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .imgs-vazia { font-size: 13px; color: var(--gray-400); padding: 4px 0; }
+  </style>
 </head>
 <body>
 <div class="admin-layout">
@@ -108,37 +120,23 @@
         <input type="text" id="edit-tamanhos" placeholder="S, M, L, XL"/>
       </div>
       <div class="form-group" style="grid-column:1/-1">
-        <label>Imagem / Vídeo</label>
-        <!-- Área de upload (para produtos adicionados manualmente) -->
-        <div id="upload-area"
-          style="border:2px dashed var(--gray-200);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:10px;"
-          onclick="document.getElementById('edit-ficheiro').click()"
-          ondragover="event.preventDefault();this.style.borderColor='var(--black)'"
-          ondragleave="this.style.borderColor='var(--gray-200)'"
-          ondrop="event.preventDefault();this.style.borderColor='var(--gray-200)';handleDrop(event)">
-          <div id="upload-placeholder">
-            <svg width="32" height="32" fill="none" stroke="var(--gray-400)" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:8px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <p style="font-size:13px;color:var(--gray-600);margin-bottom:4px;">Clica ou arrasta imagem / vídeo</p>
-            <p style="font-size:11px;color:var(--gray-400);">JPG, PNG, WebP, MP4, MOV • Máx. 100MB</p>
-          </div>
-          <div id="upload-preview" style="display:none;">
-            <img id="preview-img-edit" style="max-height:140px;max-width:100%;border-radius:8px;display:none;"/>
-            <video id="preview-vid-edit" style="max-height:140px;max-width:100%;border-radius:8px;display:none;" muted playsinline></video>
-            <p id="preview-nome-edit" style="font-size:12px;color:var(--gray-500);margin-top:8px;"></p>
-            <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="limparFicheiro(event)">Remover ficheiro</button>
-          </div>
+        <label>Imagens <span style="font-weight:400;color:var(--gray-400)">(a primeira é a principal)</span></label>
+        <div class="imgs-grid" id="edit-imgs-grid"></div>
+        <div class="imgs-add-row">
+          <input type="url" id="edit-nova-img-url" placeholder="https://... colar URL de imagem"
+            style="flex:1;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;"
+            onfocus="this.style.borderColor='var(--black)'" onblur="this.style.borderColor='var(--gray-200)'"
+            onkeydown="if(event.key==='Enter'){adicionarUrlEdit();event.preventDefault()}"/>
+          <button class="btn btn-outline btn-sm" onclick="adicionarUrlEdit()" type="button">+ URL</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('edit-ficheiro').click()" type="button">📁 Upload</button>
         </div>
-        <input type="file" id="edit-ficheiro" accept="image/*,video/*" style="display:none;" onchange="previewFicheiro(this)"/>
-        <!-- Barra de progresso -->
-        <div id="upload-progress-wrap" style="display:none;margin-bottom:10px;">
+        <input type="file" id="edit-ficheiro" accept="image/*" multiple style="display:none;" onchange="uploadImagensEdit(this)"/>
+        <div id="upload-progress-wrap" style="display:none;margin-top:8px;">
           <div style="background:var(--gray-100);border-radius:6px;height:6px;overflow:hidden;">
             <div id="upload-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width 0.2s;border-radius:6px;"></div>
           </div>
           <p id="upload-progress-label" style="font-size:11px;color:var(--gray-500);margin-top:4px;">A carregar...</p>
         </div>
-        <!-- URL existente (produtos importados via link) -->
-        <input type="url" id="edit-imagem" placeholder="URL da imagem (preenchido automaticamente ao importar via link)" style="font-size:13px;"/>
-        <p style="font-size:11px;color:var(--gray-400);margin-top:4px;">Se seleccionares um ficheiro acima, este campo é ignorado.</p>
       </div>
       <div class="form-group" style="grid-column:1/-1">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -166,7 +164,63 @@
 
   window._logout = logout;
   let todosProdutos = [];
-  let ficheiroSelecionado = null;
+  let imagensEdit = [];
+
+  // ── GESTOR IMAGENS MODAL ──
+  function renderImagensEdit() {
+    const grid = document.getElementById('edit-imgs-grid');
+    if (!imagensEdit.length) {
+      grid.innerHTML = '<p class="imgs-vazia">Nenhuma imagem adicionada.</p>';
+      return;
+    }
+    grid.innerHTML = imagensEdit.map((src, i) => `
+      <div class="img-item">
+        <img class="img-item-thumb" src="${src}" alt="img ${i+1}"
+          onerror="this.src='https://via.placeholder.com/84x106?text=Erro'"/>
+        ${i === 0 ? '<span class="img-item-badge">Principal</span>' : ''}
+        <button class="img-item-remove" onclick="removerImagemEdit(${i})" title="Remover">×</button>
+        <div class="img-item-order">
+          <button onclick="moverImagemEdit(${i},-1)" ${i===0?'disabled':''}>‹</button>
+          <button onclick="moverImagemEdit(${i},1)" ${i===imagensEdit.length-1?'disabled':''}>›</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  window.removerImagemEdit = (i) => { imagensEdit.splice(i, 1); renderImagensEdit(); };
+  window.moverImagemEdit = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= imagensEdit.length) return;
+    [imagensEdit[i], imagensEdit[j]] = [imagensEdit[j], imagensEdit[i]];
+    renderImagensEdit();
+  };
+  window.adicionarUrlEdit = () => {
+    const input = document.getElementById('edit-nova-img-url');
+    const url = input.value.trim();
+    if (!url || !url.startsWith('http')) return mostrarToast('URL inválido', 'error');
+    if (imagensEdit.includes(url)) return mostrarToast('Já existe', 'error');
+    imagensEdit.push(url); renderImagensEdit(); input.value = '';
+  };
+  window.uploadImagensEdit = async (input) => {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    const progressWrap = document.getElementById('upload-progress-wrap');
+    const progressBar = document.getElementById('upload-progress-bar');
+    const progressLabel = document.getElementById('upload-progress-label');
+    progressWrap.style.display = 'block';
+    for (let fi = 0; fi < files.length; fi++) {
+      try {
+        progressLabel.textContent = `A carregar ${fi+1}/${files.length}...`;
+        const url = await uploadParaCloudinary(files[fi], (pct) => {
+          progressBar.style.width = pct + '%';
+        });
+        imagensEdit.push(url);
+        renderImagensEdit();
+      } catch (e) { mostrarToast('Erro upload: ' + e.message, 'error'); }
+    }
+    progressWrap.style.display = 'none';
+    progressBar.style.width = '0%';
+    input.value = '';
+  };
 
   const user = await requireAdmin();
   const perfil = await getPerfil(user.uid);
@@ -214,65 +268,24 @@
     ));
   };
 
-  window.previewFicheiro = (input) => {
-    const file = input.files[0];
-    if (!file) return;
-    ficheiroSelecionado = file;
-    const url = URL.createObjectURL(file);
-    const isVideo = file.type.startsWith('video/');
-    document.getElementById('preview-img-edit').style.display = isVideo ? 'none' : 'block';
-    document.getElementById('preview-vid-edit').style.display = isVideo ? 'block' : 'none';
-    if (isVideo) {
-      document.getElementById('preview-vid-edit').src = url;
-    } else {
-      document.getElementById('preview-img-edit').src = url;
-    }
-    document.getElementById('preview-nome-edit').textContent = file.name;
-    document.getElementById('upload-placeholder').style.display = 'none';
-    document.getElementById('upload-preview').style.display = 'block';
-  };
-
-  window.limparFicheiro = (e) => {
-    e.stopPropagation();
-    ficheiroSelecionado = null;
+  function resetImagens() {
+    imagensEdit = [];
     document.getElementById('edit-ficheiro').value = '';
-    document.getElementById('upload-placeholder').style.display = 'block';
-    document.getElementById('upload-preview').style.display = 'none';
-    document.getElementById('preview-img-edit').src = '';
-    document.getElementById('preview-vid-edit').src = '';
-  };
-
-  window.handleDrop = (e) => {
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    const input = document.getElementById('edit-ficheiro');
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    input.files = dt.files;
-    window.previewFicheiro(input);
-  };
-
-  function resetUpload() {
-    ficheiroSelecionado = null;
-    document.getElementById('edit-ficheiro').value = '';
-    document.getElementById('upload-placeholder').style.display = 'block';
-    document.getElementById('upload-preview').style.display = 'none';
-    document.getElementById('preview-img-edit').src = '';
-    document.getElementById('preview-vid-edit').src = '';
     document.getElementById('upload-progress-wrap').style.display = 'none';
     document.getElementById('upload-progress-bar').style.width = '0%';
+    renderImagensEdit();
   }
 
   window.abrirModalNovo = () => {
     document.getElementById('edit-id').value = '';
     document.getElementById('modal-titulo').textContent = 'Novo produto';
-    ['nome','descricao','tamanhos','imagem'].forEach(f => document.getElementById('edit-'+f).value = '');
+    ['nome','descricao','tamanhos'].forEach(f => document.getElementById('edit-'+f).value = '');
     document.getElementById('edit-preco').value = '';
     document.getElementById('edit-preco-orig').value = '';
     document.getElementById('edit-stock').value = '0';
     document.getElementById('edit-activo').checked = true;
     document.getElementById('edit-destaque').checked = false;
-    resetUpload();
+    resetImagens();
     document.getElementById('modal-produto').classList.add('open');
   };
 
@@ -288,10 +301,12 @@
     document.getElementById('edit-stock').value = p.stock ?? 0;
     document.getElementById('edit-descricao').value = p.descricao || '';
     document.getElementById('edit-tamanhos').value = (p.tamanhos || []).join(', ');
-    document.getElementById('edit-imagem').value = p.imagens?.[0] || '';
     document.getElementById('edit-activo').checked = p.activo !== false;
     document.getElementById('edit-destaque').checked = p.destaque || false;
-    resetUpload();
+    imagensEdit = [...(p.imagens || [])];
+    document.getElementById('edit-ficheiro').value = '';
+    document.getElementById('upload-progress-wrap').style.display = 'none';
+    renderImagensEdit();
     document.getElementById('modal-produto').classList.add('open');
   };
 
@@ -304,31 +319,8 @@
     if (!nome || !preco) return mostrarToast('Nome e preço são obrigatórios', 'error');
 
     const btn = document.getElementById('btn-guardar-edit');
-    btn.disabled = true;
+    btn.disabled = true; btn.textContent = 'A guardar...';
 
-    // Se há ficheiro selecionado, fazer upload para Cloudinary
-    let imagemUrl = document.getElementById('edit-imagem').value.trim();
-    if (ficheiroSelecionado) {
-      btn.textContent = 'A fazer upload...';
-      const progressWrap = document.getElementById('upload-progress-wrap');
-      const progressBar = document.getElementById('upload-progress-bar');
-      const progressLabel = document.getElementById('upload-progress-label');
-      progressWrap.style.display = 'block';
-      try {
-        imagemUrl = await uploadParaCloudinary(ficheiroSelecionado, (pct) => {
-          progressBar.style.width = pct + '%';
-          progressLabel.textContent = `A carregar... ${pct}%`;
-        });
-        progressLabel.textContent = 'Upload concluído!';
-      } catch (e) {
-        mostrarToast('Erro no upload: ' + e.message, 'error');
-        btn.disabled = false; btn.textContent = 'Guardar';
-        progressWrap.style.display = 'none';
-        return;
-      }
-    }
-
-    btn.textContent = 'A guardar...';
     const dados = {
       nome, preco,
       preco_original: parseFloat(document.getElementById('edit-preco-orig').value) || null,
@@ -336,7 +328,7 @@
       stock: parseInt(document.getElementById('edit-stock').value) || 0,
       descricao: document.getElementById('edit-descricao').value.trim(),
       tamanhos: document.getElementById('edit-tamanhos').value.split(',').map(t => t.trim()).filter(Boolean),
-      imagens: imagemUrl ? [imagemUrl] : [],
+      imagens: imagensEdit,
       activo: document.getElementById('edit-activo').checked,
       destaque: document.getElementById('edit-destaque').checked,
     };
