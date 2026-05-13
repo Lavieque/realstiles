@@ -284,19 +284,34 @@ function extrairTamanhosSheinHtml(html) {
   return [...new Set(spans)];
 }
 
-// Extrai cores da classe product-intro__color (spans dentro)
+// Extrai cores da classe main-sales-attr__color-container
+// Cada cor está em .radio-container__circleImage com title ou aria-label
 function extrairCoresSheinHtml(html) {
-  const blockMatch = html.match(/class=["'][^"']*product-intro__color[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|ul|section)>/i);
-  if (!blockMatch) return [];
-  // Tenta primeiro spans com texto (nome da cor)
-  const spans = [...blockMatch[1].matchAll(/<span[^>]*>([^<\s][^<]+)<\/span>/gi)]
-    .map(m => m[1].trim())
-    .filter(s => s && s.length > 0 && s.length < 30);
-  if (spans.length) return [...new Set(spans)];
-  // Alternativa: atributo title ou aria-label em elementos dentro do bloco
-  const titles = [...blockMatch[1].matchAll(/(?:title|aria-label)=["']([^"']+)["']/gi)]
-    .map(m => m[1].trim()).filter(Boolean);
-  return [...new Set(titles)];
+  // 1. Bloco principal de cores
+  const blockMatch = html.match(/class=["'][^"']*main-sales-attr__color-container[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|ul|section)>/i);
+  const block = blockMatch ? blockMatch[1] : html;
+
+  // Extrair title/aria-label dos elementos radio-container__circleImage
+  const cores = [...block.matchAll(/radio-container__circleImage[^>]*(?:title|aria-label)=["']([^"']+)["']/gi)]
+    .map(m => m[1].trim());
+
+  // Também tenta a ordem invertida (title antes da classe)
+  if (!cores.length) {
+    const alt = [...block.matchAll(/(?:title|aria-label)=["']([^"']+)["'][^>]*radio-container__circleImage/gi)]
+      .map(m => m[1].trim());
+    if (alt.length) return [...new Set(alt)];
+  }
+
+  // Fallback: qualquer title/aria-label dentro do bloco de cores
+  if (!cores.length && blockMatch) {
+    return [...new Set(
+      [...block.matchAll(/(?:title|aria-label)=["']([^"']{1,30})["']/gi)]
+        .map(m => m[1].trim())
+        .filter(s => s && !s.toLowerCase().includes('image') && !s.toLowerCase().includes('http'))
+    )];
+  }
+
+  return [...new Set(cores)];
 }
 
 function extrairImagensSheinHtml(html) {
