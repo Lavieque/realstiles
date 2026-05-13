@@ -161,7 +161,7 @@
 <script type="module">
   import { initNav, logout } from './js/auth.js';
   import { getProdutos, getCategorias, renderCard } from './js/produtos.js';
-  import { actualizarContador, adicionarItem, initCarrinhoDrawer } from './js/carrinho.js';
+  import { actualizarContador, adicionarItem, initCarrinhoDrawer, abrirCarrinhoDrawer } from './js/carrinho.js';
   import { getConfig } from './js/config-site.js';
 
   initNav();
@@ -263,9 +263,7 @@
     }
     adicionarItem(produto, '', '');
     actualizarContador();
-    document.getElementById('cart-drawer')?.classList.add('open');
-    document.getElementById('cart-overlay')?.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    abrirCarrinhoDrawer();
   };
 
   init();

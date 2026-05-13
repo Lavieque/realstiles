@@ -126,6 +126,10 @@ export function initCarrinhoDrawer() {
   });
 }
 
+export function abrirCarrinhoDrawer() {
+  abrirDrawer();
+}
+
 function abrirDrawer() {
   renderDrawer();
   document.getElementById('cart-drawer').classList.add('open');
