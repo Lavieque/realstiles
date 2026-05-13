@@ -163,6 +163,7 @@
   import { getProdutos, criarProduto, actualizarProduto, apagarProduto } from '../js/produtos.js';
   import { mostrarToast } from '../js/carrinho.js';
   import { uploadParaCloudinary } from '../js/cloudinary.js';
+  import { confirmar } from '../js/confirmar.js';
 
   window._logout = logout;
   let todosProdutos = [];
@@ -355,7 +356,7 @@
   };
 
   window.apagar = async (id, nome) => {
-    if (!confirm(`Tens a certeza que queres apagar "${nome}"?`)) return;
+    if (!await confirmar(`O produto "${nome}" será eliminado permanentemente.`, { titulo: 'Apagar produto?', icone: '🗑️', labelOk: 'Apagar' })) return;
     try {
       await apagarProduto(id);
       mostrarToast('Produto apagado', 'success');

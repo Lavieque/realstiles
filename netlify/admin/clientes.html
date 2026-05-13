@@ -72,6 +72,7 @@
     collection, getDocs, doc, updateDoc, orderBy, query
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { mostrarToast } from '../js/carrinho.js';
+  import { confirmar } from '../js/confirmar.js';
 
   window._logout = logout;
   let todosClientes = [];
@@ -145,7 +146,7 @@
 
   window.toggleAdmin = async (id, isAtualmenteAdmin) => {
     const acao = isAtualmenteAdmin ? 'remover o acesso de admin' : 'tornar este cliente admin';
-    if (!confirm(`Tens a certeza que queres ${acao}?`)) return;
+    if (!await confirmar(`Tens a certeza que queres ${acao}?`, { titulo: 'Alterar permissões?', icone: '🔑', labelOk: 'Confirmar', corOk: 'btn-primary' })) return;
     try {
       await updateDoc(doc(db, 'clientes', id), { admin: !isAtualmenteAdmin });
       mostrarToast('Perfil actualizado!', 'success');
