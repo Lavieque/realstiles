@@ -284,28 +284,16 @@ function extrairTamanhosSheinHtml(html) {
   return [...new Set(spans)];
 }
 
-// Extrai cores como [{ nome, imagem }] ou fallback para strings
-// Estrutura Shein: <div class="radio-container__circleImage" title="Nome">...<img src="swatch.jpg"/>...</div>
+// Extrai nomes das cores a partir das tags radio-container__circleImage
 function extrairCoresSheinHtml(html) {
   const cores = [];
   const vistos = new Set();
 
-  // Captura tag completa + conteúdo interno de cada radio-container__circleImage
-  const re = /<([a-z]+)([^>]*class=["'][^"']*radio-container__circleImage[^"']*["'][^>]*)>([\s\S]{0,600}?)<\/\1>/gi;
-
-  for (const [, , fullAttrs, inner] of html.matchAll(re)) {
-    const nomeMatch = fullAttrs.match(/(?:title|aria-label)=["']([^"']{1,40})["']/i);
-    const nome = nomeMatch?.[1]?.trim();
-    if (!nome || vistos.has(nome)) continue;
-    vistos.add(nome);
-
-    // img dentro do bloco — prefere data-src (lazy), depois src
-    const imgMatch = inner.match(/<img[^>]+data-src=["']([^"']+)["']/i)
-                  || inner.match(/<img[^>]+src=["']([^"']+)["']/i);
-    let imagem = imgMatch?.[1] || null;
-    if (imagem?.startsWith('//')) imagem = 'https:' + imagem;
-
-    cores.push(imagem ? { nome, imagem } : nome);
+  const re = /<([a-z]+)([^>]*class=["'][^"']*radio-container__circleImage[^"']*["'][^>]*)>/gi;
+  for (const [, , fullAttrs] of html.matchAll(re)) {
+    const m = fullAttrs.match(/(?:title|aria-label)=["']([^"']{1,40})["']/i);
+    const nome = m?.[1]?.trim();
+    if (nome && !vistos.has(nome)) { vistos.add(nome); cores.push(nome); }
   }
 
   return cores;
