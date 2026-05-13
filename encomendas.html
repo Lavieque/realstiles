@@ -54,13 +54,27 @@
 <body>
 <nav>
   <a href="index.html" class="nav-logo"><img src="img/logo.png" alt="Real Stiles" style="height:52px;"/></a>
-  <div class="nav-actions" style="margin-left:auto">
-    <div id="nav-user" style="display:none;align-items:center;gap:12px;">
+  <ul class="nav-links">
+    <li><a href="index.html">Loja</a></li>
+    <li><a href="quem-somos.html">Quem Somos</a></li>
+    <li><a href="index.html?cat=camisas">Camisas</a></li>
+    <li><a href="index.html?cat=calças">Calças</a></li>
+    <li><a href="index.html?cat=vestidos">Vestidos</a></li>
+    <li><a href="index.html?cat=casacos">Casacos</a></li>
+  </ul>
+  <div class="nav-actions">
+    <div id="nav-auth"><a href="conta.html" class="btn btn-outline btn-sm">Entrar</a></div>
+    <div id="nav-user">
       <span id="nav-nome" style="font-size:14px;font-weight:500;"></span>
+      <a href="encomendas.html" class="active" style="font-size:13px;color:var(--black);text-decoration:none;font-weight:500;">Encomendas</a>
+      <a id="nav-admin-link" href="admin/index.html" style="display:none;font-size:13px;color:var(--accent);text-decoration:none;font-weight:600;">Admin</a>
       <button onclick="window._logout()" class="btn btn-outline btn-sm">Sair</button>
     </div>
     <a href="carrinho.html" class="nav-cart-btn">🛒 <span class="cart-count" style="display:none">0</span></a>
   </div>
+  <button class="nav-menu-btn" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
 
 <div class="page-wrapper">
