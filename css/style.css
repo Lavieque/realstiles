@@ -55,6 +55,32 @@ nav {
   transition: all 0.2s;
 }
 .nav-links a:hover, .nav-links a.active { color: var(--black); background: var(--gray-100); }
+
+/* ── NAV DROPDOWN ── */
+.nav-dropdown { position: relative; }
+.nav-dropdown > a::after {
+  content: ''; display: inline-block; margin-left: 4px;
+  border: 4px solid transparent; border-top-color: currentColor;
+  vertical-align: middle; margin-top: 2px; transition: transform 0.2s;
+}
+.nav-dropdown:hover > a::after { transform: rotate(180deg); margin-top: -4px; }
+.nav-submenu {
+  display: none; position: absolute; top: calc(100% + 8px); left: 0;
+  background: white; border-radius: 12px; min-width: 180px;
+  box-shadow: 0 8px 32px rgba(13,19,71,0.13);
+  border: 1px solid var(--gray-200); z-index: 300;
+  padding: 6px 0; list-style: none;
+}
+.nav-dropdown:hover .nav-submenu { display: block; }
+.nav-submenu li a {
+  display: block; padding: 9px 18px; font-size: 13px; font-weight: 500;
+  color: var(--gray-600); text-decoration: none; border-radius: 0;
+  background: none; transition: background 0.15s, color 0.15s;
+}
+.nav-submenu li a:hover { background: var(--gray-100); color: var(--black); }
+.nav-submenu-sep {
+  height: 1px; background: var(--gray-200); margin: 4px 12px;
+}
 .nav-actions {
   display: flex; align-items: center; gap: 8px; margin-left: auto;
 }
@@ -401,6 +427,14 @@ footer ul a:hover { color: var(--accent); }
     background: white; padding: 12px; border-bottom: 1px solid var(--gray-200);
   }
   .nav-menu-btn { display: flex; }
+  .nav-dropdown > a::after { display: none; }
+  .nav-submenu {
+    position: static; box-shadow: none; border: none; border-radius: 0;
+    background: var(--gray-100); margin: 4px 0 4px 12px; padding: 4px 0;
+    display: none;
+  }
+  .nav-dropdown.open .nav-submenu { display: block; }
+  .nav-submenu li a { padding: 8px 14px; font-size: 13px; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .produtos-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
