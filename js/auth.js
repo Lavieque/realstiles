@@ -62,10 +62,27 @@ export async function recuperarSenha(email) {
   await sendPasswordResetEmail(auth, email);
 }
 
-// ── OBTER PERFIL ──
+// ── OBTER PERFIL (cria documento se não existir) ──
 export async function getPerfil(uid) {
-  const snap = await getDoc(doc(db, 'clientes', uid));
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  const user = auth.currentUser;
+  const ref = doc(db, 'clientes', uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return { id: snap.id, ...snap.data() };
+
+  // Utilizador autenticado mas sem documento — criar agora
+  if (user && user.uid === uid) {
+    const dados = {
+      nome: user.displayName || user.email?.split('@')[0] || '',
+      email: user.email || '',
+      telefone: '',
+      morada: '',
+      admin: false,
+      criado_em: serverTimestamp()
+    };
+    await setDoc(ref, dados);
+    return { id: uid, ...dados };
+  }
+  return null;
 }
 
 // ── VERIFICAR ADMIN ──
