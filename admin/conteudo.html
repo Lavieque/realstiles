@@ -61,6 +61,7 @@
       <a href="clientes.html"><span class="icon">👥</span> Clientes</a>
       <div class="sidebar-section">Site</div>
       <a href="conteudo.html" class="active"><span class="icon">✏️</span> Conteúdo do site</a>
+      <a href="reclamacoes.html"><span class="icon">📣</span> Reclamações</a>
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -124,6 +125,37 @@
         </div>
       </div>
 
+      <!-- POLÍTICAS -->
+      <div class="config-section">
+        <h3>📋 Políticas da Loja</h3>
+        <div class="config-field">
+          <label>Título da página</label>
+          <input type="text" id="pol_titulo" placeholder="ex: Políticas da Loja"/>
+        </div>
+        <div class="config-field">
+          <label>Data de actualização</label>
+          <input type="text" id="pol_data" placeholder="ex: Última actualização: Janeiro 2026"/>
+        </div>
+        <div class="config-field">
+          <label>Conteúdo (HTML)</label>
+          <textarea id="pol_conteudo" rows="12" placeholder="&lt;div class=&quot;pagina-bloco&quot;&gt;&#10;  &lt;h2&gt;Política de Entrega&lt;/h2&gt;&#10;  &lt;p&gt;...&lt;/p&gt;&#10;&lt;/div&gt;"></textarea>
+          <p class="hint">Usa HTML. Cada secção numa &lt;div class="pagina-bloco"&gt; com &lt;h2&gt; e &lt;p&gt;.</p>
+        </div>
+      </div>
+
+      <!-- RECLAMAÇÃO -->
+      <div class="config-section">
+        <h3>📣 Livro de Reclamações</h3>
+        <div class="config-field">
+          <label>Título da página</label>
+          <input type="text" id="rec_titulo" placeholder="ex: Livro de Reclamações"/>
+        </div>
+        <div class="config-field">
+          <label>Texto introdutório</label>
+          <textarea id="rec_intro" rows="3"></textarea>
+        </div>
+      </div>
+
       <!-- CONTACTOS -->
       <div class="config-section">
         <h3>📞 Contactos</h3>
@@ -180,6 +212,8 @@
     'hero_titulo', 'hero_subtitulo', 'hero_btn',
     'qs_sobre_titulo', 'qs_sobre_texto1', 'qs_sobre_texto2',
     'qs_cta_titulo', 'qs_cta_subtitulo',
+    'pol_titulo', 'pol_data', 'pol_conteudo',
+    'rec_titulo', 'rec_intro',
     'tel1', 'tel2',
     'slogan', 'footer_descricao', 'copyright',
   ];

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reclamações — Real Stiles Admin</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/admin.css"/>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="../index.html"><img src="../img/logo.png" alt="Real Stiles" style="height:48px;"/></a><p>Painel de administração</p></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+      <a href="index.html"><span class="icon">📊</span> Dashboard</a>
+      <a href="encomendas.html"><span class="icon">📦</span> Encomendas</a>
+      <div class="sidebar-section">Catálogo</div>
+      <a href="produtos.html"><span class="icon">👕</span> Produtos</a>
+      <a href="importar.html"><span class="icon">🔗</span> Importar via link</a>
+      <div class="sidebar-section">Clientes</div>
+      <a href="clientes.html"><span class="icon">👥</span> Clientes</a>
+      <div class="sidebar-section">Site</div>
+      <a href="conteudo.html"><span class="icon">✏️</span> Conteúdo do site</a>
+      <a href="reclamacoes.html" class="active"><span class="icon">📣</span> Reclamações</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="admin-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-nome" id="admin-nome">Admin</div>
+          <div class="sidebar-user-role">Administrador</div>
+        </div>
+      </div>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm btn-full" style="margin-top:8px">Sair</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>Reclamações</h1>
+      <div style="display:flex;gap:8px;">
+        <select id="filtro-estado" onchange="filtrar()" style="padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;">
+          <option value="">Todas</option>
+          <option value="pendente">Pendentes</option>
+          <option value="respondida">Respondidas</option>
+          <option value="resolvida">Resolvidas</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-content">
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>Nome</th><th>Email</th><th>Tipo</th><th>Estado</th><th>Acções</th>
+            </tr></thead>
+            <tbody id="tb-reclamacoes">
+              <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL DETALHE -->
+<div class="modal-overlay" id="modal-rec">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h2>Detalhe da reclamação</h2>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div id="modal-conteudo"></div>
+    <div style="margin-top:20px;">
+      <div class="form-group">
+        <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:6px;">ESTADO</label>
+        <select id="modal-estado" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;">
+          <option value="pendente">Pendente</option>
+          <option value="respondida">Respondida</option>
+          <option value="resolvida">Resolvida</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:6px;">NOTA INTERNA</label>
+        <textarea id="modal-nota" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;resize:vertical;" placeholder="Nota interna (não visível ao cliente)..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-outline btn-sm" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="guardarEstado()" id="btn-guardar-rec">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { requireAdmin, logout, getPerfil } from '../js/auth.js';
+  import { db } from '../js/firebase.js';
+  import { collection, getDocs, doc, updateDoc, orderBy, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { mostrarToast } from '../js/carrinho.js';
+
+  window._logout = logout;
+  let todas = [], recActual = null;
+
+  const user = await requireAdmin();
+  const perfil = await getPerfil(user.uid);
+  document.getElementById('admin-nome').textContent = perfil?.nome || user.email;
+  document.getElementById('admin-avatar').textContent = (perfil?.nome || 'A')[0].toUpperCase();
+
+  async function carregar() {
+    const snap = await getDocs(query(collection(db, 'reclamacoes'), orderBy('criado_em', 'desc')));
+    todas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTabela(todas);
+  }
+
+  function formatarData(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const TIPOS = { entrega: 'Entrega', produto: 'Produto', pagamento: 'Pagamento', atendimento: 'Atendimento', outro: 'Outro' };
+  const BADGE = { pendente: 'badge-pendente', respondida: 'badge-confirmada', resolvida: 'badge-entregue' };
+
+  function renderTabela(lista) {
+    const tb = document.getElementById('tb-reclamacoes');
+    if (!lista.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray-400)">Sem reclamações</td></tr>';
+      return;
+    }
+    tb.innerHTML = lista.map(r => `
+      <tr>
+        <td style="font-size:12px;color:var(--gray-500);">${formatarData(r.criado_em)}</td>
+        <td style="font-weight:500;font-size:13px;">${r.nome}</td>
+        <td style="font-size:13px;color:var(--gray-600);">${r.email}</td>
+        <td><span style="font-size:12px;background:var(--gray-100);padding:3px 8px;border-radius:6px;">${TIPOS[r.tipo] || r.tipo || '—'}</span></td>
+        <td><span class="badge-estado ${BADGE[r.estado] || 'badge-pendente'}">${r.estado || 'pendente'}</span></td>
+        <td><button class="btn btn-outline btn-sm" onclick="verDetalhe('${r.id}')">Ver</button></td>
+      </tr>
+    `).join('');
+  }
+
+  window.filtrar = () => {
+    const estado = document.getElementById('filtro-estado').value;
+    renderTabela(estado ? todas.filter(r => r.estado === estado) : todas);
+  };
+
+  window.verDetalhe = (id) => {
+    recActual = todas.find(r => r.id === id);
+    if (!recActual) return;
+    document.getElementById('modal-conteudo').innerHTML = `
+      <div style="background:var(--gray-100);border-radius:10px;padding:16px;margin-bottom:16px;">
+        <p style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">${formatarData(recActual.criado_em)}</p>
+        <p style="font-weight:600;margin-bottom:2px;">${recActual.nome} — <span style="font-weight:400;color:var(--gray-600)">${recActual.email}</span></p>
+        ${recActual.encomenda ? `<p style="font-size:12px;color:var(--gray-600);">Encomenda: #${recActual.encomenda}</p>` : ''}
+      </div>
+      <p style="font-size:14px;line-height:1.7;color:var(--gray-800);white-space:pre-wrap;">${recActual.descricao}</p>
+      ${recActual.nota_interna ? `<div style="margin-top:12px;padding:12px;background:var(--accent-light);border-radius:8px;font-size:13px;"><strong>Nota interna:</strong> ${recActual.nota_interna}</div>` : ''}
+    `;
+    document.getElementById('modal-estado').value = recActual.estado || 'pendente';
+    document.getElementById('modal-nota').value = recActual.nota_interna || '';
+    document.getElementById('modal-rec').classList.add('open');
+  };
+
+  window.fecharModal = () => { document.getElementById('modal-rec').classList.remove('open'); recActual = null; };
+
+  window.guardarEstado = async () => {
+    if (!recActual) return;
+    const btn = document.getElementById('btn-guardar-rec');
+    btn.disabled = true;
+    try {
+      await updateDoc(doc(db, 'reclamacoes', recActual.id), {
+        estado: document.getElementById('modal-estado').value,
+        nota_interna: document.getElementById('modal-nota').value.trim(),
+      });
+      mostrarToast('Reclamação actualizada!', 'success');
+      fecharModal();
+      await carregar();
+    } catch (e) {
+      mostrarToast('Erro: ' + e.message, 'error');
+    } finally { btn.disabled = false; }
+  };
+
+  carregar();
+</script>
+</body>
+</html>

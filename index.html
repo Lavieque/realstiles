@@ -9,11 +9,56 @@
   <style>
     .hero-loja {
       background: var(--black); color: white;
-      padding: calc(var(--nav-h) + 60px) 5% 80px;
-      display: flex; align-items: center; gap: 40px;
-      flex-wrap: wrap;
+      min-height: calc(var(--nav-h) + 420px);
+      display: grid; grid-template-columns: 1fr 1fr;
+      overflow: hidden; position: relative;
     }
-    .hero-loja-content { flex: 1; min-width: 280px; }
+    .hero-loja-content {
+      padding: calc(var(--nav-h) + 60px) 6% 60px;
+      display: flex; flex-direction: column; justify-content: center;
+      position: relative; z-index: 1;
+    }
+    /* Slider de destaque */
+    .hero-slider {
+      position: relative; overflow: hidden;
+    }
+    .hero-slide {
+      position: absolute; inset: 0;
+      opacity: 0; transition: opacity 0.7s ease;
+      cursor: pointer;
+    }
+    .hero-slide.active { opacity: 1; }
+    .hero-slide img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .hero-slide-preco {
+      position: absolute; bottom: 24px; left: 24px;
+      background: rgba(13,19,71,0.85); backdrop-filter: blur(8px);
+      color: var(--accent); font-weight: 700; font-size: 20px;
+      padding: 10px 18px; border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .hero-slider-dots {
+      position: absolute; bottom: 20px; right: 20px;
+      display: flex; gap: 6px; z-index: 2;
+    }
+    .hero-slider-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.35); cursor: pointer;
+      border: none; padding: 0; transition: background 0.2s;
+    }
+    .hero-slider-dot.active { background: var(--accent); }
+    .hero-sk {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0.06);
+      animation: skPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes skPulse { 0%,100%{opacity:.4} 50%{opacity:.8} }
+    @media (max-width: 860px) {
+      .hero-loja { grid-template-columns: 1fr; }
+      .hero-slider { display: none; }
+      .hero-loja-content { padding-right: 5%; }
+    }
     .hero-loja h1 {
       font-family: 'Playfair Display', serif;
       font-size: clamp(2.4rem, 5vw, 4rem);
@@ -47,7 +92,6 @@
 <nav>
   <a href="index.html" class="nav-logo"><img src="img/logo.png" alt="Real Stiles" style="height:52px;"/></a>
   <ul class="nav-links">
-    <li><a href="index.html">Home</a></li>
     <li class="nav-dropdown">
       <a href="index.html?cat=mulher">Mulher</a>
       <ul class="nav-submenu">
@@ -67,6 +111,15 @@
         <li><a href="index.html?cat=casacos">Casacos</a></li>
         <li><a href="index.html?cat=sapatos">Sapatos</a></li>
         <li><a href="index.html?cat=acessórios">Acessórios</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="index.html?cat=crianca">Criança</a>
+      <ul class="nav-submenu">
+        <li><a href="index.html?cat=crianca-menina">Menina</a></li>
+        <li><a href="index.html?cat=crianca-menino">Menino</a></li>
+        <li><a href="index.html?cat=crianca-bebe">Bebé</a></li>
+        <li><a href="index.html?cat=crianca-calcado">Calçado</a></li>
       </ul>
     </li>
     <li class="nav-dropdown">
@@ -112,13 +165,18 @@
 <!-- HERO -->
 <div class="hero-loja">
   <div class="hero-loja-content">
-    <div class="hero-badges">
+    <div class="hero-badges" style="display:none">
       <!-- <span class="hero-badge">🆕 Nova colecção</span>
       <span class="hero-badge">🚚 Entrega em Moçambique</span> -->
     </div>
     <h1 id="hero-titulo">Veste o teu<br/><span>estilo.</span></h1>
     <p id="hero-subtitulo">As melhores peças de vestuário, cuidadosamente seleccionadas para ti. Moda acessível e de qualidade.</p>
-    <a href="#catalogo" class="btn btn-accent btn-lg" id="hero-btn">Ver colecção</a>
+  </div>
+
+  <!-- SLIDER DE DESTAQUE -->
+  <div class="hero-slider" id="hero-slider">
+    <div class="hero-sk"></div>
+    <div class="hero-slider-dots" id="hero-dots"></div>
   </div>
 </div>
 
@@ -165,6 +223,14 @@
       </ul>
     </div>
     <div>
+      <h4>Informações</h4>
+      <ul>
+        <li><a href="quem-somos.html" target="_blank">Quem Somos</a></li>
+        <li><a href="politicas.html" target="_blank">Políticas</a></li>
+        <li><a href="reclamacao.html" target="_blank">Reclamação</a></li>
+      </ul>
+    </div>
+    <div>
       <h4>Conta</h4>
       <ul>
         <li><a href="conta.html">Entrar / Registar</a></li>
@@ -205,11 +271,52 @@
   initCarrinhoDrawer();
   window._logout = logout;
 
+  // Slider de produtos em destaque no hero
+  (async () => {
+    try {
+      const destaques = await getProdutos({ destaque: true, max: 8 });
+      const slider = document.getElementById('hero-slider');
+      if (!destaques.length) { slider.style.display = 'none'; return; }
+
+      let idx = 0;
+
+      // Construir slides
+      slider.innerHTML = destaques.map((p, i) => {
+        const img = p.imagens?.[0] || '';
+        if (!img) return '';
+        return `<div class="hero-slide${i === 0 ? ' active' : ''}"
+          onclick="window.location.href='produto.html?id=${p.id}'"
+          style="cursor:pointer;">
+          <img src="${img}" alt="${p.nome}" loading="${i === 0 ? 'eager' : 'lazy'}"/>
+          <div class="hero-slide-preco">${p.preco?.toFixed(2)} MZN</div>
+        </div>`;
+      }).filter(Boolean).join('') +
+      `<div class="hero-slider-dots" id="hero-dots">
+        ${destaques.filter(p => p.imagens?.[0]).map((_, i) =>
+          `<button class="hero-slider-dot${i === 0 ? ' active' : ''}" onclick="irSlide(${i})"></button>`
+        ).join('')}
+      </div>`;
+
+      const slides = slider.querySelectorAll('.hero-slide');
+      const dots = slider.querySelectorAll('.hero-slider-dot');
+
+      window.irSlide = (i) => {
+        slides[idx].classList.remove('active');
+        dots[idx]?.classList.remove('active');
+        idx = (i + slides.length) % slides.length;
+        slides[idx].classList.add('active');
+        dots[idx]?.classList.add('active');
+      };
+
+      // Auto-avançar a cada 4s
+      setInterval(() => window.irSlide(idx + 1), 4000);
+    } catch {}
+  })();
+
   // Carregar textos dinâmicos do Firestore
   getConfig().then(cfg => {
     document.getElementById('hero-titulo').innerHTML = cfg.hero_titulo.replace(/\.$/, '.<br/>').replace(/(\w+)\.$/, '<span>$1.</span>') || cfg.hero_titulo;
     document.getElementById('hero-subtitulo').textContent = cfg.hero_subtitulo;
-    document.getElementById('hero-btn').textContent = cfg.hero_btn;
     document.getElementById('footer-descricao').textContent = cfg.footer_descricao;
     document.getElementById('footer-copyright').textContent = cfg.copyright;
   });
