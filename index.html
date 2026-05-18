@@ -18,42 +18,54 @@
       display: flex; flex-direction: column; justify-content: center;
       position: relative; z-index: 1;
     }
-    /* Slider de destaque */
+    /* Carousel de destaque */
     .hero-slider {
-      position: relative; overflow: hidden;
+      position: relative; display: flex; align-items: center;
+      padding: calc(var(--nav-h) + 16px) 12px 16px;
+      overflow: hidden;
+    }
+    .hero-slides-wrap { flex: 1; overflow: hidden; }
+    .hero-slides {
+      display: flex; gap: 10px;
+      transition: transform 0.4s cubic-bezier(.4,0,.2,1);
     }
     .hero-slide {
-      position: absolute; inset: 0;
-      opacity: 0; transition: opacity 0.7s ease;
-      cursor: pointer;
+      flex: 0 0 calc(33.333% - 7px);
+      border-radius: 12px; overflow: hidden;
+      cursor: pointer; position: relative;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      transition: transform 0.2s;
     }
-    .hero-slide.active { opacity: 1; }
+    .hero-slide:hover { transform: translateY(-3px); }
     .hero-slide img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
+      width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block;
     }
     .hero-slide-preco {
-      position: absolute; bottom: 24px; left: 24px;
-      background: rgba(13,19,71,0.85); backdrop-filter: blur(8px);
-      color: var(--accent); font-weight: 700; font-size: 20px;
-      padding: 10px 18px; border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      position: absolute; bottom: 8px; left: 8px;
+      background: rgba(13,19,71,0.82); backdrop-filter: blur(6px);
+      color: var(--accent); font-weight: 700; font-size: 13px;
+      padding: 5px 10px; border-radius: 7px;
     }
-    .hero-slider-dots {
-      position: absolute; bottom: 20px; right: 20px;
-      display: flex; gap: 6px; z-index: 2;
+    .hero-arrow {
+      position: absolute; z-index: 3;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white; font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s; top: 50%; transform: translateY(-50%);
+      line-height: 1; padding: 0;
     }
-    .hero-slider-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(255,255,255,0.35); cursor: pointer;
-      border: none; padding: 0; transition: background 0.2s;
-    }
-    .hero-slider-dot.active { background: var(--accent); }
+    .hero-arrow:hover { background: rgba(255,255,255,0.28); }
+    .hero-arrow.prev { left: 4px; }
+    .hero-arrow.next { right: 4px; }
+    .hero-arrow:disabled { opacity: 0.25; cursor: default; }
     .hero-sk {
-      position: absolute; inset: 0;
-      background: rgba(255,255,255,0.06);
+      flex: 0 0 calc(33.333% - 7px); aspect-ratio: 3/4;
+      border-radius: 12px; background: rgba(255,255,255,0.07);
       animation: skPulse 1.5s ease-in-out infinite;
     }
-    @keyframes skPulse { 0%,100%{opacity:.4} 50%{opacity:.8} }
+    @keyframes skPulse { 0%,100%{opacity:.3} 50%{opacity:.7} }
     @media (max-width: 860px) {
       .hero-loja { grid-template-columns: 1fr; }
       .hero-slider { display: none; }
@@ -173,10 +185,17 @@
     <p id="hero-subtitulo">As melhores peças de vestuário, cuidadosamente seleccionadas para ti. Moda acessível e de qualidade.</p>
   </div>
 
-  <!-- SLIDER DE DESTAQUE -->
+  <!-- CAROUSEL DE DESTAQUE -->
   <div class="hero-slider" id="hero-slider">
-    <div class="hero-sk"></div>
-    <div class="hero-slider-dots" id="hero-dots"></div>
+    <button class="hero-arrow prev" id="hero-prev" onclick="heroNav(-1)" disabled>&#8249;</button>
+    <div class="hero-slides-wrap">
+      <div class="hero-slides" id="hero-slides">
+        <div class="hero-sk"></div>
+        <div class="hero-sk"></div>
+        <div class="hero-sk"></div>
+      </div>
+    </div>
+    <button class="hero-arrow next" id="hero-next" onclick="heroNav(1)">&#8250;</button>
   </div>
 </div>
 
@@ -271,45 +290,47 @@
   initCarrinhoDrawer();
   window._logout = logout;
 
-  // Slider de produtos em destaque no hero
+  // Carousel de produtos em destaque no hero
   (async () => {
     try {
-      const destaques = await getProdutos({ destaque: true, max: 8 });
+      const destaques = await getProdutos({ destaque: true, max: 12 });
+      const slidesEl = document.getElementById('hero-slides');
       const slider = document.getElementById('hero-slider');
       if (!destaques.length) { slider.style.display = 'none'; return; }
 
-      let idx = 0;
+      const comImagem = destaques.filter(p => p.imagens?.[0]);
+      if (!comImagem.length) { slider.style.display = 'none'; return; }
 
-      // Construir slides
-      slider.innerHTML = destaques.map((p, i) => {
-        const img = p.imagens?.[0] || '';
-        if (!img) return '';
-        return `<div class="hero-slide${i === 0 ? ' active' : ''}"
-          onclick="window.location.href='produto.html?id=${p.id}'"
-          style="cursor:pointer;">
-          <img src="${img}" alt="${p.nome}" loading="${i === 0 ? 'eager' : 'lazy'}"/>
+      slidesEl.innerHTML = comImagem.map(p => `
+        <div class="hero-slide" onclick="window.location.href='produto.html?id=${p.id}'">
+          <img src="${p.imagens[0]}" alt="${p.nome}" loading="lazy"/>
           <div class="hero-slide-preco">${p.preco?.toFixed(2)} MZN</div>
-        </div>`;
-      }).filter(Boolean).join('') +
-      `<div class="hero-slider-dots" id="hero-dots">
-        ${destaques.filter(p => p.imagens?.[0]).map((_, i) =>
-          `<button class="hero-slider-dot${i === 0 ? ' active' : ''}" onclick="irSlide(${i})"></button>`
-        ).join('')}
-      </div>`;
+        </div>
+      `).join('');
 
-      const slides = slider.querySelectorAll('.hero-slide');
-      const dots = slider.querySelectorAll('.hero-slider-dot');
+      const VISIVEIS = 3;
+      let offset = 0;
+      const total = comImagem.length;
 
-      window.irSlide = (i) => {
-        slides[idx].classList.remove('active');
-        dots[idx]?.classList.remove('active');
-        idx = (i + slides.length) % slides.length;
-        slides[idx].classList.add('active');
-        dots[idx]?.classList.add('active');
+      const atualizarSetas = () => {
+        document.getElementById('hero-prev').disabled = offset === 0;
+        document.getElementById('hero-next').disabled = offset >= total - VISIVEIS;
       };
 
+      window.heroNav = (dir) => {
+        offset = Math.max(0, Math.min(offset + dir, total - VISIVEIS));
+        const slideW = slidesEl.children[0]?.offsetWidth + 10;
+        slidesEl.style.transform = `translateX(-${offset * slideW}px)`;
+        atualizarSetas();
+      };
+
+      atualizarSetas();
+
       // Auto-avançar a cada 4s
-      setInterval(() => window.irSlide(idx + 1), 4000);
+      setInterval(() => {
+        if (offset >= total - VISIVEIS) offset = -1;
+        heroNav(1);
+      }, 4000);
     } catch {}
   })();
 
