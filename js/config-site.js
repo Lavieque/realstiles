@@ -28,6 +28,18 @@ export const DEFAULTS = {
   footer_descricao: 'Encomendas diversas com segurança, transparência e agilidade.',
   copyright:        '© 2026 Real Stiles Multi Service. Todos os direitos reservados.',
   slogan:           'Excelência em Compras',
+
+  // Políticas
+  pol_titulo:    'Políticas da Loja',
+  pol_data:      'Última actualização: Janeiro 2026',
+  pol_conteudo:  '',
+
+  // Reclamação
+  rec_titulo: 'Livro de Reclamações',
+  rec_intro:  'Prezamos pela sua satisfação. Se tiver alguma reclamação, utilize o formulário abaixo. Responderemos no prazo de 3 dias úteis.',
+
+  // Quem Somos — hero
+  qs_hero_titulo: 'O seu pedido, a nossa responsabilidade',
 };
 
 export async function getConfig() {
