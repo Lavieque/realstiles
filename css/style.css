@@ -46,6 +46,10 @@ nav {
   letter-spacing: -0.5px; flex-shrink: 0;
 }
 .nav-logo span { color: var(--accent); }
+/* Remove fundo branco da logo no nav (fundo claro) */
+.nav-logo img { mix-blend-mode: multiply; }
+/* Remove fundo branco da logo no footer (fundo escuro) */
+footer img { mix-blend-mode: screen; }
 .nav-links {
   display: flex; gap: 4px; list-style: none; flex: 1;
 }
@@ -252,8 +256,8 @@ footer {
   padding: 48px 5% 24px; margin-top: 80px;
 }
 .footer-grid {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 40px; margin-bottom: 40px;
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 32px; margin-bottom: 40px;
 }
 footer h4 { color: white; font-size: 14px; font-weight: 600; margin-bottom: 16px; }
 footer ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
@@ -353,21 +357,21 @@ footer ul a:hover { color: var(--accent); }
 .cart-drawer-items::-webkit-scrollbar { width: 4px; }
 .cart-drawer-items::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
 .cd-item {
-  display: flex; gap: 14px; align-items: flex-start;
-  padding: 14px 0; border-bottom: 1px solid var(--gray-100);
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--gray-100);
 }
 .cd-item:last-child { border-bottom: none; }
 .cd-item-img {
-  width: 64px; height: 80px; object-fit: cover;
+  width: 52px; height: 64px; object-fit: cover;
   border-radius: 8px; flex-shrink: 0; background: var(--gray-100);
 }
 .cd-item-info { flex: 1; min-width: 0; }
-.cd-item-nome { font-size: 13px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cd-item-meta { font-size: 11px; color: var(--gray-400); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
-.cd-item-meta span { background: var(--gray-100); padding: 2px 7px; border-radius: 4px; }
-.cd-item-preco { font-size: 14px; font-weight: 700; }
+.cd-item-nome { font-size: 12px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-item-meta { font-size: 11px; color: var(--gray-400); margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+.cd-item-meta span { background: var(--gray-100); padding: 1px 6px; border-radius: 4px; }
+.cd-item-preco { font-size: 13px; font-weight: 700; }
 .cd-item-qty {
-  display: flex; align-items: center; gap: 6px; margin-top: 6px;
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
 }
 .cd-item-qty button {
   width: 26px; height: 26px; border: 1.5px solid var(--gray-200);
