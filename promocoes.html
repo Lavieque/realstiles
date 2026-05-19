@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Promoções — Real Stiles</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* ── NAV PROMOÇÕES ── */
+    nav.nav-promo {
+      background: rgba(229,62,62,0.97);
+      border-bottom-color: rgba(255,255,255,0.15);
+    }
+    nav.nav-promo .nav-links a { color: rgba(255,255,255,0.85); }
+    nav.nav-promo .nav-links a:hover,
+    nav.nav-promo .nav-links a.active {
+      color: white; background: rgba(255,255,255,0.15);
+    }
+    nav.nav-promo .nav-logo { color: white; }
+    nav.nav-promo .nav-submenu {
+      background: white;
+    }
+    nav.nav-promo .nav-submenu li a { color: var(--gray-600); }
+    nav.nav-promo .nav-submenu li a:hover { color: var(--black); background: var(--gray-100); }
+    nav.nav-promo .nav-cart-btn { background: white; color: var(--red); }
+    nav.nav-promo .nav-cart-btn:hover { background: var(--gray-100); }
+    nav.nav-promo .btn-outline { border-color: rgba(255,255,255,0.4); color: white; }
+    nav.nav-promo .btn-outline:hover { background: rgba(255,255,255,0.15); border-color: white; }
+    nav.nav-promo .nav-menu-btn span { background: white; }
+    nav.nav-promo #nav-user a,
+    nav.nav-promo #nav-nome { color: rgba(255,255,255,0.9) !important; }
+    nav.nav-promo .nav-dropdown > a::after { border-top-color: rgba(255,255,255,0.8); }
+
+    /* ── HERO PROMOÇÕES ── */
+    .promo-hero {
+      background: linear-gradient(135deg, #c53030 0%, #e53e3e 50%, #fc8181 100%);
+      color: white;
+      padding: calc(var(--nav-h) + 48px) 5% 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 24px;
+      position: relative; overflow: hidden;
+    }
+    .promo-hero::before {
+      content: '%';
+      position: absolute; right: 5%; top: 50%; transform: translateY(-50%);
+      font-size: 240px; font-weight: 900; color: rgba(255,255,255,0.07);
+      line-height: 1; pointer-events: none;
+      font-family: 'Playfair Display', serif;
+    }
+    .promo-hero-texto h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      line-height: 1.1; margin-bottom: 12px;
+    }
+    .promo-hero-texto p {
+      font-size: 16px; color: rgba(255,255,255,0.8);
+      line-height: 1.6; max-width: 480px;
+    }
+    .promo-hero-badge {
+      background: white; color: var(--red);
+      font-size: 1.1rem; font-weight: 800;
+      padding: 16px 28px; border-radius: 100px;
+      white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    /* ── FILTROS ── */
+    .promo-filtros {
+      padding: 28px 5% 0;
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .promo-filtros-label {
+      font-size: 13px; font-weight: 600; color: var(--gray-400);
+      margin-right: 4px;
+    }
+    .promo-filtro-btn {
+      padding: 7px 16px; border-radius: 100px;
+      border: 1.5px solid var(--gray-200); background: white;
+      font-size: 13px; font-weight: 500; color: var(--gray-600);
+      cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+    }
+    .promo-filtro-btn:hover { border-color: var(--red); color: var(--red); }
+    .promo-filtro-btn.active { background: var(--red); color: white; border-color: var(--red); }
+
+    /* ── GRID ── */
+    .promo-section { padding: 32px 5% 80px; }
+    .promo-topo {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
+    }
+    .promo-topo h2 {
+      font-family: 'Playfair Display', serif; font-size: 1.5rem;
+    }
+    .promo-contador {
+      font-size: 13px; color: var(--gray-400);
+    }
+    .promo-contador strong { color: var(--red); }
+
+    /* Badge de desconto no card */
+    .produto-card-badge.sale { background: var(--red); }
+    .produto-card-badge.pct {
+      background: var(--red); color: white;
+      font-size: 11px; font-weight: 800;
+    }
+
+    /* ── VAZIO ── */
+    .promo-vazio {
+      text-align: center; padding: 80px 20px; color: var(--gray-400);
+    }
+    .promo-vazio .icon { font-size: 56px; margin-bottom: 16px; }
+    .promo-vazio h3 { font-size: 18px; color: var(--gray-600); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- NAV VERMELHO PROMOÇÕES -->
+<nav class="nav-promo">
+  <a href="index.html" class="nav-logo"><img src="img/logo.png" alt="Real Stiles" style="height:52px;"/></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Loja</a></li>
+    <li><a href="promocoes.html" class="active">Promoções</a></li>
+    <li class="nav-dropdown">
+      <a href="index.html?cat=mulher">Mulher</a>
+      <ul class="nav-submenu">
+        <li><a href="promocoes.html?cat=vestidos">Vestidos</a></li>
+        <li><a href="promocoes.html?cat=camisas">Camisas</a></li>
+        <li><a href="promocoes.html?cat=calças">Calças</a></li>
+        <li><a href="promocoes.html?cat=casacos">Casacos</a></li>
+        <li><a href="promocoes.html?cat=saias">Saias</a></li>
+        <li><a href="promocoes.html?cat=acessórios">Acessórios</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="index.html?cat=homem">Homem</a>
+      <ul class="nav-submenu">
+        <li><a href="promocoes.html?cat=camisas">Camisas</a></li>
+        <li><a href="promocoes.html?cat=calças">Calças</a></li>
+        <li><a href="promocoes.html?cat=casacos">Casacos</a></li>
+        <li><a href="promocoes.html?cat=sapatos">Sapatos</a></li>
+      </ul>
+    </li>
+    <li class="nav-dropdown">
+      <a href="index.html?cat=crianca">Criança</a>
+      <ul class="nav-submenu">
+        <li><a href="promocoes.html?cat=crianca-menina">Menina</a></li>
+        <li><a href="promocoes.html?cat=crianca-menino">Menino</a></li>
+        <li><a href="promocoes.html?cat=crianca-bebe">Bebé</a></li>
+      </ul>
+    </li>
+  </ul>
+  <div class="nav-actions">
+    <div id="nav-auth"><a href="conta.html" class="btn btn-outline btn-sm">Entrar</a></div>
+    <div id="nav-user">
+      <span id="nav-nome" style="font-size:14px;font-weight:500;"></span>
+      <a href="encomendas.html" style="font-size:13px;color:rgba(255,255,255,0.8);text-decoration:none;">Encomendas</a>
+      <a id="nav-admin-link" href="admin/index.html" style="display:none;font-size:13px;color:white;text-decoration:none;font-weight:600;">Admin</a>
+      <button onclick="window._logout()" class="btn btn-outline btn-sm">Sair</button>
+    </div>
+    <a href="carrinho.html" class="nav-cart-btn">🛒 <span class="cart-count" style="display:none">0</span></a>
+  </div>
+  <button class="nav-menu-btn" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<script>
+  document.addEventListener('click', function(e) {
+    if (window.innerWidth > 768) return;
+    var a = e.target.closest('.nav-dropdown > a');
+    if (a) { e.preventDefault(); a.parentElement.classList.toggle('open'); }
+  });
+</script>
+
+<!-- HERO -->
+<div class="promo-hero">
+  <div class="promo-hero-texto">
+    <h1>Promoções<br/>imperdíveis</h1>
+    <p>Os melhores artigos com descontos especiais. Aproveita enquanto há stock!</p>
+  </div>
+  <div class="promo-hero-badge" id="hero-badge">🔥 A carregar...</div>
+</div>
+
+<!-- FILTROS -->
+<div class="promo-filtros" id="promo-filtros">
+  <span class="promo-filtros-label">Filtrar:</span>
+  <button class="promo-filtro-btn active" onclick="filtrar(null, this)">Todas</button>
+</div>
+
+<!-- GRID -->
+<div class="promo-section">
+  <div class="promo-topo">
+    <h2>Artigos em promoção</h2>
+    <span class="promo-contador" id="promo-contador"></span>
+  </div>
+  <div id="promo-grid" class="produtos-grid">
+    <div class="loading"><div class="spinner"></div> A carregar promoções...</div>
+  </div>
+  <div style="text-align:center;margin-top:40px;">
+    <button id="btn-mais" class="btn btn-outline" onclick="carregarMais()" style="display:none;border-color:var(--red);color:var(--red);">
+      Ver mais promoções
+    </button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <img src="img/logo.png" alt="Real Stiles" style="height:56px;margin-bottom:12px;"/>
+      <p style="font-size:14px;max-width:280px;line-height:1.7;color:rgba(255,255,255,0.6);">Encomendas diversas com segurança, transparência e agilidade.</p>
+    </div>
+    <div>
+      <h4>Loja</h4>
+      <ul>
+        <li><a href="index.html">Todos os produtos</a></li>
+        <li><a href="promocoes.html">Promoções</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Informações</h4>
+      <ul>
+        <li><a href="quem-somos.html" target="_blank">Quem Somos</a></li>
+        <li><a href="politicas.html" target="_blank">Políticas</a></li>
+        <li><a href="reclamacao.html" target="_blank">Reclamação</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Conta</h4>
+      <ul>
+        <li><a href="conta.html">Entrar / Registar</a></li>
+        <li><a href="encomendas.html">As minhas encomendas</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="https://wa.me/258878753754" target="_blank" rel="noopener">💬 WhatsApp</a></li>
+        <li><a href="tel:+258878753754">📞 +258 87 875 3754</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Real Stiles Multi Service. Todos os direitos reservados.</span>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<!-- WhatsApp flutuante -->
+<a class="whatsapp-float" href="https://wa.me/258878753754" target="_blank" rel="noopener" aria-label="Contactar via WhatsApp">
+  <span class="whatsapp-float-tooltip">+258 87 875 3754</span>
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:30px;height:30px;fill:white">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+
+<script type="module">
+  import { initNav, logout } from './js/auth.js';
+  import { getProdutos, renderCard } from './js/produtos.js';
+  import { actualizarContador, adicionarItem, initCarrinhoDrawer, abrirCarrinhoDrawer } from './js/carrinho.js';
+
+  initNav();
+  actualizarContador();
+  initCarrinhoDrawer();
+  window._logout = logout;
+
+  const PAGE = 12;
+  let todosEmPromocao = [];
+  let categoriaActual = null;
+  let ultimoProduto = null;
+
+  // Carregar todos os produtos em promoção (preco_original > preco)
+  async function init() {
+    const catParam = new URLSearchParams(window.location.search).get('cat');
+
+    // Buscar todos os activos e filtrar os que têm promoção
+    const todos = await getProdutos({ max: 500 });
+    todosEmPromocao = todos.filter(p => p.preco_original && p.preco_original > p.preco);
+
+    // Badge no hero
+    const badge = document.getElementById('hero-badge');
+    badge.textContent = `🔥 ${todosEmPromocao.length} artigos em promoção`;
+
+    // Construir filtros de categoria
+    const cats = [...new Set(todosEmPromocao.map(p => p.categoria).filter(Boolean))].sort();
+    const filtrosEl = document.getElementById('promo-filtros');
+    cats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'promo-filtro-btn';
+      btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+      btn.onclick = () => filtrar(cat, btn);
+      filtrosEl.appendChild(btn);
+    });
+
+    if (catParam) {
+      categoriaActual = catParam;
+      const btnCat = [...filtrosEl.querySelectorAll('.promo-filtro-btn')]
+        .find(b => b.textContent.toLowerCase() === catParam.toLowerCase());
+      if (btnCat) {
+        filtrosEl.querySelector('.active')?.classList.remove('active');
+        btnCat.classList.add('active');
+      }
+    }
+
+    renderFiltrado();
+  }
+
+  function renderFiltrado() {
+    const filtrados = categoriaActual
+      ? todosEmPromocao.filter(p => p.categoria === categoriaActual)
+      : todosEmPromocao;
+
+    const contador = document.getElementById('promo-contador');
+    contador.innerHTML = `<strong>${filtrados.length}</strong> artigo${filtrados.length !== 1 ? 's' : ''}`;
+
+    if (filtrados.length === 0) {
+      document.getElementById('promo-grid').innerHTML = `
+        <div class="promo-vazio" style="grid-column:1/-1">
+          <div class="icon">🏷️</div>
+          <h3>Sem promoções nesta categoria</h3>
+          <p>Volta em breve para novos descontos.</p>
+        </div>`;
+      document.getElementById('btn-mais').style.display = 'none';
+      return;
+    }
+
+    const pagina = filtrados.slice(0, PAGE);
+    document.getElementById('promo-grid').innerHTML = pagina.map(p => renderPromoCard(p)).join('');
+    document.getElementById('btn-mais').style.display = filtrados.length > PAGE ? 'inline-flex' : 'none';
+    ultimoProduto = PAGE;
+  }
+
+  window.filtrar = (cat, btn) => {
+    categoriaActual = cat;
+    document.querySelectorAll('.promo-filtro-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ultimoProduto = 0;
+    renderFiltrado();
+  };
+
+  window.carregarMais = () => {
+    const filtrados = categoriaActual
+      ? todosEmPromocao.filter(p => p.categoria === categoriaActual)
+      : todosEmPromocao;
+    const proximos = filtrados.slice(ultimoProduto, ultimoProduto + PAGE);
+    document.getElementById('promo-grid').innerHTML +=
+      proximos.map(p => renderPromoCard(p)).join('');
+    ultimoProduto += PAGE;
+    document.getElementById('btn-mais').style.display =
+      ultimoProduto < filtrados.length ? 'inline-flex' : 'none';
+  };
+
+  function renderPromoCard(p) {
+    const pct = Math.round((1 - p.preco / p.preco_original) * 100);
+    const card = renderCard(p);
+    // Injectar badge de percentagem
+    return card.replace(
+      'class="produto-card-img"',
+      'class="produto-card-img"'
+    ).replace(
+      /(<div class="produto-card-img">[\s\S]*?)(${badge}${saleBadge})/,
+      `$1<span class="produto-card-badge pct">-${pct}%</span>`
+    ) || card.replace(
+      /<span class="produto-card-badge sale">Sale<\/span>/,
+      `<span class="produto-card-badge pct">-${pct}%</span>`
+    );
+  }
+
+  window.adicionarAoCarrinho = async (id) => {
+    const { getProduto } = await import('./js/produtos.js');
+    const produto = await getProduto(id);
+    if (!produto) return;
+    if (produto.tamanhos?.length > 0) {
+      window.location.href = `produto.html?id=${id}`;
+      return;
+    }
+    adicionarItem(produto, '', '');
+    actualizarContador();
+    abrirCarrinhoDrawer();
+  };
+
+  init();
+</script>
+</body>
+</html>
