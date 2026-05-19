@@ -129,7 +129,7 @@ nav {
 }
 .produto-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 .produto-card-img {
-  aspect-ratio: 3/4; overflow: hidden; background: var(--gray-100);
+  aspect-ratio: 1/1; overflow: hidden; background: var(--gray-100);
   position: relative;
 }
 .produto-card-img img {
