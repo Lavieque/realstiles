@@ -89,8 +89,8 @@ export async function decrementarStock(id, quantidade = 1) {
 // ── RENDER CARD ──
 export function renderCard(produto, opts = {}) {
   const { showActions = true } = opts;
-  const preco = Number(produto.preco || 0).toFixed(2);
-  const precoOrig = produto.preco_original ? `<span class="preco-original">${Number(produto.preco_original).toFixed(2)} MZN</span>` : '';
+  const preco = produto.preco?.toFixed(2) || '0.00';
+  const precoOrig = produto.preco_original ? `<span class="preco-original">${produto.preco_original.toFixed(2)} MZN</span>` : '';
   const badge = produto.destaque ? '<span class="produto-card-badge">Destaque</span>' : '';
   const saleBadge = produto.preco_original && produto.preco_original > produto.preco
     ? '<span class="produto-card-badge sale">Sale</span>' : '';
