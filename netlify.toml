@@ -1,17 +1,9 @@
 [build]
-  publish = "."
-  functions = "netlify/functions"
+  command = "npm run build"
+  publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
-
-[[redirects]]
-  from = "/admin"
-  to = "/admin/index.html"
-  status = 200
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
