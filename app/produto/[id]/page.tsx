@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getAdminDb } from '@/lib/firebase-admin';
+import { serializar } from '@/lib/serializar';
 import ProdutoDetalhe from './ProdutoDetalhe';
 import type { Produto } from '@/lib/produtos';
 import type { Metadata } from 'next';
@@ -10,7 +11,8 @@ async function getProduto(id: string): Promise<Produto | null> {
     const db = getAdminDb();
     if (!db) return null;
     const snap = await db.collection('produtos').doc(id).get();
-    return snap.exists ? ({ id: snap.id, ...snap.data() } as Produto) : null;
+    if (!snap.exists) return null;
+    return { ...serializar<Produto>(snap.data()!), id: snap.id };
   } catch {
     return null;
   }
@@ -20,15 +22,32 @@ async function getProdutosRelacionados(produto: Produto): Promise<Produto[]> {
   try {
     const db = getAdminDb();
     if (!db) return [];
-    const snap = await db.collection('produtos')
+
+    // 1.ª tentativa: mesma categoria
+    const snapCat = await db.collection('produtos')
       .where('activo', '==', true)
       .where('categoria', '==', produto.categoria || '')
       .limit(5)
       .get();
-    return snap.docs
+    const daCat = snapCat.docs
       .filter(d => d.id !== produto.id)
       .slice(0, 4)
-      .map(d => ({ id: d.id, ...d.data() } as Produto));
+      .map(d => ({ ...serializar<Produto>(d.data()), id: d.id }));
+
+    if (daCat.length >= 4) return daCat;
+
+    // 2.ª tentativa: completar com outros produtos (excluindo já obtidos + o actual)
+    const excluir = new Set([produto.id, ...daCat.map(p => p.id)]);
+    const snapResto = await db.collection('produtos')
+      .where('activo', '==', true)
+      .limit(4 - daCat.length + excluir.size)
+      .get();
+    const extras = snapResto.docs
+      .filter(d => !excluir.has(d.id))
+      .slice(0, 4 - daCat.length)
+      .map(d => ({ ...serializar<Produto>(d.data()), id: d.id }));
+
+    return [...daCat, ...extras];
   } catch {
     return [];
   }
@@ -50,19 +69,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
 export default async function ProdutoPage({ params }: { params: { id: string } }) {
   const produto = await getProduto(params.id);
-  if (!produto) return (
-    <div className="page-wrapper">
-      <div className="container">
-        <div className="empty-state" style={{ paddingTop: 80 }}>
-          <div className="icon">😕</div>
-          <h3>Produto não encontrado</h3>
-          <p>Este produto pode ter sido removido.</p>
-          <a href="/" className="btn btn-primary" style={{ marginTop: 20 }}>Voltar à loja</a>
-        </div>
-      </div>
-    </div>
-  );
-
-  const relacionados = await getProdutosRelacionados(produto);
-  return <ProdutoDetalhe produto={produto} relacionados={relacionados} />;
+  // Se Admin SDK não estiver configurado, passa null — ProdutoDetalhe carrega via client SDK
+  const relacionados = produto ? await getProdutosRelacionados(produto) : [];
+  return <ProdutoDetalhe id={params.id} produto={produto} relacionados={relacionados} />;
 }

@@ -60,12 +60,37 @@ export default function AdminEncomendasPage() {
     !filtro || e.id.includes(filtro) || e.cliente_email?.toLowerCase().includes(filtro.toLowerCase())
   );
 
+  const exportarCSV = () => {
+    const linhas = [
+      ['ID', 'Email', 'Estado', 'Total (MZN)', 'Morada', 'Cidade', 'Telefone', 'Data'],
+      ...filtradas.map(e => [
+        e.id,
+        e.cliente_email || '',
+        e.estado,
+        (e.total || 0).toFixed(2),
+        e.morada_entrega || '',
+        e.cidade_entrega || '',
+        e.telefone_contacto || '',
+        formatarData(e.criado_em),
+      ]),
+    ];
+    const csv = linhas.map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `encomendas_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       {/* Lista */}
       <div style={{ width: 420, borderRight: '1px solid var(--gray-200)', display: 'flex', flexDirection: 'column', background: 'white' }}>
         <div className="admin-topbar" style={{ position: 'sticky', top: 0 }}>
           <h1>Encomendas</h1>
+          <button className="btn btn-outline btn-sm" onClick={exportarCSV} title="Exportar CSV">↓ CSV</button>
         </div>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-200)' }}>
           <input

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
 import { criarEncomenda } from '@/lib/encomendas';
-import { onAuthChange } from '@/lib/auth';
+import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import type { User } from 'firebase/auth';
 
@@ -14,19 +14,31 @@ export default function CarrinhoPage() {
   const [user, setUser] = useState<User | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ morada: '', cidade: '', telefone: '', notas: '' });
+  const [form, setForm] = useState({ email: '', morada: '', cidade: '', telefone: '', notas: '' });
 
   useEffect(() => {
-    const unsub = onAuthChange(setUser);
+    const unsub = onAuthChange(async (u) => {
+      setUser(u);
+      if (u) {
+        const p = await getPerfil(u.uid);
+        if (p) {
+          setForm(f => ({
+            ...f,
+            email: u.email || '',
+            morada: f.morada || p.morada || '',
+            telefone: f.telefone || p.telefone || '',
+          }));
+        }
+      }
+    });
     return unsub;
   }, []);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) { window.location.href = '/conta?redirect=/carrinho'; return; }
     setLoading(true);
     try {
-      const id = await criarEncomenda({ itens: items, ...form });
+      const id = await criarEncomenda({ itens: items, morada: form.morada, cidade: form.cidade, telefone: form.telefone, notas: form.notas, guestEmail: form.email });
       limpar();
       window.location.href = `/encomenda/${id}?confirmada=1`;
     } catch (err) {
@@ -60,12 +72,12 @@ export default function CarrinhoPage() {
           <p>{items.length} {items.length === 1 ? 'produto' : 'produtos'}</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
+        <div className="carrinho-grid">
           {/* Itens */}
           <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
             {items.map(item => (
               <div key={item.key} style={{ display: 'flex', gap: 16, padding: 20, borderBottom: '1px solid var(--gray-100)', alignItems: 'center' }}>
-                <Image src={item.imagem || 'https://via.placeholder.com/80x100'} alt={item.nome} width={80} height={100} style={{ objectFit: 'cover', borderRadius: 8 }} />
+                <Image src={item.imagem || '/placeholder.svg'} alt={item.nome} width={80} height={100} style={{ objectFit: 'cover', borderRadius: 8 }} />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, marginBottom: 4 }}>{item.nome}</p>
                   <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 8 }}>
@@ -105,6 +117,12 @@ export default function CarrinhoPage() {
               </button>
             ) : (
               <form onSubmit={handleCheckout}>
+                {!user && (
+                  <div className="form-group">
+                    <label>Email de contacto *</label>
+                    <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="o-teu@email.com" />
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Morada de entrega *</label>
                   <input required value={form.morada} onChange={e => setForm(f => ({ ...f, morada: e.target.value }))} placeholder="Rua, número, bairro" />
@@ -122,11 +140,11 @@ export default function CarrinhoPage() {
                   <textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Instruções especiais..." style={{ minHeight: 80 }} />
                 </div>
                 {!user && (
-                  <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 16 }}>
-                    <Link href="/conta?redirect=/carrinho" style={{ color: 'var(--black)', fontWeight: 600 }}>Entra na tua conta</Link> para finalizar a encomenda.
+                  <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
+                    <Link href="/conta?redirect=/carrinho" style={{ color: 'var(--black)' }}>Entra na tua conta</Link> para guardar o histórico de encomendas.
                   </p>
                 )}
-                <button className="btn btn-primary btn-full" type="submit" disabled={loading || !user}>
+                <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
                   {loading ? 'A processar...' : 'Confirmar encomenda'}
                 </button>
                 <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setCheckoutOpen(false)}>

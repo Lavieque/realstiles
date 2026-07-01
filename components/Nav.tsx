@@ -7,7 +7,7 @@ import { onAuthChange, getPerfil, logout } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 
 export default function Nav() {
-  const { items, abrirDrawer } = useCarrinho();
+  const { items, bumped, abrirDrawer } = useCarrinho();
   const count = getTotalItems(items);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,10 +37,59 @@ export default function Nav() {
       </Link>
 
       <ul className={`nav-links${menuOpen ? ' open' : ''}`}>
-        <li><Link href="/">Início</Link></li>
-        <li><Link href="/?cat=novidades">Novidades</Link></li>
         <li><Link href="/promocoes" style={{ color: 'var(--red)', fontWeight: 600 }}>Promoções 🔥</Link></li>
-        <li><Link href="/quem-somos">Quem Somos</Link></li>
+
+        <li className="nav-dropdown">
+          <Link href="/?cat=mulher">Mulher</Link>
+          <ul className="nav-submenu">
+            <li><Link href="/?cat=vestidos">Vestidos</Link></li>
+            <li><Link href="/?cat=camisas">Camisas</Link></li>
+            <li><Link href="/?cat=calças">Calças</Link></li>
+            <li><Link href="/?cat=casacos">Casacos</Link></li>
+            <li><Link href="/?cat=saias">Saias</Link></li>
+            <li><Link href="/?cat=acessórios">Acessórios</Link></li>
+          </ul>
+        </li>
+
+        <li className="nav-dropdown">
+          <Link href="/?cat=homem">Homem</Link>
+          <ul className="nav-submenu">
+            <li><Link href="/?cat=camisas">Camisas</Link></li>
+            <li><Link href="/?cat=calças">Calças</Link></li>
+            <li><Link href="/?cat=casacos">Casacos</Link></li>
+            <li><Link href="/?cat=sapatos">Sapatos</Link></li>
+            <li><Link href="/?cat=acessórios">Acessórios</Link></li>
+          </ul>
+        </li>
+
+        <li className="nav-dropdown">
+          <Link href="/?cat=crianca">Criança</Link>
+          <ul className="nav-submenu">
+            <li><Link href="/?cat=crianca-menina">Menina</Link></li>
+            <li><Link href="/?cat=crianca-menino">Menino</Link></li>
+            <li><Link href="/?cat=crianca-bebe">Bebé</Link></li>
+            <li><Link href="/?cat=crianca-calcado">Calçado</Link></li>
+          </ul>
+        </li>
+
+        <li className="nav-dropdown">
+          <Link href="/?cat=desporto">Desporto</Link>
+          <ul className="nav-submenu">
+            <li><Link href="/?cat=roupa-desporto">Roupa</Link></li>
+            <li><Link href="/?cat=calcado-desporto">Calçado</Link></li>
+            <li><Link href="/?cat=equipamento">Equipamento</Link></li>
+          </ul>
+        </li>
+
+        <li className="nav-dropdown">
+          <Link href="/?cat=lar">Lar</Link>
+          <ul className="nav-submenu">
+            <li><Link href="/?cat=decoracao">Decoração</Link></li>
+            <li><Link href="/?cat=cama-banho">Cama &amp; Banho</Link></li>
+            <li><Link href="/?cat=cozinha">Cozinha</Link></li>
+            <li><Link href="/?cat=organizacao">Organização</Link></li>
+          </ul>
+        </li>
       </ul>
 
       <div className="nav-actions">
@@ -52,6 +101,7 @@ export default function Nav() {
               </a>
               <ul className="nav-submenu">
                 <li><Link href="/conta">A minha conta</Link></li>
+                <li><Link href="/favoritos">Favoritos ♥</Link></li>
                 <li><Link href="/encomendas">Encomendas</Link></li>
                 {perfil.admin && <li><Link href="/admin">Admin</Link></li>}
                 <li className="nav-submenu-sep" />
@@ -60,13 +110,10 @@ export default function Nav() {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link href="/conta" className="btn btn-outline btn-sm">Entrar</Link>
-            <Link href="/conta?tab=registar" className="btn btn-primary btn-sm">Registar</Link>
-          </div>
+          <Link href="/conta" className="btn btn-outline btn-sm">Entrar</Link>
         )}
 
-        <button className="nav-cart-btn" onClick={abrirDrawer}>
+        <button className={`nav-cart-btn${bumped ? ' bumped' : ''}`} onClick={abrirDrawer}>
           🛒 {count > 0 && <span className="cart-count">{count}</span>}
         </button>
 

@@ -17,6 +17,11 @@ export interface ItemEncomenda {
   quantidade: number;
 }
 
+export interface HistoricoEstado {
+  estado: EstadoEncomenda;
+  data: unknown;
+}
+
 export interface Encomenda {
   id: string;
   cliente_id: string;
@@ -29,27 +34,31 @@ export interface Encomenda {
   notas: string;
   notas_admin: string;
   estado: EstadoEncomenda;
+  historico_estados?: HistoricoEstado[];
   criado_em?: unknown;
   actualizado_em?: unknown;
 }
 
 export async function criarEncomenda({
-  itens, morada, cidade, telefone, notas = '',
+  itens, morada, cidade, telefone, notas = '', guestEmail = '',
 }: {
   itens: ItemEncomenda[];
   morada: string;
   cidade: string;
   telefone: string;
   notas?: string;
+  guestEmail?: string;
 }): Promise<string> {
   const user = auth.currentUser;
-  if (!user) throw new Error('Não autenticado');
+  const emailFinal = user?.email || guestEmail;
+  if (!emailFinal) throw new Error('Email necessário');
 
   const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
   const ref = await addDoc(collection(db, 'encomendas'), {
-    cliente_id: user.uid,
-    cliente_email: user.email,
+    cliente_id: user?.uid || 'guest',
+    cliente_email: emailFinal,
+    guest: !user,
     itens, total,
     morada_entrega: morada,
     cidade_entrega: cidade,
@@ -66,7 +75,7 @@ export async function criarEncomenda({
       body: JSON.stringify({
         tipo: 'confirmacao_encomenda',
         encomenda_id: ref.id,
-        cliente_email: user.email,
+        cliente_email: emailFinal,
         itens, total, morada,
       }),
     });
@@ -107,6 +116,13 @@ export async function actualizarEstado(
   const dados: Record<string, unknown> = { estado, actualizado_em: serverTimestamp() };
   if (notasAdmin !== null) dados.notas_admin = notasAdmin;
   await updateDoc(doc(db, 'encomendas', id), dados);
+}
+
+export async function cancelarEncomenda(id: string): Promise<void> {
+  await updateDoc(doc(db, 'encomendas', id), {
+    estado: 'cancelada',
+    actualizado_em: serverTimestamp(),
+  });
 }
 
 export function badgeEstadoClass(estado: EstadoEncomenda): string {

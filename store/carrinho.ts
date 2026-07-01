@@ -11,11 +11,13 @@ export interface ItemCarrinho {
   tamanho: string;
   cor: string;
   quantidade: number;
+  stock: number;
 }
 
 interface CarrinhoState {
   items: ItemCarrinho[];
   drawerOpen: boolean;
+  bumped: boolean;
   adicionarItem: (produto: { id: string; nome: string; preco: number; imagens?: string[] }, tamanho: string, cor: string, quantidade?: number) => void;
   removerItem: (key: string) => void;
   actualizarQuantidade: (key: string, quantidade: number) => void;
@@ -29,14 +31,17 @@ export const useCarrinho = create<CarrinhoState>()(
     (set, get) => ({
       items: [],
       drawerOpen: false,
+      bumped: false,
 
       adicionarItem: (produto, tamanho, cor, quantidade = 1) => {
         const key = `${produto.id}_${tamanho}_${cor}`;
         const items = get().items;
         const idx = items.findIndex(i => i.key === key);
+        const stockMax = (produto as any).stock ?? 99;
         if (idx >= 0) {
           const updated = [...items];
-          updated[idx] = { ...updated[idx], quantidade: updated[idx].quantidade + quantidade };
+          const novaQty = Math.min(stockMax, updated[idx].quantidade + quantidade);
+          updated[idx] = { ...updated[idx], quantidade: novaQty };
           set({ items: updated });
         } else {
           set({
@@ -47,9 +52,12 @@ export const useCarrinho = create<CarrinhoState>()(
               preco: produto.preco,
               imagem: produto.imagens?.[0] || '',
               tamanho, cor, quantidade,
+              stock: stockMax,
             }],
           });
         }
+        set({ bumped: true });
+        setTimeout(() => set({ bumped: false }), 500);
       },
 
       removerItem: (key) => set(s => ({ items: s.items.filter(i => i.key !== key) })),

@@ -2,13 +2,24 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
 
-export default function HeroSlider({ destaques }: { destaques: Produto[] }) {
+export default function HeroSlider({ destaques: initial }: { destaques: Produto[] }) {
+  const [destaques, setDestaques] = useState<Produto[]>(initial);
   const [offset, setOffset] = useState(0);
   const VISIVEIS = 3;
   const total = destaques.length;
   const slidesRef = useRef<HTMLDivElement>(null);
+
+  // Fallback: se SSR não trouxe destaques (sem Admin SDK), carrega pelo cliente
+  useEffect(() => {
+    if (initial.length > 0) return;
+    getProdutos({ destaque: true, max: 12 }).then(res => {
+      const comImagem = res.filter(p => p.imagens?.[0]);
+      if (comImagem.length) setDestaques(comImagem);
+    }).catch(() => {});
+  }, [initial.length]);
 
   useEffect(() => {
     if (total <= VISIVEIS) return;
@@ -18,37 +29,44 @@ export default function HeroSlider({ destaques }: { destaques: Produto[] }) {
     return () => clearInterval(iv);
   }, [total]);
 
-  if (!destaques.length) return null;
-
   const slideW = slidesRef.current?.children[0]
     ? (slidesRef.current.children[0] as HTMLElement).offsetWidth + 10
     : 0;
 
-  return (
-    <div id="hero-slider" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'stretch', padding: 'calc(var(--nav-h) + 14px) 10px 14px' }}>
-      {total > VISIVEIS && (
-        <button
-          onClick={() => setOffset(o => Math.max(0, o - 1))}
-          disabled={offset === 0}
-          style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', fontSize: 18 }}
-        >‹</button>
-      )}
+  if (!destaques.length) {
+    return (
+      <div className="hero-slider">
+        <div className="hero-slides-wrap">
+          <div className="hero-slides">
+            <div className="hero-sk" />
+            <div className="hero-sk" />
+            <div className="hero-sk" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'stretch' }}>
+  return (
+    <div id="hero-slider" className="hero-slider">
+      <button
+        className="hero-arrow prev"
+        onClick={() => setOffset(o => Math.max(0, o - 1))}
+        disabled={offset === 0}
+      >&#8249;</button>
+
+      <div className="hero-slides-wrap">
         <div
           ref={slidesRef}
-          style={{ display: 'flex', gap: 10, width: '100%', transition: 'transform 0.4s cubic-bezier(.4,0,.2,1)', transform: `translateX(-${offset * (slideW || 0)}px)` }}
+          className="hero-slides"
+          style={{ transform: `translateX(-${offset * (slideW || 0)}px)` }}
         >
           {destaques.map(p => (
-            <Link
-              key={p.id}
-              href={`/produto/${p.id}`}
-              style={{ flex: '0 0 calc(33.333% - 7px)', minWidth: 0, borderRadius: 12, overflow: 'hidden', cursor: 'pointer', position: 'relative', boxShadow: '0 6px 20px rgba(0,0,0,0.4)', display: 'block' }}
-            >
+            <Link key={p.id} href={`/produto/${p.id}`} className="hero-slide">
               <div style={{ position: 'relative', aspectRatio: '2/3' }}>
                 <Image src={p.imagens[0]} alt={p.nome} fill style={{ objectFit: 'cover' }} sizes="33vw" />
               </div>
-              <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(13,19,71,0.82)', backdropFilter: 'blur(6px)', color: 'var(--accent)', fontWeight: 700, fontSize: 14, padding: '6px 12px', borderRadius: 8 }}>
+              <div className="hero-slide-preco">
                 {p.preco?.toFixed(2)} MZN
               </div>
             </Link>
@@ -56,13 +74,11 @@ export default function HeroSlider({ destaques }: { destaques: Produto[] }) {
         </div>
       </div>
 
-      {total > VISIVEIS && (
-        <button
-          onClick={() => setOffset(o => Math.min(o + 1, total - VISIVEIS))}
-          disabled={offset >= total - VISIVEIS}
-          style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', fontSize: 18 }}
-        >›</button>
-      )}
+      <button
+        className="hero-arrow next"
+        onClick={() => setOffset(o => Math.min(o + 1, total - VISIVEIS))}
+        disabled={offset >= total - VISIVEIS}
+      >&#8250;</button>
     </div>
   );
 }

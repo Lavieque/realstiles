@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { getProdutos, criarProduto, actualizarProduto, apagarProduto } from '@/lib/produtos';
+import { getProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
 import type { Produto } from '@/lib/produtos';
@@ -15,9 +15,11 @@ export default function AdminProdutosPage() {
   const [salvando, setSalvando] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [filtro, setFiltro] = useState('');
+  const [categorias, setCategorias] = useState<string[]>([]);
 
   useEffect(() => {
     getProdutos({ max: 200 }).then(p => { setProdutos(p); setLoading(false); });
+    getCategorias().then(setCategorias).catch(() => {});
   }, []);
 
   const novo = () => setSeleccionado({ ...VAZIO });
@@ -93,7 +95,7 @@ export default function AdminProdutosPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 500, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nome}</p>
-                  <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{p.preco?.toFixed(2)} MZN · Stock: {p.stock}</p>
+                  <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{Number(p.preco ?? 0).toFixed(2)} MZN · Stock: {p.stock}</p>
                 </div>
                 {!p.activo && <span style={{ fontSize: 10, background: 'var(--gray-200)', padding: '2px 6px', borderRadius: 4, color: 'var(--gray-600)' }}>Inactivo</span>}
               </div>
@@ -130,7 +132,20 @@ export default function AdminProdutosPage() {
               <div className="form-grid-2">
                 <div className="form-group"><label>Preço (MZN) *</label><input type="number" value={seleccionado.preco || ''} onChange={f('preco')} /></div>
                 <div className="form-group"><label>Preço original (MZN)</label><input type="number" value={seleccionado.preco_original || ''} onChange={f('preco_original')} /></div>
-                <div className="form-group"><label>Categoria</label><input value={seleccionado.categoria || ''} onChange={f('categoria')} /></div>
+                <div className="form-group">
+                  <label>Categoria</label>
+                  {categorias.length > 0 ? (
+                    <select value={seleccionado.categoria || ''} onChange={f('categoria')}>
+                      <option value="">— Sem categoria —</option>
+                      {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                      {seleccionado.categoria && !categorias.includes(seleccionado.categoria) && (
+                        <option value={seleccionado.categoria}>{seleccionado.categoria} (nova)</option>
+                      )}
+                    </select>
+                  ) : (
+                    <input value={seleccionado.categoria || ''} onChange={f('categoria')} placeholder="Ex: Camisas" />
+                  )}
+                </div>
                 <div className="form-group"><label>Stock</label><input type="number" value={seleccionado.stock || ''} onChange={f('stock')} /></div>
               </div>
               <div className="form-group" style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 0 }}>

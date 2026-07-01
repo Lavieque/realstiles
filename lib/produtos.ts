@@ -7,6 +7,13 @@ import { db } from './firebase';
 
 const COL = 'produtos';
 
+function comTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 export interface Produto {
   id: string;
   nome: string;
@@ -44,7 +51,7 @@ export async function getProdutos({
   if (activo !== null) filters.unshift(where('activo', '==', activo));
   if (ultimo && !needsClientFilter) filters.push(startAfter(ultimo));
 
-  const snap = await getDocs(query(collection(db, COL), ...(filters as Parameters<typeof query>[1][])  ));
+  const snap = await comTimeout(getDocs(query(collection(db, COL), ...(filters as Parameters<typeof query>[1][])  )));
 
   let results: Produto[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Produto));
   if (activo !== null && needsClientFilter) results = results.filter(p => p.activo === activo);
@@ -54,7 +61,7 @@ export async function getProdutos({
 }
 
 export async function getProduto(id: string): Promise<Produto | null> {
-  const snap = await getDoc(doc(db, COL, id));
+  const snap = await comTimeout(getDoc(doc(db, COL, id)));
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as Produto) : null;
 }
 
@@ -81,15 +88,17 @@ export async function apagarProduto(id: string): Promise<void> {
   await deleteDoc(doc(db, COL, id));
 }
 
-export async function pesquisarProdutos(termo: string): Promise<Produto[]> {
-  const todos = await getProdutos({ max: 200 });
+export async function pesquisarProdutos(termo: string, max = 48): Promise<Produto[]> {
+  const todos = await getProdutos({ max: 300 });
   const t = termo.toLowerCase();
-  return todos.filter(p =>
-    p.nome?.toLowerCase().includes(t) ||
-    p.descricao?.toLowerCase().includes(t) ||
-    p.categoria?.toLowerCase().includes(t) ||
-    p.tags?.some(tag => tag.toLowerCase().includes(t))
-  );
+  return todos
+    .filter(p =>
+      p.nome?.toLowerCase().includes(t) ||
+      p.descricao?.toLowerCase().includes(t) ||
+      p.categoria?.toLowerCase().includes(t) ||
+      p.tags?.some(tag => tag.toLowerCase().includes(t))
+    )
+    .slice(0, max);
 }
 
 export async function getCategorias(): Promise<string[]> {

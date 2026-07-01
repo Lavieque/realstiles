@@ -28,7 +28,7 @@ export default function CarrinhoDrawer() {
               <div key={item.key} className="cd-item">
                 <Image
                   className="cd-item-img"
-                  src={item.imagem || 'https://via.placeholder.com/64x80?text=?'}
+                  src={item.imagem || '/placeholder.svg'}
                   alt={item.nome}
                   width={52} height={64}
                   style={{ objectFit: 'cover', borderRadius: 8 }}
@@ -43,7 +43,7 @@ export default function CarrinhoDrawer() {
                   <div className="cd-item-qty">
                     <button onClick={() => actualizarQuantidade(item.key, item.quantidade - 1)}>−</button>
                     <span>{item.quantidade}</span>
-                    <button onClick={() => actualizarQuantidade(item.key, item.quantidade + 1)}>+</button>
+                    <button onClick={() => actualizarQuantidade(item.key, Math.min(item.stock, item.quantidade + 1))}>+</button>
                   </div>
                 </div>
                 <button className="cd-item-remove" onClick={() => removerItem(item.key)}>✕</button>

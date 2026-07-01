@@ -1,0 +1,14 @@
+{
+  "name": "Real Stiles",
+  "short_name": "Real Stiles",
+  "description": "Encomendas diversas com segurança, transparência e agilidade.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1347",
+  "theme_color": "#0d1347",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/img/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
