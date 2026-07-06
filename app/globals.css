@@ -195,10 +195,10 @@ footer img { mix-blend-mode: screen; }
 .btn-carrinho-icon {
   display: flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; border-radius: 50%;
-  background: var(--primary); color: #fff; border: none; cursor: pointer;
+  background: var(--black); color: #fff; border: none; cursor: pointer;
   flex-shrink: 0; transition: background .15s, transform .1s;
 }
-.btn-carrinho-icon:hover { background: var(--primary-dark, #1a3a2a); transform: scale(1.08); }
+.btn-carrinho-icon:hover { background: var(--accent); transform: scale(1.08); }
 .btn-carrinho-icon:disabled { background: var(--gray-300); cursor: not-allowed; transform: none; }
 
 /* ── GRID PRODUTOS ── */
