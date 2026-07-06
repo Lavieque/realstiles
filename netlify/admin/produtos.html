@@ -221,7 +221,7 @@
           </div>
         </td>
         <td><span style="font-size:12px;background:var(--gray-100);padding:3px 8px;border-radius:6px;">${p.categoria || '—'}</span></td>
-        <td><strong>${p.preco?.toFixed(2)} MZN</strong></td>
+        <td><strong>${Number(p.preco).toFixed(2)} MZN</strong></td>
         <td><span style="color:${p.stock < 3 ? 'var(--red)' : 'inherit'}">${p.stock ?? 0}</span></td>
         <td><span class="badge-estado ${p.activo ? 'badge-entregue' : 'badge-cancelada'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
         <td>
