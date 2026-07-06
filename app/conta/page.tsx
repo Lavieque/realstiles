@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout } from '@/lib/auth';
+import { sendEmailVerification } from 'firebase/auth';
 import { getEncomendasCliente, badgeEstadoLabel, badgeEstadoClass, formatarData } from '@/lib/encomendas';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
@@ -76,7 +77,12 @@ function ContaInner() {
     setLoading(true);
     try {
       await registar(form.nome, form.email, form.password, form.telefone);
-      mostrarToast('Conta criada com sucesso!', 'success');
+      mostrarToast('Conta criada! Verifica o teu email para activar a conta.', 'success');
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'bem_vindo', nome: form.nome, email: form.email }),
+      }).catch(() => {});
       router.push(redirect);
     } catch (err: unknown) {
       const msg = (err as { code?: string }).code === 'auth/email-already-in-use'
@@ -109,12 +115,35 @@ function ContaInner() {
     } finally { setLoading(false); }
   };
 
+  const reenviarVerificacao = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      await sendEmailVerification(user);
+      mostrarToast('Email de verificação reenviado!', 'success');
+    } catch {
+      mostrarToast('Erro ao reenviar. Tenta mais tarde.', 'error');
+    } finally { setLoading(false); }
+  };
+
   // Página de conta (já autenticado)
   if (user && perfil) {
     return (
       <div className="page-wrapper">
         <div className="container">
           <div className="page-header"><h1>A minha conta</h1></div>
+
+          {!user.emailVerified && (
+            <div style={{ background: '#fff8e1', border: '1px solid #f39c12', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontWeight: 600, fontSize: 14, color: '#b7770d', marginBottom: 2 }}>⚠️ Email não verificado</p>
+                <p style={{ fontSize: 13, color: '#8a5c00', margin: 0 }}>Verifica o teu email para activar todas as funcionalidades da conta.</p>
+              </div>
+              <button className="btn btn-sm" onClick={reenviarVerificacao} disabled={loading} style={{ background: '#f39c12', color: 'white', border: 'none', whiteSpace: 'nowrap' }}>
+                Reenviar email
+              </button>
+            </div>
+          )}
 
           <div className="conta-grid">
             {/* Coluna esquerda — Perfil */}

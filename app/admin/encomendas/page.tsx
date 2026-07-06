@@ -38,6 +38,19 @@ export default function AdminEncomendasPage() {
       setEncomendas(enc => enc.map(e => e.id === id ? { ...e, estado } : e));
       setSeleccionada(s => s ? { ...s, estado } : s);
       mostrarToast('Estado actualizado', 'success');
+      if (seleccionada?.cliente_email) {
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'estado_encomenda',
+            encomenda_id: id,
+            cliente_email: seleccionada.cliente_email,
+            estado,
+            notas: notas || undefined,
+          }),
+        }).catch(() => {});
+      }
     } catch {
       mostrarToast('Erro ao actualizar', 'error');
     } finally {

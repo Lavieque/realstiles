@@ -28,6 +28,8 @@ export interface Produto {
   tags: string[];
   destaque: boolean;
   activo: boolean;
+  avaliacao?: number;
+  num_avaliacoes?: number;
   criado_em?: unknown;
 }
 

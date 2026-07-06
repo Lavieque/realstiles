@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
@@ -31,6 +32,7 @@ export async function registar(
   await setDoc(doc(db, 'clientes', cred.user.uid), {
     nome, email, telefone, morada, admin: false, criado_em: serverTimestamp(),
   });
+  await sendEmailVerification(cred.user);
   return cred.user;
 }
 

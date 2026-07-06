@@ -188,18 +188,6 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
       {/* Header */}
       <div className="catalogo-header">
         <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : 'Todos os produtos'}</h2>
-        <div className="search-input-wrap">
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input
-            type="text"
-            placeholder="Pesquisar produtos..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', fontSize: 18, padding: '0 4px', lineHeight: 1 }}>×</button>
-          )}
-        </div>
       </div>
 
       {/* Categorias */}

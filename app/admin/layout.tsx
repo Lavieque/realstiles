@@ -14,6 +14,8 @@ const NAV = [
   { href: '/admin/importar', label: 'Importar via link', icon: '🔗' },
   { href: '/admin/clientes', label: 'Clientes', icon: '👥', section: 'Clientes' },
   { href: '/admin/conteudo', label: 'Conteúdo do site', icon: '✏️', section: 'Site' },
+  { href: '/admin/banner', label: 'Barra de anúncios', icon: '📢' },
+  { href: '/admin/reclamacoes', label: 'Reclamações', icon: '📋' },
   { href: '/admin/tradeflow', label: 'TradeFlow', icon: '⚡', section: 'Integrações' },
 ];
 

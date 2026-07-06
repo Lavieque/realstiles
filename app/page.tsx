@@ -36,6 +36,10 @@ export default async function HomePage() {
         <div className="hero-loja-content">
           <h1>Veste o teu<br/><span>estilo.</span></h1>
           <p>As melhores peças de vestuário, cuidadosamente seleccionadas para ti. Moda acessível e de qualidade.</p>
+          <div className="hero-loja-btns">
+            <a href="/promocoes" className="btn btn-accent">Ver promoções →</a>
+            <a href="/?novo=true" className="btn btn-outline-white">Ver novidades</a>
+          </div>
         </div>
 
         <HeroSlider destaques={comImagem} />
