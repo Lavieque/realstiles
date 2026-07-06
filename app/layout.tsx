@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   title: 'Real Stiles — Moda para todos',
   description: 'Loja de vestuário online. Encontra as melhores peças de roupa a preços acessíveis.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export const viewport = {
