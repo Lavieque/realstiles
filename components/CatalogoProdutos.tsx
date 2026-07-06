@@ -35,6 +35,7 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
   const [precoIdx, setPrecoIdx] = useState(0);
   const [tamActual, setTamActual] = useState<string | null>(null);
   const [corActual, setCorActual] = useState<string | null>(null);
+  const [ordenacao, setOrdenacao] = useState('relevancia');
   const scrollRestored = useRef(false);
 
   // Restaurar scroll ao voltar de um produto
@@ -94,14 +95,21 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
     }
   }, []);
 
-  // Aplicar filtros de preço, tamanho e cor
+  // Aplicar filtros de preço, tamanho, cor e ordenação
   useEffect(() => {
     const intervalo = INTERVALOS_PRECO[precoIdx];
     let filtrados = todos.filter(p => p.preco >= intervalo.min && p.preco <= intervalo.max);
     if (tamActual) filtrados = filtrados.filter(p => p.tamanhos?.includes(tamActual));
     if (corActual) filtrados = filtrados.filter(p => p.cores?.includes(corActual));
+    if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => a.preco - b.preco);
+    else if (ordenacao === 'preco_desc') filtrados = [...filtrados].sort((a, b) => b.preco - a.preco);
+    else if (ordenacao === 'novidades') filtrados = [...filtrados].sort((a, b) => {
+      const ta = (a.criado_em as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0;
+      const tb = (b.criado_em as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0;
+      return tb - ta;
+    });
     setProdutos(filtrados);
-  }, [todos, precoIdx, tamActual, corActual]);
+  }, [todos, precoIdx, tamActual, corActual, ordenacao]);
 
   const filtrar = (cat: string | null) => {
     setCatActual(cat);
@@ -190,7 +198,7 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
         <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : 'Todos os produtos'}</h2>
       </div>
 
-      {/* Categorias */}
+      {/* Categorias + Ordenação */}
       <div className="filtros">
         <button className={`filtro-btn${!catActual ? ' active' : ''}`} onClick={() => filtrar(null)}>Todos</button>
         {categorias.map(cat => (
@@ -198,6 +206,12 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
             {cat.charAt(0).toUpperCase() + cat.slice(1)}
           </button>
         ))}
+        <select className="filtro-ordenacao" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}>
+          <option value="relevancia">Relevância</option>
+          <option value="novidades">Novidades</option>
+          <option value="preco_asc">Preço: menor primeiro</option>
+          <option value="preco_desc">Preço: maior primeiro</option>
+        </select>
       </div>
 
       {/* Layout com sidebar se categoria activa */}
