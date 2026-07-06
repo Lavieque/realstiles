@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useCarrinho, getTotalItems } from '@/store/carrinho';
 import { onAuthChange, getPerfil, logout } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
@@ -11,22 +11,15 @@ export default function Nav() {
   const count = getTotalItems(items);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       window.location.href = `/?q=${encodeURIComponent(searchTerm.trim())}`;
-      setSearchOpen(false);
       setSearchTerm('');
     }
   };
-
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
-  }, [searchOpen]);
 
   useEffect(() => {
     const unsub = onAuthChange(async (user) => {
@@ -110,18 +103,12 @@ export default function Nav() {
 
       <div className="nav-actions">
         {/* Pesquisa */}
-        <div className="nav-search-wrap">
-          {searchOpen ? (
-            <form onSubmit={handleSearch} className="nav-search-form">
-              <input ref={searchRef} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Pesquisar produtos..." className="nav-search-input" />
-              <button type="button" onClick={() => { setSearchOpen(false); setSearchTerm(''); }} className="nav-search-close">×</button>
-            </form>
-          ) : (
-            <button className="nav-icon-btn" onClick={() => setSearchOpen(true)} title="Pesquisar">
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            </button>
-          )}
-        </div>
+        <form onSubmit={handleSearch} className="nav-search-form">
+          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Pesquisar produtos..." className="nav-search-input" />
+          <button type="submit" className="nav-search-submit">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </button>
+        </form>
 
         {perfil ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
