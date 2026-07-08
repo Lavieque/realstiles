@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/banner', label: 'Barra de anúncios', icon: '📢' },
   { href: '/admin/reclamacoes', label: 'Reclamações', icon: '📋' },
   { href: '/admin/tradeflow', label: 'TradeFlow', icon: '⚡', section: 'Integrações' },
+  { href: '/admin/whatsapp', label: 'WhatsApp Notify', icon: '💬' },
 ];
 
 function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boolean; onClose: () => void }) {

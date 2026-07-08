@@ -337,6 +337,21 @@ footer ul a:hover { color: var(--accent); }
   cursor: pointer; outline: none; font-family: inherit;
 }
 .filtro-ordenacao:hover { border-color: var(--black); }
+
+/* ── WHATSAPP NOTIFY ADMIN ── */
+.wn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 640px) { .wn-grid { grid-template-columns: 1fr; } }
+.wn-status-row { display: flex; align-items: center; gap: 10px; }
+.wn-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.wn-dot.ligado { background: #16a34a; box-shadow: 0 0 0 3px #bbf7d0; }
+.wn-dot.aguarda { background: #f59e0b; box-shadow: 0 0 0 3px #fef3c7; animation: pulse 1.5s infinite; }
+.wn-dot.desligado { background: var(--gray-300); }
+.wn-status-label { font-size: 16px; font-weight: 600; }
+.wn-stats { display: flex; gap: 32px; }
+.wn-stat { display: flex; flex-direction: column; gap: 4px; }
+.wn-stat-num { font-size: 32px; font-weight: 700; color: var(--black); }
+.wn-stat-label { font-size: 13px; color: var(--gray-500); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
 .filtro-btn {
   padding: 8px 16px; border-radius: 100px; border: 1.5px solid var(--gray-200);
   font-size: 13px; font-weight: 500; cursor: pointer; background: white;
