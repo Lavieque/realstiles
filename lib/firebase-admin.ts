@@ -1,5 +1,6 @@
 import { getApps, initializeApp, cert, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 function getAdminApp(): App | null {
   if (getApps().length) return getApps()[0];
@@ -18,6 +19,16 @@ export function getAdminDb() {
   if (!app) return null;
   return getFirestore(app);
 }
+
+export const adminAuth = new Proxy({} as ReturnType<typeof getAuth>, {
+  get(_target, prop) {
+    const app = getAdminApp();
+    if (!app) throw new Error('Firebase Admin não configurado.');
+    const auth = getAuth(app);
+    const val = (auth as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof val === 'function' ? val.bind(auth) : val;
+  },
+});
 
 type FirestoreDb = ReturnType<typeof getFirestore>;
 

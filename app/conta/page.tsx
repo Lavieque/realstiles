@@ -4,6 +4,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout } from '@/lib/auth';
+import { signInWithCustomToken } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
 import { getEncomendasCliente, badgeEstadoLabel, badgeEstadoClass, formatarData } from '@/lib/encomendas';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
@@ -12,6 +14,8 @@ import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
 
 type Tab = 'entrar' | 'registar' | 'recuperar';
+type Metodo = 'email' | 'whatsapp';
+type OtpStep = 'telefone' | 'codigo';
 
 export default function ContaPage() {
   return (
@@ -28,11 +32,13 @@ function ContaInner() {
   const redirect = searchParams.get('redirect') || '/';
 
   const [tab, setTab] = useState<Tab>(tabParam || 'entrar');
+  const [metodo, setMetodo] = useState<Metodo>('email');
+  const [otpStep, setOtpStep] = useState<OtpStep>('telefone');
   const [user, setUser] = useState<User | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ nome: '', email: '', password: '', telefone: '' });
+  const [form, setForm] = useState({ nome: '', email: '', password: '', telefone: '', codigo: '' });
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -104,6 +110,49 @@ function ContaInner() {
     } finally { setLoading(false); }
   };
 
+  const handleEnviarOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.telefone) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/notify/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone: form.telefone.replace(/\D/g, '') }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        mostrarToast('Código enviado para o teu WhatsApp!', 'success');
+        setOtpStep('codigo');
+      } else {
+        mostrarToast(data.erro || 'Erro ao enviar código', 'error');
+      }
+    } catch {
+      mostrarToast('Erro ao contactar o serviço. Tenta mais tarde.', 'error');
+    } finally { setLoading(false); }
+  };
+
+  const handleVerificarOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/notify/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone: form.telefone.replace(/\D/g, ''), codigo: form.codigo }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.token) {
+        mostrarToast(data.erro || 'Código inválido ou expirado', 'error');
+        return;
+      }
+      await signInWithCustomToken(auth, data.token);
+      router.push(redirect);
+    } catch {
+      mostrarToast('Erro ao verificar código', 'error');
+    } finally { setLoading(false); }
+  };
+
   const handlePasswordReset = async () => {
     if (!user?.email) return;
     setLoading(true);
@@ -133,7 +182,7 @@ function ContaInner() {
         <div className="container">
           <div className="page-header"><h1>A minha conta</h1></div>
 
-          {!user.emailVerified && (
+          {!user.emailVerified && user.email && (
             <div style={{ background: '#fff8e1', border: '1px solid #f39c12', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div>
                 <p style={{ fontWeight: 600, fontSize: 14, color: '#b7770d', marginBottom: 2 }}>⚠️ Email não verificado</p>
@@ -146,9 +195,7 @@ function ContaInner() {
           )}
 
           <div className="conta-grid">
-            {/* Coluna esquerda — Perfil */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Avatar + nome */}
               <div style={{ background: 'var(--black)', borderRadius: 16, padding: 28, color: 'white', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 20%, rgba(201,164,60,0.18) 0%, transparent 60%)', pointerEvents: 'none' }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
@@ -156,12 +203,11 @@ function ContaInner() {
                     {(perfil.nome || 'U')[0].toUpperCase()}
                   </div>
                   <p style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>{perfil.nome}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{perfil.email}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{perfil.email || perfil.telefone}</p>
                   {perfil.admin && <span style={{ display: 'inline-block', marginTop: 10, background: 'rgba(201,164,60,0.2)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, border: '1px solid rgba(201,164,60,0.3)', letterSpacing: '0.06em' }}>ADMIN</span>}
                 </div>
               </div>
 
-              {/* Dados de contacto */}
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-400)', marginBottom: 16 }}>Dados de contacto</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -176,16 +222,14 @@ function ContaInner() {
                 </div>
               </div>
 
-              {/* Acções */}
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <a href="/encomendas" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }}>📦 Todas as encomendas</a>
                 {perfil.admin && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }}>⚙️ Painel admin</a>}
-                <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }} onClick={handlePasswordReset} disabled={loading}>🔑 Alterar password</button>
+                {user.email && <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }} onClick={handlePasswordReset} disabled={loading}>🔑 Alterar password</button>}
                 <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', color: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => { await logout(); setUser(null); setPerfil(null); setEncomendas([]); }}>← Sair da conta</button>
               </div>
             </div>
 
-            {/* Coluna direita — Encomendas recentes */}
             <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 28 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ fontSize: 16, fontWeight: 700 }}>Encomendas recentes</h2>
@@ -200,8 +244,7 @@ function ContaInner() {
               ) : (
                 <>
                   {encomendas.map(enc => (
-                    <a key={enc.id} href={`/encomenda/${enc.id}`} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid var(--gray-100)', textDecoration: 'none', color: 'inherit', transition: 'opacity 0.15s' }}>
-                      {/* Miniaturas */}
+                    <a key={enc.id} href={`/encomenda/${enc.id}`} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid var(--gray-100)', textDecoration: 'none', color: 'inherit' }}>
                       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                         {enc.itens?.slice(0, 2).map((item, i) => (
                           <Image key={i} src={item.imagem || '/placeholder.svg'} alt={item.nome} width={44} height={56} style={{ objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
@@ -210,7 +253,6 @@ function ContaInner() {
                           <div style={{ width: 44, height: 56, borderRadius: 8, background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', flexShrink: 0 }}>+{enc.itens!.length - 2}</div>
                         )}
                       </div>
-                      {/* Info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                           <code style={{ fontSize: 11, background: 'var(--gray-100)', padding: '2px 7px', borderRadius: 5, fontWeight: 600 }}>#{enc.id.substring(0, 8).toUpperCase()}</code>
@@ -220,7 +262,6 @@ function ContaInner() {
                           {enc.itens?.map(i => i.nome).join(', ')}
                         </p>
                       </div>
-                      {/* Estado + total */}
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <span className={`badge-estado ${badgeEstadoClass(enc.estado as EstadoEncomenda)}`} style={{ fontSize: 11, display: 'block', marginBottom: 6 }}>{badgeEstadoLabel(enc.estado as EstadoEncomenda)}</span>
                         <strong style={{ fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{enc.total?.toFixed(2)} MZN</strong>
@@ -239,11 +280,8 @@ function ContaInner() {
     );
   }
 
-  // Página de login — split screen
   return (
     <div className="auth-split">
-
-      {/* Lado esquerdo — branding */}
       <div className="auth-lado-marca">
         <div className="auth-marca-conteudo">
           <Link href="/">
@@ -256,11 +294,20 @@ function ContaInner() {
             <div className="auth-ponto"><span>✓</span> Pagamento seguro</div>
             <div className="auth-ponto"><span>✓</span> Devoluções em 30 dias</div>
           </div>
+          {/* WhatsApp info */}
+          <div className="auth-wa-info">
+            <div className="auth-wa-icon">
+              <svg width="20" height="20" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#25D366"/><path d="M34.5 13.4C32.1 11 28.9 9.5 25.5 9.5C18.3 9.5 12.5 15.3 12.5 22.5C12.5 24.9 13.1 27.2 14.3 29.2L12.3 36.5L19.8 34.5C21.7 35.6 23.6 36.2 25.5 36.2C32.7 36.2 38.5 30.4 38.5 23.2C38.5 19.8 37.1 16.6 34.5 13.4ZM25.5 33.9C23.8 33.9 22.1 33.4 20.6 32.5L20.2 32.3L15.8 33.5L17 29.2L16.8 28.8C15.8 27.2 15.2 25.4 15.2 23.5C15.2 17.9 19.9 13.2 25.5 13.2C28.2 13.2 30.7 14.3 32.6 16.2C34.5 18.1 35.6 20.6 35.6 23.3C35.8 28.9 31.1 33.9 25.5 33.9Z" fill="white"/></svg>
+            </div>
+            <div>
+              <p className="auth-wa-titulo">Entra com WhatsApp</p>
+              <p className="auth-wa-desc">Sem password. Recebe um código no teu WhatsApp e entra em segundos.</p>
+            </div>
+          </div>
         </div>
         <Link href="/" className="auth-volta-loja">← Voltar à loja</Link>
       </div>
 
-      {/* Lado direito — formulário */}
       <div className="auth-lado-form">
         <div className="auth-form-wrap">
 
@@ -274,10 +321,28 @@ function ContaInner() {
               </p>
               <div className="auth-tabs">
                 {(['entrar', 'registar'] as Tab[]).map(t => (
-                  <button key={t} onClick={() => setTab(t)} className={`auth-tab${tab === t ? ' active' : ''}`}>
+                  <button key={t} onClick={() => { setTab(t); setMetodo('email'); setOtpStep('telefone'); }} className={`auth-tab${tab === t ? ' active' : ''}`}>
                     {t === 'entrar' ? 'Entrar' : 'Registar'}
                   </button>
                 ))}
+              </div>
+
+              {/* Selector de método */}
+              <div className="auth-metodo-tabs">
+                <button
+                  type="button"
+                  className={`auth-metodo-tab${metodo === 'email' ? ' active' : ''}`}
+                  onClick={() => setMetodo('email')}
+                >
+                  ✉️ Email
+                </button>
+                <button
+                  type="button"
+                  className={`auth-metodo-tab${metodo === 'whatsapp' ? ' active' : ''}`}
+                  onClick={() => { setMetodo('whatsapp'); setOtpStep('telefone'); }}
+                >
+                  📱 WhatsApp
+                </button>
               </div>
             </>
           )}
@@ -289,7 +354,8 @@ function ContaInner() {
             </>
           )}
 
-          {tab === 'entrar' && (
+          {/* LOGIN EMAIL */}
+          {tab === 'entrar' && metodo === 'email' && (
             <form onSubmit={handleLogin} className="auth-form">
               <div className="form-group"><label>Email</label><input type="email" required value={form.email} onChange={f('email')} placeholder="o-teu@email.com" /></div>
               <div className="form-group"><label>Password</label><input type="password" required value={form.password} onChange={f('password')} placeholder="••••••••" /></div>
@@ -305,12 +371,67 @@ function ContaInner() {
             </form>
           )}
 
-          {tab === 'registar' && (
+          {/* LOGIN WHATSAPP */}
+          {tab === 'entrar' && metodo === 'whatsapp' && (
+            <div className="auth-form">
+              {otpStep === 'telefone' ? (
+                <form onSubmit={handleEnviarOtp}>
+                  <div className="auth-wa-explicacao">
+                    <p>Introduz o teu número de telemóvel. Enviaremos um código de 6 dígitos para o teu <strong>WhatsApp</strong>.</p>
+                  </div>
+                  <div className="form-group">
+                    <label>Número de telemóvel</label>
+                    <input
+                      type="tel"
+                      required
+                      value={form.telefone}
+                      onChange={f('telefone')}
+                      placeholder="+258 8X XXX XXXX"
+                    />
+                  </div>
+                  <button className="btn btn-wa btn-full" type="submit" disabled={loading}>
+                    {loading ? 'A enviar...' : '📱 Enviar código via WhatsApp'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerificarOtp}>
+                  <div className="auth-wa-explicacao">
+                    <p>Código enviado para <strong>{form.telefone}</strong>. Verifica o teu WhatsApp.</p>
+                  </div>
+                  <div className="form-group">
+                    <label>Código de verificação</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={form.codigo}
+                      onChange={f('codigo')}
+                      placeholder="000000"
+                      style={{ letterSpacing: '0.3em', fontSize: 22, textAlign: 'center' }}
+                      autoFocus
+                    />
+                  </div>
+                  <button className="btn btn-wa btn-full" type="submit" disabled={loading}>
+                    {loading ? 'A verificar...' : 'Verificar código'}
+                  </button>
+                  <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setOtpStep('telefone')}>
+                    ← Alterar número
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* REGISTAR EMAIL */}
+          {tab === 'registar' && metodo === 'email' && (
             <form onSubmit={handleRegistar} className="auth-form">
               <div className="form-group"><label>Nome completo</label><input required value={form.nome} onChange={f('nome')} placeholder="O teu nome" /></div>
               <div className="form-group"><label>Email</label><input type="email" required value={form.email} onChange={f('email')} placeholder="o-teu@email.com" /></div>
               <div className="form-group"><label>Password</label><input type="password" required minLength={6} value={form.password} onChange={f('password')} placeholder="Mínimo 6 caracteres" /></div>
-              <div className="form-group"><label>Telefone <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(opcional)</span></label><input value={form.telefone} onChange={f('telefone')} placeholder="+258 8X XXX XXXX" /></div>
+              <div className="form-group">
+                <label>Telefone <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(opcional — para notificações WhatsApp)</span></label>
+                <input value={form.telefone} onChange={f('telefone')} placeholder="+258 8X XXX XXXX" />
+              </div>
               <button className="btn btn-primary btn-full" type="submit" disabled={loading}>{loading ? 'A criar conta...' : 'Criar conta'}</button>
               <div className="auth-divider"><span>ou</span></div>
               <button type="button" className="btn btn-outline btn-full" onClick={handleGoogle} disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
@@ -318,6 +439,52 @@ function ContaInner() {
                 Continuar com Google
               </button>
             </form>
+          )}
+
+          {/* REGISTAR WHATSAPP */}
+          {tab === 'registar' && metodo === 'whatsapp' && (
+            <div className="auth-form">
+              {otpStep === 'telefone' ? (
+                <form onSubmit={handleEnviarOtp}>
+                  <div className="auth-wa-explicacao">
+                    <p>Cria a tua conta usando apenas o número de telemóvel. Receberás um código no <strong>WhatsApp</strong> para confirmar.</p>
+                  </div>
+                  <div className="form-group"><label>Nome completo</label><input required value={form.nome} onChange={f('nome')} placeholder="O teu nome" /></div>
+                  <div className="form-group">
+                    <label>Número de telemóvel</label>
+                    <input type="tel" required value={form.telefone} onChange={f('telefone')} placeholder="+258 8X XXX XXXX" />
+                  </div>
+                  <button className="btn btn-wa btn-full" type="submit" disabled={loading}>
+                    {loading ? 'A enviar...' : '📱 Enviar código via WhatsApp'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerificarOtp}>
+                  <div className="auth-wa-explicacao">
+                    <p>Código enviado para <strong>{form.telefone}</strong>. Verifica o teu WhatsApp.</p>
+                  </div>
+                  <div className="form-group">
+                    <label>Código de verificação</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={form.codigo}
+                      onChange={f('codigo')}
+                      placeholder="000000"
+                      style={{ letterSpacing: '0.3em', fontSize: 22, textAlign: 'center' }}
+                      autoFocus
+                    />
+                  </div>
+                  <button className="btn btn-wa btn-full" type="submit" disabled={loading}>
+                    {loading ? 'A verificar...' : 'Verificar código'}
+                  </button>
+                  <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setOtpStep('telefone')}>
+                    ← Alterar número
+                  </button>
+                </form>
+              )}
+            </div>
           )}
 
           {tab === 'recuperar' && (
