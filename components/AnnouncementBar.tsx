@@ -24,15 +24,17 @@ export default function AnnouncementBar() {
     <div className="announcement-bar">
       <div className="announcement-track">
         {itens.map((item) => (
-          <span key={item.id} className="announcement-item">
+          <div key={item.id} className="announcement-item">
             {item.icone && ICONES[item.icone] && (
               <span
                 className="announcement-icon"
                 dangerouslySetInnerHTML={{ __html: ICONES[item.icone].svg }}
               />
             )}
-            {item.texto}
-          </span>
+            <div className="announcement-item-text">
+              <span className="announcement-item-title">{item.texto}</span>
+            </div>
+          </div>
         ))}
       </div>
     </div>
