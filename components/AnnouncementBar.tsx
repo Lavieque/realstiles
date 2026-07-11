@@ -20,13 +20,11 @@ export default function AnnouncementBar() {
 
   if (!itens.length) return null;
 
-  const duplicated = [...itens, ...itens];
-
   return (
     <div className="announcement-bar">
       <div className="announcement-track">
-        {duplicated.map((item, i) => (
-          <span key={i} className="announcement-item">
+        {itens.map((item) => (
+          <span key={item.id} className="announcement-item">
             {item.icone && ICONES[item.icone] && (
               <span
                 className="announcement-icon"

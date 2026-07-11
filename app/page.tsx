@@ -5,6 +5,7 @@ import { getAdminDb } from '@/lib/firebase-admin';
 import { serializar } from '@/lib/serializar';
 import CatalogoProdutos from '@/components/CatalogoProdutos';
 import HeroSlider from '@/components/HeroSlider';
+import AnnouncementBar from '@/components/AnnouncementBar';
 import type { Produto } from '@/lib/produtos';
 
 async function getProdutosSSR(opts: { destaque?: boolean; max?: number } = {}): Promise<Produto[]> {
@@ -44,6 +45,8 @@ export default async function HomePage() {
 
         <HeroSlider destaques={comImagem} />
       </div>
+
+      <AnnouncementBar />
 
       {/* CATÁLOGO */}
       <div className="catalogo-section" id="catalogo">

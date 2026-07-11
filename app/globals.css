@@ -681,12 +681,14 @@ tr:hover td { background: var(--gray-100); }
 }
 
 /* ── ANNOUNCEMENT BAR ── */
-.announcement-bar { background: var(--black); overflow: hidden; height: 36px; display: flex; align-items: center; }
-.announcement-track { display: flex; gap: 0; white-space: nowrap; animation: announcement-scroll 30s linear infinite; }
-.announcement-item { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; padding: 0 40px; }
+.announcement-bar { background: var(--black); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 12px 24px; }
+.announcement-track { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; white-space: nowrap; animation: announcement-scroll 30s linear infinite; }
+.announcement-item { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; padding: 4px 32px; border-right: 1px solid rgba(255,255,255,0.15); }
+.announcement-item:last-child { border-right: none; }
 .announcement-icon { display: flex; align-items: center; color: rgba(255,255,255,0.9); }
 @keyframes announcement-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 .announcement-bar:hover .announcement-track { animation-play-state: paused; }
+@media (max-width: 640px) { .announcement-bar { padding: 10px 16px; } .announcement-item { font-size: 12px; padding: 4px 16px; } }
 
 /* ── HERO ── */
 .hero-loja {
