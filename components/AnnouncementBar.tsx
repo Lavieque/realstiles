@@ -5,6 +5,7 @@ import { ICONES } from '@/lib/announcement-icons';
 interface ItemAnuncio {
   id: string;
   texto: string;
+  descricao?: string;
   icone?: string;
 }
 
@@ -33,6 +34,7 @@ export default function AnnouncementBar() {
             )}
             <div className="announcement-item-text">
               <span className="announcement-item-title">{item.texto}</span>
+              {item.descricao && <span className="announcement-item-sub">{item.descricao}</span>}
             </div>
           </div>
         ))}

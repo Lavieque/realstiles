@@ -6,6 +6,7 @@ import { ICONES } from '@/lib/announcement-icons';
 interface ItemAnuncio {
   id: string;
   texto: string;
+  descricao?: string;
   icone?: string;
 }
 
@@ -13,6 +14,7 @@ export default function AdminBannerPage() {
   const [itens, setItens] = useState<ItemAnuncio[]>([]);
   const [texto, setTexto] = useState('');
   const [icone, setIcone] = useState('truck');
+  const [descricao, setDescricao] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -43,9 +45,10 @@ export default function AdminBannerPage() {
 
   const adicionar = () => {
     if (!texto.trim()) return;
-    const novo: ItemAnuncio = { id: Date.now().toString(), texto: texto.trim(), icone: icone || undefined };
+    const novo: ItemAnuncio = { id: Date.now().toString(), texto: texto.trim(), descricao: descricao.trim() || undefined, icone: icone || undefined };
     guardar([...itens, novo]);
     setTexto('');
+    setDescricao('');
   };
 
   const remover = (id: string) => guardar(itens.filter(i => i.id !== id));
@@ -109,12 +112,21 @@ export default function AdminBannerPage() {
           </div>
         </div>
 
-        <div className="form-group" style={{ margin: '0 0 16px' }}>
-          <label style={{ fontSize: 12 }}>Texto</label>
+        <div className="form-group" style={{ margin: '0 0 12px' }}>
+          <label style={{ fontSize: 12 }}>Título</label>
           <input
             value={texto}
             onChange={e => setTexto(e.target.value)}
-            placeholder="Envio grátis em todas as encomendas"
+            placeholder="Envio grátis"
+            onKeyDown={e => e.key === 'Enter' && adicionar()}
+          />
+        </div>
+        <div className="form-group" style={{ margin: '0 0 16px' }}>
+          <label style={{ fontSize: 12 }}>Descrição <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(opcional)</span></label>
+          <input
+            value={descricao}
+            onChange={e => setDescricao(e.target.value)}
+            placeholder="em todas as encomendas"
             onKeyDown={e => e.key === 'Enter' && adicionar()}
           />
         </div>
@@ -142,7 +154,10 @@ export default function AdminBannerPage() {
                 style={{ color: 'var(--gray-600)', width: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 dangerouslySetInnerHTML={{ __html: item.icone && ICONES[item.icone] ? ICONES[item.icone].svg : '—' }}
               />
-              <span style={{ flex: 1, fontSize: 14 }}>{item.texto}</span>
+              <span style={{ flex: 1 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, display: 'block' }}>{item.texto}</span>
+                {item.descricao && <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>{item.descricao}</span>}
+              </span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="btn btn-outline btn-sm" onClick={() => mover(i, -1)} disabled={i === 0 || salvando} title="Mover para cima">↑</button>
                 <button className="btn btn-outline btn-sm" onClick={() => mover(i, 1)} disabled={i === itens.length - 1 || salvando} title="Mover para baixo">↓</button>
