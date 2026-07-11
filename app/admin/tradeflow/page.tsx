@@ -7,7 +7,9 @@ interface Plano {
   id: string;
   nome: string;
   preco: number;
+  tipo?: 'mensal' | 'avulso' | 'wa';
   creditos_mes: number;
+  creditos_pack?: number;
   stores_max: number;
   concorrencia: number;
   rate_limit: number;
@@ -319,8 +321,9 @@ export default function TradeflowPage() {
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Plano {planoActual.nome}</p>
                   <p style={{ fontSize: 13, color: 'var(--gray-700)' }}>
-                    <strong>{planoActual.creditos_mes.toLocaleString()}</strong> produtos/mês
-                    {planoActual.preco > 0 && <> · <strong>€{planoActual.preco}</strong>/mês</>}
+                    <strong>{(planoActual.tipo === 'avulso' ? planoActual.creditos_pack : planoActual.creditos_mes ?? 0).toLocaleString()}</strong> {planoActual.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
+                    {planoActual.preco > 0 && planoActual.tipo !== 'avulso' && <> · <strong>€{planoActual.preco}</strong>/mês</>}
+                    {planoActual.preco > 0 && planoActual.tipo === 'avulso' && <> · <strong>€{planoActual.preco}</strong> (único)</>}
                   </p>
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
@@ -414,7 +417,7 @@ export default function TradeflowPage() {
                         {p.preco > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: activo ? 'rgba(255,255,255,0.5)' : 'var(--gray-400)' }}>/mês</span>}
                       </p>
                       <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
-                        {p.creditos_mes.toLocaleString()} produtos/mês
+                        {(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()} {p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {p.fontes.map(f => (
@@ -495,8 +498,8 @@ export default function TradeflowPage() {
                       {p.preco === 0 ? 'Grátis' : `€${p.preco}`}
                       {p.preco > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--gray-400)' }}>/mês</span>}
                     </p>
-                    <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 2 }}>{p.creditos_mes.toLocaleString()}</p>
-                    <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>produtos por mês</p>
+                    <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 2 }}>{(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()}</p>
+                    <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>{p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos por mês'}</p>
                     <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14, marginBottom: 16 }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Lojas incluídas</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
