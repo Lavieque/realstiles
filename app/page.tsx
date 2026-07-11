@@ -42,10 +42,10 @@ export default async function HomePage() {
               <a href="/promocoes" className="btn btn-accent">Ver promoções →</a>
               <a href="/?novo=true" className="btn btn-outline-white">Ver novidades</a>
             </div>
+            <AnnouncementBar />
           </div>
           <HeroSlider destaques={comImagem} />
         </div>
-        <AnnouncementBar />
       </div>
 
       {/* CATÁLOGO */}
