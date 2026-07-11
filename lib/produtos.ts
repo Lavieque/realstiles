@@ -113,7 +113,10 @@ export async function getCategorias(): Promise<string[]> {
   const snap = await getDoc(doc(db, 'config', 'loja'));
   if (!snap.exists()) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
   const raw: (string | CategoriaConfig)[] = snap.data().categorias || [];
-  return raw.flatMap(c => typeof c === 'string' ? [c] : [c.slug, ...c.subcategorias.map(s => s.slug)]);
+  return raw.flatMap(c => {
+    if (typeof c === 'string') return [c];
+    return [c.slug, ...c.subcategorias.flatMap(s => [s.slug, ...(s.subcategorias || []).map(ss => ss.slug)])];
+  });
 }
 
 export async function getCategoriasConfig(): Promise<CategoriaConfig[]> {
