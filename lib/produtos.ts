@@ -103,12 +103,24 @@ export async function pesquisarProdutos(termo: string, max = 48): Promise<Produt
     .slice(0, max);
 }
 
+export interface CategoriaConfig {
+  nome: string;
+  slug: string;
+  subcategorias: { nome: string; slug: string }[];
+}
+
 export async function getCategorias(): Promise<string[]> {
   const snap = await getDoc(doc(db, 'config', 'loja'));
   if (!snap.exists()) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
-  const raw: (string | { nome: string; subcategorias: string[] })[] = snap.data().categorias || [];
-  // suporta formato legado (strings) e novo (objectos com subcategorias)
-  return raw.flatMap(c => typeof c === 'string' ? [c] : [c.nome, ...c.subcategorias]);
+  const raw: (string | CategoriaConfig)[] = snap.data().categorias || [];
+  return raw.flatMap(c => typeof c === 'string' ? [c] : [c.slug, ...c.subcategorias.map(s => s.slug)]);
+}
+
+export async function getCategoriasConfig(): Promise<CategoriaConfig[]> {
+  const snap = await getDoc(doc(db, 'config', 'loja'));
+  if (!snap.exists()) return [];
+  const raw: (string | CategoriaConfig)[] = snap.data().categorias || [];
+  return raw.filter((c): c is CategoriaConfig => typeof c === 'object');
 }
 
 export async function decrementarStock(id: string, quantidade = 1): Promise<void> {

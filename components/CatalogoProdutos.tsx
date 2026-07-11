@@ -50,8 +50,13 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
   }, []);
 
   useEffect(() => {
-    getCategorias().then(setCategorias);
-  }, []);
+    getCategorias().then(todasCats => {
+      // só mostra categorias que têm pelo menos 1 produto
+      const comArtigos = new Set(inicial.map(p => p.categoria).filter(Boolean));
+      const filtradas = todasCats.filter(c => comArtigos.has(c));
+      setCategorias(filtradas.length > 0 ? filtradas : todasCats);
+    });
+  }, [inicial]);
 
   useEffect(() => {
     if (catParam !== catActual) {
