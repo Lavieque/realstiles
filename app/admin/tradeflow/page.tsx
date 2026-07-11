@@ -498,18 +498,21 @@ export default function TradeflowPage() {
                       {p.preco === 0 ? 'Grátis' : `€${p.preco}`}
                       {p.preco > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--gray-400)' }}>/mês</span>}
                     </p>
-                    <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 2 }}>{(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()}</p>
-                    <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>{p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos por mês'}</p>
-                    <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14, marginBottom: 16 }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Lojas incluídas</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {p.fontes.map(f => (
-                          <span key={f} style={{ fontSize: 10, fontWeight: 600, background: 'var(--gray-100)', borderRadius: 100, padding: '3px 8px', color: 'var(--gray-700)' }}>
-                            {FONTE_LABEL[f] ?? f}
-                          </span>
-                        ))}
+                    {p.tipo !== 'wa' && <>
+                      <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 2 }}>{(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()}</p>
+                      <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>{p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos por mês'}</p>
+                      <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14, marginBottom: 16 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Lojas incluídas</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {p.fontes.map(f => (
+                            <span key={f} style={{ fontSize: 10, fontWeight: 600, background: 'var(--gray-100)', borderRadius: 100, padding: '3px 8px', color: 'var(--gray-700)' }}>
+                              {FONTE_LABEL[f] ?? f}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>}
+                    {p.tipo === 'wa' && <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>Add-on para notificações WhatsApp</p>}
                     <button className="btn btn-primary btn-full btn-sm" style={{ pointerEvents: 'none' }}>
                       Subscrever →
                     </button>
