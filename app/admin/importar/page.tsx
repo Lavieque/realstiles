@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { criarProduto, getCategorias } from '@/lib/produtos';
+import { getCategorias } from '@/lib/produtos';
 import { mostrarToast } from '@/components/Toast';
 import type { Produto } from '@/lib/produtos';
 
@@ -90,7 +90,12 @@ export default function AdminImportarPage() {
     if (!ajustes.nome) return;
     setSalvando(true);
     try {
-      await criarProduto(ajustes);
+      const res = await fetch('/api/produtos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ajustes),
+      });
+      if (!res.ok) throw new Error(await res.text());
       mostrarToast('Produto importado com sucesso!', 'success');
       setResultado(null);
       setUrl('');
@@ -258,6 +263,10 @@ export default function AdminImportarPage() {
               <div className="form-group">
                 <label>Tamanhos (separados por vírgula)</label>
                 <input value={ajustes.tamanhos?.join(', ') || ''} onChange={e => setAjustes(a => ({ ...a, tamanhos: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))} />
+              </div>
+              <div className="form-group">
+                <label>Cores (separadas por vírgula)</label>
+                <input value={(ajustes.cores as string[] | undefined)?.join(', ') || ''} onChange={e => setAjustes(a => ({ ...a, cores: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))} placeholder="Ex: Preto, Branco, Azul" />
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button className="btn btn-outline" onClick={() => setResultado(null)}>Cancelar</button>
