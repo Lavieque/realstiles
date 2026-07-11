@@ -684,7 +684,7 @@ tr:hover td { background: var(--gray-100); }
 .announcement-bar { background: var(--black); overflow: hidden; height: 36px; display: flex; align-items: center; }
 .announcement-track { display: flex; gap: 0; white-space: nowrap; animation: announcement-scroll 30s linear infinite; }
 .announcement-item { display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; padding: 0 40px; }
-.announcement-item span { font-size: 16px; }
+.announcement-icon { display: flex; align-items: center; color: rgba(255,255,255,0.9); }
 @keyframes announcement-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 .announcement-bar:hover .announcement-track { animation-play-state: paused; }
 
