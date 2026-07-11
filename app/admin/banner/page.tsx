@@ -1,26 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { mostrarToast } from '@/components/Toast';
-import { ICONES_SVG } from '@/components/AnnouncementBar';
+import { ICONES } from '@/lib/announcement-icons';
 
 interface ItemAnuncio {
   id: string;
   texto: string;
   icone?: string;
 }
-
-const ICONES_LISTA = [
-  { key: 'truck', label: 'Envio' },
-  { key: 'return', label: 'Devoluções' },
-  { key: 'shield', label: 'Segurança' },
-  { key: 'headset', label: 'Suporte' },
-  { key: 'tag', label: 'Promoção' },
-  { key: 'star', label: 'Qualidade' },
-  { key: 'gift', label: 'Oferta' },
-  { key: 'heart', label: 'Favorito' },
-  { key: 'zap', label: 'Rápido' },
-  { key: 'globe', label: 'Mundial' },
-];
 
 export default function AdminBannerPage() {
   const [itens, setItens] = useState<ItemAnuncio[]>([]);
@@ -83,7 +70,7 @@ export default function AdminBannerPage() {
         <div className="form-group" style={{ margin: '0 0 16px' }}>
           <label style={{ fontSize: 12 }}>Ícone</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-            {ICONES_LISTA.map(({ key, label }) => (
+            {Object.entries(ICONES).map(([key, { label, svg }]) => (
               <button
                 key={key}
                 type="button"
@@ -97,7 +84,10 @@ export default function AdminBannerPage() {
                   minWidth: 60,
                 }}
               >
-                <span style={{ color: 'var(--gray-700)' }}>{ICONES_SVG[key]}</span>
+                <span
+                  style={{ color: 'var(--gray-700)', display: 'flex' }}
+                  dangerouslySetInnerHTML={{ __html: svg }}
+                />
                 <span style={{ fontSize: 10, color: 'var(--gray-500)', fontWeight: 500 }}>{label}</span>
               </button>
             ))}
@@ -148,9 +138,10 @@ export default function AdminBannerPage() {
         ) : (
           itens.map((item, i) => (
             <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid var(--gray-100)' }}>
-              <span style={{ color: 'var(--gray-600)', width: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {item.icone && ICONES_SVG[item.icone] ? ICONES_SVG[item.icone] : <span style={{ color: 'var(--gray-300)' }}>—</span>}
-              </span>
+              <span
+                style={{ color: 'var(--gray-600)', width: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                dangerouslySetInnerHTML={{ __html: item.icone && ICONES[item.icone] ? ICONES[item.icone].svg : '—' }}
+              />
               <span style={{ flex: 1, fontSize: 14 }}>{item.texto}</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="btn btn-outline btn-sm" onClick={() => mover(i, -1)} disabled={i === 0 || salvando} title="Mover para cima">↑</button>
