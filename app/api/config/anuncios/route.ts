@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const snap = await adminDb.collection('config').doc('anuncios').get();
-    return NextResponse.json(snap.exists() ? snap.data() : { itens: [] });
+    return NextResponse.json(snap.exists ? snap.data() : { itens: [] });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
