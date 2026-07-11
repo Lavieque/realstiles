@@ -1,7 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { mostrarToast } from '@/components/Toast';
 
 interface ItemAnuncio {
@@ -18,18 +16,21 @@ export default function AdminBannerPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDoc(doc(db, 'config', 'anuncios'))
-      .then(snap => {
-        if (snap.exists()) setItens(snap.data().itens || []);
-        setLoading(false);
-      })
+    fetch('/api/config/anuncios')
+      .then(r => r.json())
+      .then(d => { setItens(d.itens || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
   const guardar = async (novosItens: ItemAnuncio[]) => {
     setSalvando(true);
     try {
-      await setDoc(doc(db, 'config', 'anuncios'), { itens: novosItens });
+      const res = await fetch('/api/config/anuncios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itens: novosItens }),
+      });
+      if (!res.ok) throw new Error(await res.text());
       setItens(novosItens);
       mostrarToast('Barra actualizada!', 'success');
     } catch {
@@ -66,15 +67,43 @@ export default function AdminBannerPage() {
       {/* Adicionar item */}
       <div style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', padding: 24, marginBottom: 24 }}>
         <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Adicionar item</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 12, marginBottom: 12 }}>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: 12 }}>Ícone</label>
-            <input value={icone} onChange={e => setIcone(e.target.value)} placeholder="🚚" maxLength={2} style={{ textAlign: 'center', fontSize: 20 }} />
+        <div className="form-group" style={{ margin: '0 0 12px' }}>
+          <label style={{ fontSize: 12 }}>Ícone</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {['🚚','✨','🎉','💎','🔥','⭐','🎁','💯','🛍️','👗','👠','👜','💄','🌟','🏷️','🤍','🖤','🪡','✂️','🧵'].map(e => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setIcone(e)}
+                style={{
+                  fontSize: 20, width: 38, height: 38, borderRadius: 8, cursor: 'pointer',
+                  border: icone === e ? '2px solid var(--black)' : '1px solid var(--gray-200)',
+                  background: icone === e ? 'var(--gray-100)' : 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >{e}</button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setIcone('')}
+              title="Sem ícone"
+              style={{
+                fontSize: 12, width: 38, height: 38, borderRadius: 8, cursor: 'pointer',
+                border: icone === '' ? '2px solid var(--black)' : '1px solid var(--gray-200)',
+                background: icone === '' ? 'var(--gray-100)' : 'white',
+                color: 'var(--gray-400)',
+              }}
+            >∅</button>
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: 12 }}>Texto</label>
-            <input value={texto} onChange={e => setTexto(e.target.value)} placeholder="Envio grátis em todas as encomendas" onKeyDown={e => e.key === 'Enter' && adicionar()} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>Ou escreve:</span>
+            <input value={icone} onChange={e => setIcone(e.target.value)} maxLength={2} style={{ width: 56, textAlign: 'center', fontSize: 20 }} />
+            {icone && <span style={{ fontSize: 24 }}>{icone}</span>}
           </div>
+        </div>
+        <div className="form-group" style={{ margin: '0 0 12px' }}>
+          <label style={{ fontSize: 12 }}>Texto</label>
+          <input value={texto} onChange={e => setTexto(e.target.value)} placeholder="Envio grátis em todas as encomendas" onKeyDown={e => e.key === 'Enter' && adicionar()} />
         </div>
         <button className="btn btn-primary btn-sm" onClick={adicionar} disabled={!texto.trim() || salvando}>
           + Adicionar
