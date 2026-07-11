@@ -105,9 +105,10 @@ export async function pesquisarProdutos(termo: string, max = 48): Promise<Produt
 
 export async function getCategorias(): Promise<string[]> {
   const snap = await getDoc(doc(db, 'config', 'loja'));
-  return snap.exists()
-    ? (snap.data().categorias || [])
-    : ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
+  if (!snap.exists()) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
+  const raw: (string | { nome: string; subcategorias: string[] })[] = snap.data().categorias || [];
+  // suporta formato legado (strings) e novo (objectos com subcategorias)
+  return raw.flatMap(c => typeof c === 'string' ? [c] : [c.nome, ...c.subcategorias]);
 }
 
 export async function decrementarStock(id: string, quantidade = 1): Promise<void> {
