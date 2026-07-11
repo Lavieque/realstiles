@@ -287,7 +287,7 @@ export default function TradeflowPage() {
                 <div className="stat-card-label">Plano actual</div>
                 <div className="stat-card-value" style={{ fontSize: 22 }}>{planoActual?.nome || conta.plano_id}</div>
                 <div className="stat-card-sub">
-                  {planoActual?.preco === 0 ? 'Gratuito' : `€${planoActual?.preco}/mês`}
+                  {planoActual?.preco === 0 ? 'Gratuito' : `€${planoActual?.preco}${planoActual?.tipo !== 'avulso' ? '/mês' : ''}`}
                 </div>
               </div>
               <div className={`stat-card ${pct > 80 ? 'red' : ''}`}>
@@ -414,7 +414,7 @@ export default function TradeflowPage() {
                       </div>
                       <p style={{ fontSize: 22, fontWeight: 800, color: activo ? 'white' : 'var(--black)', marginBottom: 2 }}>
                         {p.preco === 0 ? 'Grátis' : `€${p.preco}`}
-                        {p.preco > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: activo ? 'rgba(255,255,255,0.5)' : 'var(--gray-400)' }}>/mês</span>}
+                        {p.preco > 0 && p.tipo !== 'avulso' && <span style={{ fontSize: 13, fontWeight: 400, color: activo ? 'rgba(255,255,255,0.5)' : 'var(--gray-400)' }}>/mês</span>}
                       </p>
                       {p.tipo !== 'wa' && <>
                         <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
@@ -508,7 +508,7 @@ export default function TradeflowPage() {
                     <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{p.id}</p>
                     <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
                       {p.preco === 0 ? 'Grátis' : `€${p.preco}`}
-                      {p.preco > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--gray-400)' }}>/mês</span>}
+                      {p.preco > 0 && p.tipo !== 'avulso' && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--gray-400)' }}>/mês</span>}
                     </p>
                     {p.tipo !== 'wa' && <>
                       <p style={{ fontSize: 24, fontWeight: 800, marginBottom: 2 }}>{(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()}</p>
