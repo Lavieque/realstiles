@@ -416,20 +416,32 @@ export default function TradeflowPage() {
                         {p.preco === 0 ? 'Grátis' : `€${p.preco}`}
                         {p.preco > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: activo ? 'rgba(255,255,255,0.5)' : 'var(--gray-400)' }}>/mês</span>}
                       </p>
-                      <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
-                        {(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()} {p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {p.fontes.map(f => (
-                          <span key={f} style={{
-                            fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 100,
-                            background: activo ? 'rgba(255,255,255,0.12)' : 'var(--gray-100)',
-                            color: activo ? 'rgba(255,255,255,0.8)' : 'var(--gray-600)',
-                          }}>
-                            {FONTE_LABEL[f] ?? f}
-                          </span>
-                        ))}
-                      </div>
+                      {p.tipo !== 'wa' && <>
+                        <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
+                          {(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()} {p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {p.fontes.map(f => (
+                            <span key={f} style={{
+                              fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 100,
+                              background: activo ? 'rgba(255,255,255,0.12)' : 'var(--gray-100)',
+                              color: activo ? 'rgba(255,255,255,0.8)' : 'var(--gray-600)',
+                            }}>
+                              {FONTE_LABEL[f] ?? f}
+                            </span>
+                          ))}
+                        </div>
+                      </>}
+                      {p.tipo === 'wa' && (
+                        <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)' }}>
+                          Notificações WhatsApp · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                        </p>
+                      )}
+                      {p.tipo !== 'wa' && p.whatsapp_incluido && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 10, fontWeight: 700, background: activo ? 'rgba(37,211,102,0.2)' : '#dcfce7', color: activo ? '#86efac' : '#15803d', padding: '3px 8px', borderRadius: 100 }}>
+                          ✓ WhatsApp incluído
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -512,7 +524,16 @@ export default function TradeflowPage() {
                         </div>
                       </div>
                     </>}
-                    {p.tipo === 'wa' && <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>Add-on para notificações WhatsApp</p>}
+                    {p.tipo === 'wa' && (
+                      <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>
+                        Notificações WhatsApp · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                      </p>
+                    )}
+                    {p.tipo !== 'wa' && p.whatsapp_incluido && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, fontSize: 10, fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: 100 }}>
+                        ✓ WhatsApp incluído · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                      </span>
+                    )}
                     <button className="btn btn-primary btn-full btn-sm" style={{ pointerEvents: 'none' }}>
                       Subscrever →
                     </button>
