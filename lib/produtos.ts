@@ -35,29 +35,32 @@ export interface Produto {
 
 export async function getProdutos({
   categoria = null,
+  categorias = null,
   activo = true,
   destaque = null,
   max = 20,
   ultimo = null,
 }: {
   categoria?: string | null;
+  categorias?: string[] | null;
   activo?: boolean | null;
   destaque?: boolean | null;
   max?: number;
   ultimo?: unknown;
 } = {}): Promise<Produto[]> {
-  const needsClientFilter = categoria || destaque !== null || activo === null;
+  const slugs = categorias ?? (categoria ? [categoria] : null);
+  const needsClientFilter = slugs || destaque !== null || activo === null;
   const fetchLimit = needsClientFilter ? Math.min(max * 10, 500) : max;
 
   const filters: unknown[] = [orderBy('criado_em', 'desc'), limit(fetchLimit)];
   if (activo !== null) filters.unshift(where('activo', '==', activo));
   if (ultimo && !needsClientFilter) filters.push(startAfter(ultimo));
 
-  const snap = await comTimeout(getDocs(query(collection(db, COL), ...(filters as Parameters<typeof query>[1][])  )));
+  const snap = await comTimeout(getDocs(query(collection(db, COL), ...(filters as Parameters<typeof query>[1][]))));
 
   let results: Produto[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Produto));
   if (activo !== null && needsClientFilter) results = results.filter(p => p.activo === activo);
-  if (categoria) results = results.filter(p => p.categoria === categoria);
+  if (slugs) results = results.filter(p => p.categoria && slugs.includes(p.categoria));
   if (destaque !== null) results = results.filter(p => p.destaque === destaque);
   return results.slice(0, max);
 }
@@ -106,17 +109,18 @@ export async function pesquisarProdutos(termo: string, max = 48): Promise<Produt
 export interface CategoriaConfig {
   nome: string;
   slug: string;
-  subcategorias: { nome: string; slug: string }[];
+  subcategorias: { nome: string; slug: string; subcategorias?: { nome: string; slug: string }[] }[];
 }
 
 export async function getCategorias(): Promise<string[]> {
   const snap = await getDoc(doc(db, 'config', 'loja'));
   if (!snap.exists()) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
   const raw: (string | CategoriaConfig)[] = snap.data().categorias || [];
-  return raw.flatMap(c => {
+  const all = raw.flatMap(c => {
     if (typeof c === 'string') return [c];
     return [c.slug, ...c.subcategorias.flatMap(s => [s.slug, ...(s.subcategorias || []).map(ss => ss.slug)])];
   });
+  return Array.from(new Set(all));
 }
 
 export async function getCategoriasConfig(): Promise<CategoriaConfig[]> {

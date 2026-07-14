@@ -71,11 +71,20 @@ export default function WhatsAppAdmin() {
     return () => clearInterval(t);
   }, [statusData?.status, fetchStatus]);
 
-  const aderir = () => {
+  const aderir = async () => {
     localStorage.setItem(STORAGE_KEY, '1');
     setAderido(true);
     setLoading(true);
+    await fetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: true }) }).catch(() => {});
     Promise.all([fetchStatus(), fetchMensagens()]).finally(() => setLoading(false));
+  };
+
+  const cancelarServico = async () => {
+    if (!confirm('Tens a certeza que queres cancelar o serviço WhatsApp? O login por WhatsApp ficará desactivado para os clientes.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    await fetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: false }) }).catch(() => {});
+    setAderido(false);
+    setStatusData(null);
   };
 
   const conectar = async () => {
@@ -289,6 +298,19 @@ export default function WhatsAppAdmin() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Cancelar serviço */}
+      <div style={{ marginTop: 32, padding: '20px 24px', background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+          <div>
+            <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--red)', marginBottom: 4 }}>Cancelar serviço WhatsApp</p>
+            <p style={{ fontSize: 13, color: 'var(--gray-500)' }}>Remove a integração e desactiva o login por WhatsApp para os clientes.</p>
+          </div>
+          <button className="btn btn-outline btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)', whiteSpace: 'nowrap' }} onClick={cancelarServico}>
+            Cancelar serviço
+          </button>
+        </div>
       </div>
     </div>
   );

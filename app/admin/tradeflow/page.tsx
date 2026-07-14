@@ -82,6 +82,17 @@ export default function TradeflowPage() {
   const [ligarOpen, setLigarOpen] = useState(false);
   const [ligarLoading, setLigarLoading] = useState(false);
 
+  const [upgradeModal, setUpgradeModal] = useState<{ plano: Plano } | null>(null);
+  const sucesso = searchParams.get('sucesso') === '1';
+
+  // Limpar ?sucesso=1 do URL e recarregar conta após pagamento
+  useEffect(() => {
+    if (sucesso) {
+      router.replace('/admin/tradeflow');
+      mostrarToast('Pagamento confirmado! A activar o plano...', 'success');
+    }
+  }, [sucesso]);
+
   async function carregar() {
     setLoading(true);
     setErro('');
@@ -137,14 +148,37 @@ export default function TradeflowPage() {
     if (!subForm.email || !subForm.plano_id) return;
     setSubLoading(true);
     try {
+      // 1. Criar conta trial
       const res = await fetch('/api/tradeflow/conta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subForm),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao subscrever');
-      mostrarToast('Subscrição criada com sucesso!', 'success');
+      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao criar conta');
+
+      const planoSeleccionado = planos.find(p => p.id === subForm.plano_id);
+
+      // 2. Plano pago → ir para checkout Stripe
+      if (planoSeleccionado && planoSeleccionado.preco > 0) {
+        const checkoutRes = await fetch('/api/tradeflow/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            account_id: data.conta?.id,
+            plano_id: subForm.plano_id,
+            success_url: `${window.location.origin}/admin/tradeflow?sucesso=1`,
+            cancel_url: `${window.location.origin}/admin/tradeflow`,
+          }),
+        });
+        const checkoutData = await checkoutRes.json();
+        if (!checkoutRes.ok || !checkoutData.url) throw new Error(checkoutData.error || 'Erro ao criar checkout');
+        window.location.href = checkoutData.url;
+        return;
+      }
+
+      // Plano gratuito (trial) → continua normalmente
+      mostrarToast('Conta criada com sucesso!', 'success');
       setSubOpen(false);
       carregar();
     } catch (err: unknown) {
@@ -208,23 +242,40 @@ export default function TradeflowPage() {
     }
   }
 
-  async function mudarPlano(plano_id: string) {
+  function tentarMudarPlano(plano_id: string) {
+    const plano = planos.find(p => p.id === plano_id);
+    if (!plano) return;
+    const precoActual = planos.find(p => p.id === conta?.plano_id)?.preco ?? 0;
+    // Upgrade para plano pago — mostrar modal de confirmação
+    if (plano.preco > precoActual) {
+      setUpgradeModal({ plano });
+      return;
+    }
+    confirmarMudancaPlano(plano_id);
+  }
+
+  async function irParaCheckout(plano_id: string) {
+    setUpgradeModal(null);
     setAcaoLoading(`plano_${plano_id}`);
     try {
       const snap = await fetch('/api/tradeflow/conta').then(r => r.json());
       const accountId = snap.conta?.id;
       if (!accountId) throw new Error('Sem conta');
-      const res = await fetch(`/api/tradeflow/plano`, {
-        method: 'PUT',
+      const res = await fetch('/api/tradeflow/checkout', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_id: accountId, plano_id }),
+        body: JSON.stringify({
+          account_id: accountId,
+          plano_id,
+          success_url: `${window.location.origin}/admin/tradeflow?sucesso=1`,
+          cancel_url: `${window.location.origin}/admin/tradeflow`,
+        }),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Erro');
-      mostrarToast('Plano actualizado!', 'success');
-      carregar();
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Erro ao criar checkout');
+      window.location.href = data.url;
     } catch (err: unknown) {
-      mostrarToast(err instanceof Error ? err.message : 'Erro ao mudar plano', 'error');
-    } finally {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao iniciar checkout', 'error');
       setAcaoLoading('');
     }
   }
@@ -395,12 +446,13 @@ export default function TradeflowPage() {
                     <button
                       key={p.id}
                       disabled={activo || !!acaoLoading}
-                      onClick={() => mudarPlano(p.id)}
+                      onClick={() => tentarMudarPlano(p.id)}
                       style={{
                         background: activo ? 'var(--black)' : 'white',
                         border: `2px solid ${activo ? 'var(--black)' : 'var(--gray-200)'}`,
                         borderRadius: 14, padding: '18px 20px', cursor: activo ? 'default' : 'pointer',
                         textAlign: 'left', transition: 'all 0.15s', opacity: loading ? 0.6 : 1,
+                        display: 'flex', flexDirection: 'column', height: '100%',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -416,32 +468,37 @@ export default function TradeflowPage() {
                         {p.preco === 0 ? 'Grátis' : `€${p.preco}`}
                         {p.preco > 0 && p.tipo !== 'avulso' && <span style={{ fontSize: 13, fontWeight: 400, color: activo ? 'rgba(255,255,255,0.5)' : 'var(--gray-400)' }}>/mês</span>}
                       </p>
-                      {p.tipo !== 'wa' && <>
+                      {p.tipo !== 'wa' && (
                         <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
                           {(p.tipo === 'avulso' ? (p.creditos_pack ?? 0) : p.creditos_mes).toLocaleString()} {p.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
                         </p>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                          {p.fontes.map(f => (
-                            <span key={f} style={{
-                              fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 100,
-                              background: activo ? 'rgba(255,255,255,0.12)' : 'var(--gray-100)',
-                              color: activo ? 'rgba(255,255,255,0.8)' : 'var(--gray-600)',
-                            }}>
-                              {FONTE_LABEL[f] ?? f}
-                            </span>
-                          ))}
-                        </div>
-                      </>}
+                      )}
                       {p.tipo === 'wa' && (
-                        <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)' }}>
+                        <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
                           Notificações WhatsApp · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
                         </p>
                       )}
-                      {p.tipo !== 'wa' && p.whatsapp_incluido && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 10, fontWeight: 700, background: activo ? 'rgba(37,211,102,0.2)' : '#dcfce7', color: activo ? '#86efac' : '#15803d', padding: '3px 8px', borderRadius: 100 }}>
-                          ✓ WhatsApp incluído
-                        </span>
-                      )}
+                      {/* Fontes e badges — empurrados para o fundo */}
+                      <div style={{ marginTop: 'auto' }}>
+                        {p.tipo !== 'wa' && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: p.whatsapp_incluido ? 8 : 0 }}>
+                            {p.fontes.map(f => (
+                              <span key={f} style={{
+                                fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 100,
+                                background: activo ? 'rgba(255,255,255,0.12)' : 'var(--gray-100)',
+                                color: activo ? 'rgba(255,255,255,0.8)' : 'var(--gray-600)',
+                              }}>
+                                {FONTE_LABEL[f] ?? f}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {p.tipo !== 'wa' && p.whatsapp_incluido && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, background: activo ? 'rgba(37,211,102,0.2)' : '#dcfce7', color: activo ? '#86efac' : '#15803d', padding: '3px 8px', borderRadius: 100 }}>
+                            ✓ WhatsApp incluído
+                          </span>
+                        )}
+                      </div>
                     </button>
                   );
                 })}
@@ -625,6 +682,34 @@ export default function TradeflowPage() {
           </>
         )}
       </div>
+
+      {/* Modal de confirmação de upgrade pago */}
+      {upgradeModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>💳</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>Upgrade para {upgradeModal.plano.nome}</h2>
+            <p style={{ fontSize: 13, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
+              Este plano custa <strong style={{ color: 'var(--black)' }}>
+                €{upgradeModal.plano.preco}{upgradeModal.plano.tipo !== 'avulso' ? '/mês' : ' (único)'}
+              </strong>. O pagamento tem de ser processado antes de activar o plano.
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
+              Serás redirecionado para o checkout seguro do Stripe para inserir os dados de pagamento.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-outline btn-full" onClick={() => setUpgradeModal(null)}>Cancelar</button>
+              <button
+                className="btn btn-primary btn-full"
+                onClick={() => irParaCheckout(upgradeModal.plano.id)}
+                disabled={!!acaoLoading}
+              >
+                {acaoLoading ? 'A redirecionar...' : 'Ir para o checkout →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

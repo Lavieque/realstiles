@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getCategorias } from '@/lib/produtos';
 import { mostrarToast } from '@/components/Toast';
 import type { Produto } from '@/lib/produtos';
+
+interface SubSub { nome: string; slug: string; }
+interface Sub { nome: string; slug: string; subcategorias?: SubSub[]; }
+interface CatTree { nome: string; slug: string; subcategorias: Sub[]; }
 
 interface ScrapeResult {
   nome: string;
@@ -28,10 +31,10 @@ export default function AdminImportarPage() {
   const [salvando, setSalvando] = useState(false);
   const [estadoTF, setEstadoTF] = useState<EstadoTF>('verificando');
   const [infoTF, setInfoTF] = useState<{ usados: number; limite: number; plano: string } | null>(null);
-  const [categorias, setCategorias] = useState<string[]>([]);
+  const [catTree, setCatTree] = useState<CatTree[]>([]);
 
   useEffect(() => {
-    getCategorias().then(setCategorias).catch(() => {});
+    fetch('/api/config/categorias').then(r => r.json()).then(d => setCatTree(d.categorias || [])).catch(() => {});
 
     fetch('/api/tradeflow/conta')
       .then(r => r.json())
@@ -243,14 +246,24 @@ export default function AdminImportarPage() {
                 <div className="form-group"><label>Preço (MZN) *</label><input type="number" value={ajustes.preco || ''} onChange={f('preco')} /></div>
                 <div className="form-group">
                   <label>Categoria</label>
-                  {categorias.length > 0 ? (
+                  {catTree.length > 0 ? (
                     <select
                       value={ajustes.categoria || ''}
                       onChange={e => setAjustes(a => ({ ...a, categoria: e.target.value }))}
                     >
                       <option value="">— Sem categoria —</option>
-                      {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                      {ajustes.categoria && !categorias.includes(ajustes.categoria) && (
+                      {catTree.map(cat => (
+                        <optgroup key={cat.slug} label={cat.nome}>
+                          <option value={cat.slug}>{cat.nome} (geral)</option>
+                          {cat.subcategorias.flatMap(sub => [
+                            <option key={sub.slug} value={sub.slug}>{'  '}{sub.nome}</option>,
+                            ...(sub.subcategorias || []).map(ss => (
+                              <option key={ss.slug} value={ss.slug}>{'    '}· {ss.nome}</option>
+                            )),
+                          ])}
+                        </optgroup>
+                      ))}
+                      {ajustes.categoria && !catTree.some(c => c.slug === ajustes.categoria || c.subcategorias.some(s => s.slug === ajustes.categoria || (s.subcategorias || []).some(ss => ss.slug === ajustes.categoria))) && (
                         <option value={ajustes.categoria}>{ajustes.categoria} (nova)</option>
                       )}
                     </select>

@@ -3,7 +3,22 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
 import { getProdutos, getCategorias, pesquisarProdutos } from '@/lib/produtos';
-import type { Produto } from '@/lib/produtos';
+import type { Produto, CategoriaConfig } from '@/lib/produtos';
+
+function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
+  for (const cat of tree) {
+    if (cat.slug === slug) {
+      const subs = cat.subcategorias.flatMap(s => [s.slug, ...(s.subcategorias || []).map(ss => ss.slug)]);
+      return [slug, ...subs];
+    }
+    for (const sub of cat.subcategorias) {
+      if (sub.slug === slug) {
+        return [slug, ...(sub.subcategorias || []).map(ss => ss.slug)];
+      }
+    }
+  }
+  return [slug];
+}
 
 const PAGE = 12;
 const SCROLL_KEY = 'catalogo_scroll';
@@ -24,6 +39,8 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
   const [todos, setTodos] = useState<Produto[]>(inicial);
   const [produtos, setProdutos] = useState<Produto[]>(inicial);
   const [categorias, setCategorias] = useState<string[]>([]);
+  const [catTree, setCatTree] = useState<CategoriaConfig[]>([]);
+  const catTreeRef = useRef<CategoriaConfig[]>([]);
   const [tamanhos, setTamanhos] = useState<string[]>([]);
   const [cores, setCores] = useState<string[]>([]);
   const [catActual, setCatActual] = useState<string | null>(catParam);
@@ -50,8 +67,16 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
   }, []);
 
   useEffect(() => {
+    fetch('/api/config/categorias')
+      .then(r => r.json())
+      .then((d: { categorias?: CategoriaConfig[] }) => {
+        const tree = d.categorias || [];
+        catTreeRef.current = tree;
+        setCatTree(tree);
+      })
+      .catch(() => {});
+
     getCategorias().then(todasCats => {
-      // só mostra categorias que têm pelo menos 1 produto
       const comArtigos = new Set(inicial.map(p => p.categoria).filter(Boolean));
       const filtradas = todasCats.filter(c => comArtigos.has(c));
       setCategorias(filtradas.length > 0 ? filtradas : todasCats);
@@ -74,7 +99,8 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
     try {
       const max = cat ? 200 : PAGE + 1;
       const ult = cat ? null : (append ? ultimoRef.current : null);
-      const resultado = await getProdutos({ categoria: cat, max, ultimo: ult });
+      const slugs = cat ? resolveDescendants(catTreeRef.current, cat) : null;
+      const resultado = await getProdutos({ categorias: slugs, max, ultimo: ult });
       const maisDisp = !cat && resultado.length > PAGE;
       const slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
       setTemMais(maisDisp);
@@ -163,6 +189,16 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
 
   const mostrarSidebar = !!catActual && !searchTerm;
 
+  // Quando há categoria activa, mostrar só descendentes que têm produtos nos resultados
+  // Quando não há nada seleccionado, mostrar todas as categorias com produtos
+  const categoriasVisiveis = catActual
+    ? (() => {
+        const descendants = resolveDescendants(catTree, catActual).filter(s => s !== catActual);
+        const comProdutos = new Set(todos.map(p => p.categoria).filter(Boolean) as string[]);
+        return descendants.filter(s => comProdutos.has(s));
+      })()
+    : categorias;
+
   const conteudo = erro ? (
     <div className="empty-state">
       <div className="icon">⚠️</div>
@@ -206,7 +242,7 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
       {/* Categorias + Ordenação */}
       <div className="filtros">
         <button className={`filtro-btn${!catActual ? ' active' : ''}`} onClick={() => filtrar(null)}>Todos</button>
-        {categorias.map(cat => (
+        {categoriasVisiveis.map(cat => (
           <button key={cat} className={`filtro-btn${catActual === cat ? ' active' : ''}`} onClick={() => filtrar(cat)}>
             {cat.charAt(0).toUpperCase() + cat.slice(1)}
           </button>
