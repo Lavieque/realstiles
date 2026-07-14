@@ -15,6 +15,8 @@ interface Plano {
   rate_limit: number;
   fontes: string[];
   activo: boolean;
+  whatsapp_incluido?: boolean;
+  whatsapp_numeros_max?: number;
 }
 
 interface Conta {
@@ -372,7 +374,7 @@ export default function TradeflowPage() {
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Plano {planoActual.nome}</p>
                   <p style={{ fontSize: 13, color: 'var(--gray-700)' }}>
-                    <strong>{(planoActual.tipo === 'avulso' ? planoActual.creditos_pack : planoActual.creditos_mes ?? 0).toLocaleString()}</strong> {planoActual.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
+                    <strong>{(planoActual.tipo === 'avulso' ? (planoActual.creditos_pack ?? 0) : (planoActual.creditos_mes ?? 0)).toLocaleString()}</strong> {planoActual.tipo === 'avulso' ? 'créditos (pack)' : 'créditos/mês'}
                     {planoActual.preco > 0 && planoActual.tipo !== 'avulso' && <> · <strong>€{planoActual.preco}</strong>/mês</>}
                     {planoActual.preco > 0 && planoActual.tipo === 'avulso' && <> · <strong>€{planoActual.preco}</strong> (único)</>}
                   </p>
