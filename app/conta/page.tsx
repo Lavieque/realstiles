@@ -34,11 +34,23 @@ function ContaInner() {
   const [tab, setTab] = useState<Tab>(tabParam || 'entrar');
   const [metodo, setMetodo] = useState<Metodo>('email');
   const [otpStep, setOtpStep] = useState<OtpStep>('telefone');
+  const [whatsappActivo, setWhatsappActivo] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ nome: '', email: '', password: '', telefone: '', codigo: '' });
+
+  useEffect(() => {
+    fetch('/api/tradeflow/conta')
+      .then(r => r.json())
+      .then(d => {
+        const activo = d.conta?.whatsapp_ativo === true;
+        setWhatsappActivo(activo);
+        if (!activo) setMetodo('email');
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -294,16 +306,18 @@ function ContaInner() {
             <div className="auth-ponto"><span>✓</span> Pagamento seguro</div>
             <div className="auth-ponto"><span>✓</span> Devoluções em 30 dias</div>
           </div>
-          {/* WhatsApp info */}
-          <div className="auth-wa-info">
-            <div className="auth-wa-icon">
-              <svg width="20" height="20" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#25D366"/><path d="M34.5 13.4C32.1 11 28.9 9.5 25.5 9.5C18.3 9.5 12.5 15.3 12.5 22.5C12.5 24.9 13.1 27.2 14.3 29.2L12.3 36.5L19.8 34.5C21.7 35.6 23.6 36.2 25.5 36.2C32.7 36.2 38.5 30.4 38.5 23.2C38.5 19.8 37.1 16.6 34.5 13.4ZM25.5 33.9C23.8 33.9 22.1 33.4 20.6 32.5L20.2 32.3L15.8 33.5L17 29.2L16.8 28.8C15.8 27.2 15.2 25.4 15.2 23.5C15.2 17.9 19.9 13.2 25.5 13.2C28.2 13.2 30.7 14.3 32.6 16.2C34.5 18.1 35.6 20.6 35.6 23.3C35.8 28.9 31.1 33.9 25.5 33.9Z" fill="white"/></svg>
+          {/* WhatsApp info — só aparece quando o serviço está activo */}
+          {whatsappActivo && (
+            <div className="auth-wa-info">
+              <div className="auth-wa-icon">
+                <svg width="20" height="20" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#25D366"/><path d="M34.5 13.4C32.1 11 28.9 9.5 25.5 9.5C18.3 9.5 12.5 15.3 12.5 22.5C12.5 24.9 13.1 27.2 14.3 29.2L12.3 36.5L19.8 34.5C21.7 35.6 23.6 36.2 25.5 36.2C32.7 36.2 38.5 30.4 38.5 23.2C38.5 19.8 37.1 16.6 34.5 13.4ZM25.5 33.9C23.8 33.9 22.1 33.4 20.6 32.5L20.2 32.3L15.8 33.5L17 29.2L16.8 28.8C15.8 27.2 15.2 25.4 15.2 23.5C15.2 17.9 19.9 13.2 25.5 13.2C28.2 13.2 30.7 14.3 32.6 16.2C34.5 18.1 35.6 20.6 35.6 23.3C35.8 28.9 31.1 33.9 25.5 33.9Z" fill="white"/></svg>
+              </div>
+              <div>
+                <p className="auth-wa-titulo">Entra com WhatsApp</p>
+                <p className="auth-wa-desc">Sem password. Recebe um código no teu WhatsApp e entra em segundos.</p>
+              </div>
             </div>
-            <div>
-              <p className="auth-wa-titulo">Entra com WhatsApp</p>
-              <p className="auth-wa-desc">Sem password. Recebe um código no teu WhatsApp e entra em segundos.</p>
-            </div>
-          </div>
+          )}
         </div>
         <Link href="/" className="auth-volta-loja">← Voltar à loja</Link>
       </div>
@@ -328,22 +342,24 @@ function ContaInner() {
               </div>
 
               {/* Selector de método */}
-              <div className="auth-metodo-tabs">
-                <button
-                  type="button"
-                  className={`auth-metodo-tab${metodo === 'email' ? ' active' : ''}`}
-                  onClick={() => setMetodo('email')}
-                >
-                  ✉️ Email
-                </button>
-                <button
-                  type="button"
-                  className={`auth-metodo-tab${metodo === 'whatsapp' ? ' active' : ''}`}
-                  onClick={() => { setMetodo('whatsapp'); setOtpStep('telefone'); }}
-                >
-                  📱 WhatsApp
-                </button>
-              </div>
+              {whatsappActivo && (
+                <div className="auth-metodo-tabs">
+                  <button
+                    type="button"
+                    className={`auth-metodo-tab${metodo === 'email' ? ' active' : ''}`}
+                    onClick={() => setMetodo('email')}
+                  >
+                    ✉️ Email
+                  </button>
+                  <button
+                    type="button"
+                    className={`auth-metodo-tab${metodo === 'whatsapp' ? ' active' : ''}`}
+                    onClick={() => { setMetodo('whatsapp'); setOtpStep('telefone'); }}
+                  >
+                    📱 WhatsApp
+                  </button>
+                </div>
+              )}
             </>
           )}
 
