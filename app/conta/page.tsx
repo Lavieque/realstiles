@@ -42,14 +42,14 @@ function ContaInner() {
   const [form, setForm] = useState({ nome: '', email: '', password: '', telefone: '', codigo: '' });
 
   useEffect(() => {
-    fetch('/api/tradeflow/conta')
-      .then(r => r.json())
-      .then(d => {
-        const activo = d.conta?.whatsapp_ativo === true;
-        setWhatsappActivo(activo);
-        if (!activo) setMetodo('email');
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/tradeflow/conta').then(r => r.json()).catch(() => ({})),
+      fetch('/api/config/notify').then(r => r.json()).catch(() => ({})),
+    ]).then(([tf, notify]) => {
+      const activo = tf.conta?.whatsapp_ativo === true && notify.whatsapp_login === true;
+      setWhatsappActivo(activo);
+      if (!activo) setMetodo('email');
+    });
   }, []);
 
   useEffect(() => {
