@@ -75,7 +75,14 @@ export async function pesquisarProdutos(termo) {
 // ── CATEGORIAS ──
 export async function getCategorias() {
   const snap = await getDoc(doc(db, 'config', 'loja'));
-  return snap.exists() ? (snap.data().categorias || []) : ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
+  if (!snap.exists()) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
+  const raw = snap.data().categorias || [];
+  const all = raw.flatMap(c => {
+    if (typeof c === 'string') return [c];
+    const subs = (c.subcategorias || []).flatMap(s => [s.slug, ...((s.subcategorias || []).map(ss => ss.slug))]);
+    return [c.slug, ...subs];
+  });
+  return Array.from(new Set(all));
 }
 
 // ── DECREMENTAR STOCK ──
