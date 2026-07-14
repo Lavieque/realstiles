@@ -251,7 +251,7 @@ export default function TradeflowPage() {
       setUpgradeModal({ plano });
       return;
     }
-    confirmarMudancaPlano(plano_id);
+    irParaCheckout(plano_id);
   }
 
   async function irParaCheckout(plano_id: string) {
