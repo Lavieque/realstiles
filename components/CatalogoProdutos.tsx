@@ -104,7 +104,7 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
       const maisDisp = !cat && resultado.length > PAGE;
       const slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
       setTemMais(maisDisp);
-      setUltimo(maisDisp ? slice[slice.length - 1] : null);
+      setUltimo(maisDisp ? (slice[slice.length - 1].criado_em ?? null) : null);
       setTodos(p => append ? [...p, ...slice] : slice);
       if (cat) {
         const tams = new Set<string>();
