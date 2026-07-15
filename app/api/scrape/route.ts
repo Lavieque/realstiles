@@ -86,7 +86,10 @@ export async function POST(req: NextRequest) {
       if (tfRes.status === 429) {
         return NextResponse.json({ ...tfData, upgrade: true }, { status: 429 });
       }
-      return NextResponse.json(tfData, { status: tfRes.status });
+      if (tfRes.status === 402) {
+        return NextResponse.json(tfData, { status: 402 });
+      }
+      return NextResponse.json({ ...tfData, needs_cookies: true }, { status: tfRes.status });
     }
 
     const jobId = tfData.job_id;
