@@ -15,7 +15,7 @@ export default function HeroSlider({ destaques: initial }: { destaques: Produto[
   // Fallback: se SSR não trouxe destaques (sem Admin SDK), carrega pelo cliente
   useEffect(() => {
     if (initial.length > 0) return;
-    getProdutos({ destaque: true, max: 12 }).then(res => {
+    getProdutos({ destaque: true, max: 12 }).then(({ produtos: res }) => {
       const comImagem = res.filter(p => p.imagens?.[0]);
       if (comImagem.length) setDestaques(comImagem);
     }).catch(() => {});

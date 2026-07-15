@@ -1,7 +1,7 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   getDoc, getDocs, query, where, orderBy, limit,
-  serverTimestamp, startAfter,
+  serverTimestamp, startAfter, QueryDocumentSnapshot, DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -33,36 +33,46 @@ export interface Produto {
   criado_em?: unknown;
 }
 
+export interface ProdutosResult {
+  produtos: Produto[];
+  ultimoDoc: QueryDocumentSnapshot<DocumentData> | null;
+}
+
 export async function getProdutos({
   categoria = null,
   categorias = null,
   activo = true,
   destaque = null,
   max = 20,
-  ultimo = null,
+  ultimoDoc = null,
 }: {
   categoria?: string | null;
   categorias?: string[] | null;
   activo?: boolean | null;
   destaque?: boolean | null;
   max?: number;
-  ultimo?: unknown;
-} = {}): Promise<Produto[]> {
+  ultimoDoc?: QueryDocumentSnapshot<DocumentData> | null;
+} = {}): Promise<ProdutosResult> {
   const slugs = categorias ?? (categoria ? [categoria] : null);
   const needsClientFilter = slugs || destaque !== null || activo === null;
   const fetchLimit = needsClientFilter ? Math.min(max * 10, 500) : max;
 
   const filters: unknown[] = [orderBy('criado_em', 'desc'), limit(fetchLimit)];
   if (activo !== null) filters.unshift(where('activo', '==', activo));
-  if (ultimo && !needsClientFilter) filters.push(startAfter(ultimo));
+  if (ultimoDoc && !needsClientFilter) filters.push(startAfter(ultimoDoc));
 
   const snap = await comTimeout(getDocs(query(collection(db, COL), ...(filters as Parameters<typeof query>[1][]))));
 
-  let results: Produto[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Produto));
-  if (activo !== null && needsClientFilter) results = results.filter(p => p.activo === activo);
-  if (slugs) results = results.filter(p => p.categoria && slugs.includes(p.categoria));
-  if (destaque !== null) results = results.filter(p => p.destaque === destaque);
-  return results.slice(0, max);
+  let docs = snap.docs;
+  if (activo !== null && needsClientFilter) docs = docs.filter(d => d.data().activo === activo);
+  if (slugs) docs = docs.filter(d => d.data().categoria && slugs.includes(d.data().categoria));
+  if (destaque !== null) docs = docs.filter(d => d.data().destaque === destaque);
+  docs = docs.slice(0, max);
+
+  return {
+    produtos: docs.map(d => ({ id: d.id, ...d.data() } as Produto)),
+    ultimoDoc: docs.length > 0 ? snap.docs[snap.docs.indexOf(docs[docs.length - 1])] : null,
+  };
 }
 
 export async function getProduto(id: string): Promise<Produto | null> {
@@ -94,7 +104,7 @@ export async function apagarProduto(id: string): Promise<void> {
 }
 
 export async function pesquisarProdutos(termo: string, max = 48): Promise<Produto[]> {
-  const todos = await getProdutos({ max: 300 });
+  const { produtos: todos } = await getProdutos({ max: 300 });
   const t = termo.toLowerCase();
   return todos
     .filter(p =>

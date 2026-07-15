@@ -17,7 +17,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     (async () => {
-      const [encomendas, produtos, clientesSnap] = await Promise.all([
+      const [encomendas, { produtos }, clientesSnap] = await Promise.all([
         getTodasEncomendas(),
         getProdutos({ max: 500 }),
         getDocs(collection(db, 'clientes')),

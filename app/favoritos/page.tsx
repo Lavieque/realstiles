@@ -20,7 +20,7 @@ export default function FavoritosPage() {
     setLoading(true);
     // Carrega todos os activos e filtra pelos ids favoritos (evita N+1 queries)
     getProdutos({ max: 300 })
-      .then(todos => {
+      .then(({ produtos: todos }) => {
         const set = new Set(ids);
         setProdutos(todos.filter(p => set.has(p.id)));
       })

@@ -62,7 +62,7 @@ export default function ProdutoDetalhe({
       // Relacionados já vêm do servidor — só busca no cliente se não vieram
       if (initialRelacionados.length === 0 && initialProduto.categoria) {
         getProdutos({ categoria: initialProduto.categoria, max: 5 })
-          .then(rel => setRelacionados(rel.filter(r => r.id !== id).slice(0, 4)))
+          .then(({ produtos: rel }) => setRelacionados(rel.filter(r => r.id !== id).slice(0, 4)))
           .catch(() => {});
       }
       return;
@@ -73,7 +73,7 @@ export default function ProdutoDetalhe({
       setCor(p?.cores?.[0] || '');
       if (p?.categoria) {
         getProdutos({ categoria: p.categoria, max: 5 })
-          .then(rel => setRelacionados(rel.filter(r => r.id !== id).slice(0, 4)))
+          .then(({ produtos: rel }) => setRelacionados(rel.filter(r => r.id !== id).slice(0, 4)))
           .catch(() => {});
       }
     }).catch(() => setProduto(null)).finally(() => setLoading(false));

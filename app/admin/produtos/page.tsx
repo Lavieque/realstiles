@@ -18,7 +18,7 @@ export default function AdminProdutosPage() {
   const [categorias, setCategorias] = useState<string[]>([]);
 
   useEffect(() => {
-    getProdutos({ max: 200 }).then(p => { setProdutos(p); setLoading(false); });
+    getProdutos({ max: 200 }).then(({ produtos: p }) => { setProdutos(p); setLoading(false); });
     getCategorias().then(setCategorias).catch(() => {});
   }, []);
 

@@ -3,7 +3,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
 import { getProdutos, getCategorias, pesquisarProdutos } from '@/lib/produtos';
-import type { Produto, CategoriaConfig } from '@/lib/produtos';
+import type { Produto, CategoriaConfig, ProdutosResult } from '@/lib/produtos';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
   for (const cat of tree) {
@@ -45,7 +46,7 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
   const [cores, setCores] = useState<string[]>([]);
   const [catActual, setCatActual] = useState<string | null>(catParam);
   const [temMais, setTemMais] = useState(false);
-  const [ultimo, setUltimo] = useState<unknown>(null);
+  const [ultimoDoc, setUltimoDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(qParam);
   const [erro, setErro] = useState(false);
@@ -90,21 +91,21 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
     }
   }, [catParam]);
 
-  const ultimoRef = useRef<unknown>(null);
-  ultimoRef.current = ultimo;
+  const ultimoDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
+  ultimoDocRef.current = ultimoDoc;
 
   const carregarProdutos = useCallback(async (cat: string | null, append: boolean) => {
     setLoading(true);
     setErro(false);
     try {
       const max = cat ? 200 : PAGE + 1;
-      const ult = cat ? null : (append ? ultimoRef.current : null);
+      const cursor = cat ? null : (append ? ultimoDocRef.current : null);
       const slugs = cat ? resolveDescendants(catTreeRef.current, cat) : null;
-      const resultado = await getProdutos({ categorias: slugs, max, ultimo: ult });
+      const { produtos: resultado, ultimoDoc: novoUltimoDoc } = await getProdutos({ categorias: slugs, max, ultimoDoc: cursor });
       const maisDisp = !cat && resultado.length > PAGE;
       const slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
       setTemMais(maisDisp);
-      setUltimo(maisDisp ? (slice[slice.length - 1].criado_em ?? null) : null);
+      setUltimoDoc(maisDisp ? novoUltimoDoc : null);
       setTodos(p => append ? [...p, ...slice] : slice);
       if (cat) {
         const tams = new Set<string>();

@@ -15,7 +15,7 @@ export default function PromocoesPage() {
 
   useEffect(() => {
     getProdutos({ max: 500 })
-      .then(all => {
+      .then(({ produtos: all }) => {
         const emPromo = all.filter(p => p.preco_original && p.preco_original > p.preco);
         setTodos(emPromo);
         const seen = new Set<string>();
