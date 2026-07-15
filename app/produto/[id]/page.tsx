@@ -17,8 +17,6 @@ const getProduto = cache(async (id: string): Promise<Produto | null> => {
   } catch {
     return null;
   }
-}
-
 });
 
 async function getProdutosRelacionados(produto: Produto): Promise<Produto[]> {
