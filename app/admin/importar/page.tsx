@@ -133,6 +133,7 @@ export default function AdminImportarPage() {
       {cookiePopupSite && (
         <CookieCapturePopup
           site={cookiePopupSite}
+          url={url}
           onClose={() => setCookiePopupSite(null)}
           onRetry={scrape}
         />

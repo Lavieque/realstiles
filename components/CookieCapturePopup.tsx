@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 
 interface Props {
-  site: string; // domain like "shein.com"
+  site: string;
+  url?: string; // full product URL to open directly
   onClose: () => void;
   onRetry?: () => void;
 }
 
-export default function CookieCapturePopup({ site, onClose, onRetry }: Props) {
+export default function CookieCapturePopup({ site, url, onClose, onRetry }: Props) {
   const [bookmarklet, setBookmarklet] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +19,7 @@ export default function CookieCapturePopup({ site, onClose, onRetry }: Props) {
       .catch(() => setLoading(false));
   }, []);
 
-  const siteUrl = `https://www.${site}`;
+  const siteUrl = url || `https://${site}`;
 
   return (
     <div style={{
