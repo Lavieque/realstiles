@@ -77,6 +77,16 @@ export default function AdminImportarPage() {
           mostrarToast('Conta TradeFlow suspensa. Vai a Integrações → TradeFlow.', 'error');
           return;
         }
+        // Site bloqueado — mostrar popup de cookies
+        if (data?.needs_cookies) {
+          try {
+            const detectedDomain = new URL(url).hostname.replace(/^www\./, '');
+            setCookiePopupSite(detectedDomain);
+          } catch {
+            mostrarToast(data?.error || 'Não foi possível importar este produto', 'error');
+          }
+          return;
+        }
         throw new Error(data?.message || data?.error || 'Erro ao importar');
       }
 
@@ -86,17 +96,7 @@ export default function AdminImportarPage() {
       setAjustes({ nome: data.nome, preco: data.preco, descricao: data.descricao, imagens: data.imagens, tamanhos: data.tamanhos || [], cores: data.cores || [], tags: data.tags || [], categoria: data.categoria || '' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Não foi possível importar este produto';
-      const isBlocked = /blocked|cookie/i.test(msg);
-      if (isBlocked) {
-        try {
-          const detectedDomain = new URL(url).hostname.replace(/^www\./, '');
-          setCookiePopupSite(detectedDomain);
-        } catch {
-          mostrarToast(msg, 'error');
-        }
-      } else {
-        mostrarToast(msg, 'error');
-      }
+      mostrarToast(msg, 'error');
     } finally {
       setLoading(false);
     }

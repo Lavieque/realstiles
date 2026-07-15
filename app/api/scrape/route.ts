@@ -119,17 +119,16 @@ export async function POST(req: NextRequest) {
       }
 
       if (pollData.status === 'error' || pollData.status === 'failed') {
-        return NextResponse.json(
-          { error: pollData.erro ?? 'O scraping falhou. Tenta novamente.' },
-          { status: 422 },
-        );
+        const erro = pollData.erro ?? 'O scraping falhou. Tenta novamente.';
+        const needs_cookies = /block|cookie|captcha|access|denied|forbidden|robot|protected/i.test(erro) || true;
+        return NextResponse.json({ error: erro, needs_cookies }, { status: 422 });
       }
     }
 
-    return NextResponse.json({ error: 'Timeout — o scraping demorou demasiado.' }, { status: 504 });
+    return NextResponse.json({ error: 'Timeout — o scraping demorou demasiado.', needs_cookies: true }, { status: 504 });
 
   } catch (err) {
     console.error('Scrape error:', err);
-    return NextResponse.json({ error: 'Não foi possível extrair o produto.' }, { status: 500 });
+    return NextResponse.json({ error: 'Não foi possível extrair o produto desta página. O site pode estar a bloquear o acesso.', needs_cookies: true }, { status: 500 });
   }
 }
