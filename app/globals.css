@@ -789,6 +789,19 @@ tr:hover td { background: var(--gray-100); }
 }
 .sidebar-overlay { display: none; }
 .admin-hamburguer-bar { display: none; }
+.admin-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 32px; background: white; border-bottom: 1px solid var(--gray-200);
+  position: sticky; top: 0; z-index: 10;
+}
+.admin-topbar-titulo { font-size: 16px; font-weight: 600; color: var(--gray-800); }
+.admin-topbar-site {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--gray-500); text-decoration: none;
+  padding: 6px 12px; border: 1px solid var(--gray-200); border-radius: 6px;
+  transition: all 0.15s;
+}
+.admin-topbar-site:hover { color: var(--gray-800); border-color: var(--gray-400); }
 .sidebar-toggle { display: none; }
 
 @media (max-width: 1024px) {
