@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { mostrarToast } from '@/components/Toast';
+import CookieCapturePopup from '@/components/CookieCapturePopup';
 import type { Produto } from '@/lib/produtos';
 
 interface SubSub { nome: string; slug: string; }
@@ -27,6 +28,7 @@ export default function AdminImportarPage() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<ScrapeResult | null>(null);
+  const [cookiePopupSite, setCookiePopupSite] = useState<string | null>(null);
   const [ajustes, setAjustes] = useState<Partial<Produto>>({});
   const [salvando, setSalvando] = useState(false);
   const [estadoTF, setEstadoTF] = useState<EstadoTF>('verificando');
@@ -83,7 +85,18 @@ export default function AdminImportarPage() {
       if (infoTF) setInfoTF(i => i ? { ...i, usados: i.usados + 1 } : i);
       setAjustes({ nome: data.nome, preco: data.preco, descricao: data.descricao, imagens: data.imagens, tamanhos: data.tamanhos || [], cores: data.cores || [], tags: data.tags || [], categoria: data.categoria || '' });
     } catch (err: unknown) {
-      mostrarToast(err instanceof Error ? err.message : 'Não foi possível importar este produto', 'error');
+      const msg = err instanceof Error ? err.message : 'Não foi possível importar este produto';
+      const isBlocked = /blocked|cookie/i.test(msg);
+      if (isBlocked) {
+        try {
+          const detectedDomain = new URL(url).hostname.replace(/^www\./, '');
+          setCookiePopupSite(detectedDomain);
+        } catch {
+          mostrarToast(msg, 'error');
+        }
+      } else {
+        mostrarToast(msg, 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,6 +130,13 @@ export default function AdminImportarPage() {
 
   return (
     <>
+      {cookiePopupSite && (
+        <CookieCapturePopup
+          site={cookiePopupSite}
+          onClose={() => setCookiePopupSite(null)}
+          onRetry={scrape}
+        />
+      )}
       <div className="admin-topbar">
         <h1>Importar produto via link</h1>
       </div>
