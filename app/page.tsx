@@ -26,10 +26,8 @@ async function getCategoriasSSR(): Promise<string[]> {
   try {
     const db = getAdminDb();
     if (!db) return [];
-    const snap = await db.collection('produtos').where('activo', '==', true).get();
-    const cats = new Set<string>();
-    snap.docs.forEach(d => { const c = d.data().categoria; if (c) cats.add(c); });
-    return Array.from(cats).sort();
+    const snap = await db.collection('config').doc('loja').get();
+    return snap.exists ? (snap.data()?.categorias_ativas || []) : [];
   } catch {
     return [];
   }

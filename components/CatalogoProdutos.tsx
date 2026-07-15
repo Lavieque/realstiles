@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
-import { getProdutos, getCategorias, pesquisarProdutos } from '@/lib/produtos';
+import { getProdutos, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
 import type { Produto, CategoriaConfig, ProdutosResult } from '@/lib/produtos';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
@@ -78,7 +78,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [] }: {
       .catch(() => {});
 
     if (categoriasIniciais.length === 0) {
-      getCategorias().then(setCategorias).catch(() => {});
+      getCategoriasAtivas().then(cats => { if (cats.length) setCategorias(cats); }).catch(() => {});
     }
   }, [inicial]);
 

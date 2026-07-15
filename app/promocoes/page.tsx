@@ -14,9 +14,9 @@ export default function PromocoesPage() {
   const [pagina, setPagina] = useState(PAGE);
 
   useEffect(() => {
-    getProdutos({ max: 500 })
+    getProdutos({ emPromocao: true, max: 500 })
       .then(({ produtos: all }) => {
-        const emPromo = all.filter(p => p.preco_original && p.preco_original > p.preco);
+        const emPromo = all;
         setTodos(emPromo);
         const seen = new Set<string>();
         const cats: string[] = [];

@@ -20,6 +20,7 @@ export default function AdminProdutosPage() {
   useEffect(() => {
     getProdutos({ max: 200 }).then(({ produtos: p }) => { setProdutos(p); setLoading(false); });
     getCategorias().then(setCategorias).catch(() => {});
+    fetch('/api/admin/sincronizar-categorias', { method: 'POST' }).catch(() => {});
   }, []);
 
   const novo = () => setSeleccionado({ ...VAZIO });
