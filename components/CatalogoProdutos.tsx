@@ -77,10 +77,12 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
       })
       .catch(() => {});
 
-    getCategorias().then(todasCats => {
-      const comArtigos = new Set(inicial.map(p => p.categoria).filter(Boolean));
-      const filtradas = todasCats.filter(c => comArtigos.has(c));
-      setCategorias(filtradas.length > 0 ? filtradas : todasCats);
+    getProdutos({ max: 500 }).then(({ produtos: todos }) => {
+      const comArtigos = new Set(todos.map(p => p.categoria).filter(Boolean) as string[]);
+      const sorted = Array.from(comArtigos).sort();
+      setCategorias(sorted);
+    }).catch(() => {
+      getCategorias().then(setCategorias).catch(() => {});
     });
   }, [inicial]);
 
