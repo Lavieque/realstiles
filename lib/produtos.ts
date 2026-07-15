@@ -71,7 +71,7 @@ export async function getProdutos({
 
   return {
     produtos: docs.map(d => ({ id: d.id, ...d.data() } as Produto)),
-    ultimoDoc: docs.length > 0 ? snap.docs[snap.docs.indexOf(docs[docs.length - 1])] : null,
+    ultimoDoc: docs.length > 0 ? docs[docs.length - 1] : null,
   };
 }
 
