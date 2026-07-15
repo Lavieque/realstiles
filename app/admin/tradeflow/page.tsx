@@ -86,6 +86,8 @@ export default function TradeflowPage() {
 
   const [upgradeModal, setUpgradeModal] = useState<{ plano: Plano } | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelarModal, setCancelarModal] = useState(false);
+  const [cancelarLoading, setCancelarLoading] = useState(false);
   const sucesso = searchParams.get('sucesso') === '1';
 
   // Limpar ?sucesso=1 do URL e recarregar conta após pagamento
@@ -309,6 +311,28 @@ export default function TradeflowPage() {
     } catch (err: unknown) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao abrir portal Stripe', 'error');
       setPortalLoading(false);
+    }
+  }
+
+  async function cancelarSubscricao() {
+    setCancelarLoading(true);
+    try {
+      const snap = await fetch('/api/tradeflow/conta').then(r => r.json());
+      const accountId = snap.conta?.id;
+      if (!accountId) throw new Error('Sem conta');
+      const res = await fetch('/api/tradeflow/cancelar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id: accountId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Erro ao cancelar');
+      mostrarToast('Subscrição cancelada. O acesso mantém-se até ao fim do período actual.', 'success');
+      setCancelarModal(false);
+      carregar();
+    } catch (err: unknown) {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao cancelar', 'error');
+    } finally {
+      setCancelarLoading(false);
     }
   }
 
@@ -575,6 +599,15 @@ export default function TradeflowPage() {
                 <button className="btn btn-outline btn-sm" onClick={resetCreditos} disabled={acaoLoading === 'reset'}>
                   {acaoLoading === 'reset' ? 'A repor...' : '⟳ Repor importações'}
                 </button>
+                {conta.billing_status === 'active' && (
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ color: 'var(--red)', borderColor: 'var(--red)' }}
+                    onClick={() => setCancelarModal(true)}
+                  >
+                    Cancelar subscrição
+                  </button>
+                )}
                 <button
                   className="btn btn-outline btn-sm"
                   style={{ marginLeft: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }}
@@ -742,6 +775,30 @@ export default function TradeflowPage() {
           </>
         )}
       </div>
+
+      {/* Modal de confirmação de cancelamento */}
+      {cancelarModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>Cancelar subscrição?</h2>
+            <p style={{ fontSize: 13, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
+              O acesso mantém-se activo até ao fim do período já pago. Após essa data, a conta será suspensa.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-outline btn-full" onClick={() => setCancelarModal(false)}>Voltar</button>
+              <button
+                className="btn btn-full btn-sm"
+                style={{ background: 'var(--red)', color: 'white', border: 'none' }}
+                onClick={cancelarSubscricao}
+                disabled={cancelarLoading}
+              >
+                {cancelarLoading ? 'A cancelar...' : 'Confirmar cancelamento'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmação de upgrade pago */}
       {upgradeModal && (
