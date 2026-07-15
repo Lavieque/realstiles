@@ -32,14 +32,14 @@ const INTERVALOS_PRECO = [
   { label: '2 000+', min: 2000, max: Infinity },
 ];
 
-export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
+export default function CatalogoProdutos({ inicial, categoriasIniciais = [] }: { inicial: Produto[]; categoriasIniciais?: string[] }) {
   const searchParams = useSearchParams();
   const catParam = searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
 
   const [todos, setTodos] = useState<Produto[]>(inicial);
   const [produtos, setProdutos] = useState<Produto[]>(inicial);
-  const [categorias, setCategorias] = useState<string[]>([]);
+  const [categorias, setCategorias] = useState<string[]>(categoriasIniciais);
   const [catTree, setCatTree] = useState<CategoriaConfig[]>([]);
   const catTreeRef = useRef<CategoriaConfig[]>([]);
   const [tamanhos, setTamanhos] = useState<string[]>([]);
@@ -77,13 +77,9 @@ export default function CatalogoProdutos({ inicial }: { inicial: Produto[] }) {
       })
       .catch(() => {});
 
-    getProdutos({ max: 500 }).then(({ produtos: todos }) => {
-      const comArtigos = new Set(todos.map(p => p.categoria).filter(Boolean) as string[]);
-      const sorted = Array.from(comArtigos).sort();
-      setCategorias(sorted);
-    }).catch(() => {
+    if (categoriasIniciais.length === 0) {
       getCategorias().then(setCategorias).catch(() => {});
-    });
+    }
   }, [inicial]);
 
   useEffect(() => {

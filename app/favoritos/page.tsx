@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ProdutoCard from '@/components/ProdutoCard';
 import { useFavoritos } from '@/store/favoritos';
-import { getProdutos } from '@/lib/produtos';
+import { getProduto } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
 
 export default function FavoritosPage() {
@@ -18,12 +18,8 @@ export default function FavoritosPage() {
     prevIds.current = key;
     if (ids.length === 0) { setProdutos([]); setLoading(false); return; }
     setLoading(true);
-    // Carrega todos os activos e filtra pelos ids favoritos (evita N+1 queries)
-    getProdutos({ max: 300 })
-      .then(({ produtos: todos }) => {
-        const set = new Set(ids);
-        setProdutos(todos.filter(p => set.has(p.id)));
-      })
+    Promise.all(ids.map(id => getProduto(id)))
+      .then(results => setProdutos(results.filter((p): p is Produto => p !== null)))
       .finally(() => setLoading(false));
   }, [ids]);
 

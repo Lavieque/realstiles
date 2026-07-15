@@ -122,10 +122,19 @@ export interface CategoriaConfig {
   subcategorias: { nome: string; slug: string; subcategorias?: { nome: string; slug: string }[] }[];
 }
 
-export async function getCategorias(): Promise<string[]> {
+let lojaConfigCache: { data: (string | CategoriaConfig)[]; ts: number } | null = null;
+
+async function getLojaConfig(): Promise<(string | CategoriaConfig)[]> {
+  if (lojaConfigCache && Date.now() - lojaConfigCache.ts < 5 * 60 * 1000) return lojaConfigCache.data;
   const snap = await getDoc(doc(db, 'config', 'loja'));
-  if (!snap.exists()) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
-  const raw: (string | CategoriaConfig)[] = snap.data().categorias || [];
+  const data: (string | CategoriaConfig)[] = snap.exists() ? snap.data().categorias || [] : [];
+  lojaConfigCache = { data, ts: Date.now() };
+  return data;
+}
+
+export async function getCategorias(): Promise<string[]> {
+  const raw = await getLojaConfig();
+  if (!raw.length) return ['camisas', 'calças', 'vestidos', 'casacos', 'sapatos', 'acessórios'];
   const all = raw.flatMap(c => {
     if (typeof c === 'string') return [c];
     return [c.slug, ...c.subcategorias.flatMap(s => [s.slug, ...(s.subcategorias || []).map(ss => ss.slug)])];
@@ -134,9 +143,7 @@ export async function getCategorias(): Promise<string[]> {
 }
 
 export async function getCategoriasConfig(): Promise<CategoriaConfig[]> {
-  const snap = await getDoc(doc(db, 'config', 'loja'));
-  if (!snap.exists()) return [];
-  const raw: (string | CategoriaConfig)[] = snap.data().categorias || [];
+  const raw = await getLojaConfig();
   return raw.filter((c): c is CategoriaConfig => typeof c === 'object');
 }
 

@@ -1,12 +1,13 @@
 export const dynamic = 'force-dynamic';
 
+import { cache } from 'react';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { serializar } from '@/lib/serializar';
 import ProdutoDetalhe from './ProdutoDetalhe';
 import type { Produto } from '@/lib/produtos';
 import type { Metadata } from 'next';
 
-async function getProduto(id: string): Promise<Produto | null> {
+const getProduto = cache(async (id: string): Promise<Produto | null> => {
   try {
     const db = getAdminDb();
     if (!db) return null;
@@ -17,6 +18,8 @@ async function getProduto(id: string): Promise<Produto | null> {
     return null;
   }
 }
+
+});
 
 async function getProdutosRelacionados(produto: Produto): Promise<Produto[]> {
   try {

@@ -22,10 +22,24 @@ async function getProdutosSSR(opts: { destaque?: boolean; max?: number } = {}): 
   }
 }
 
+async function getCategoriasSSR(): Promise<string[]> {
+  try {
+    const db = getAdminDb();
+    if (!db) return [];
+    const snap = await db.collection('produtos').where('activo', '==', true).get();
+    const cats = new Set<string>();
+    snap.docs.forEach(d => { const c = d.data().categoria; if (c) cats.add(c); });
+    return Array.from(cats).sort();
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
-  const [destaques, produtosIniciais] = await Promise.all([
+  const [destaques, produtosIniciais, categorias] = await Promise.all([
     getProdutosSSR({ destaque: true, max: 12 }),
     getProdutosSSR({ max: 13 }),
+    getCategoriasSSR(),
   ]);
 
   const comImagem = destaques.filter(p => p.imagens?.[0]);
@@ -51,7 +65,7 @@ export default async function HomePage() {
       {/* CATÁLOGO */}
       <div className="catalogo-section" id="catalogo">
         <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
-          <CatalogoProdutos inicial={produtosIniciais.slice(0, 12)} />
+          <CatalogoProdutos inicial={produtosIniciais.slice(0, 12)} categoriasIniciais={categorias} />
         </Suspense>
       </div>
     </>

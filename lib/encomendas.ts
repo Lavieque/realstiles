@@ -1,6 +1,6 @@
 import {
   collection, addDoc, updateDoc, doc,
-  query, where, orderBy, getDocs, getDoc, serverTimestamp,
+  query, where, orderBy, limit, getDocs, getDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
@@ -96,8 +96,8 @@ export async function getEncomendasCliente(clienteId: string): Promise<Encomenda
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Encomenda));
 }
 
-export async function getTodasEncomendas(estado: EstadoEncomenda | null = null): Promise<Encomenda[]> {
-  const filters = [orderBy('criado_em', 'desc')] as Parameters<typeof query>[1][];
+export async function getTodasEncomendas(estado: EstadoEncomenda | null = null, max = 500): Promise<Encomenda[]> {
+  const filters = [orderBy('criado_em', 'desc'), limit(max)] as Parameters<typeof query>[1][];
   if (estado) filters.unshift(where('estado', '==', estado));
   const snap = await getDocs(query(collection(db, 'encomendas'), ...filters));
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Encomenda));
