@@ -9,15 +9,13 @@ import type { Perfil } from '@/lib/auth';
 
 function AdminTopBar() {
   const path = usePathname();
+  if (path === '/admin') return null;
   const item = NAV.find(n => n.href === path);
   const titulo = item?.label ?? 'Admin';
   return (
     <div className="admin-topbar">
       <span className="admin-topbar-titulo">{item?.icon} {titulo}</span>
-      <Link href="/" className="admin-topbar-site">
-        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Ver site
-      </Link>
+      <Link href="/" className="btn btn-outline btn-sm" target="_blank">Ver loja</Link>
     </div>
   );
 }
