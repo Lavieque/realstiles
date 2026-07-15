@@ -85,6 +85,7 @@ export default function TradeflowPage() {
   const [ligarLoading, setLigarLoading] = useState(false);
 
   const [upgradeModal, setUpgradeModal] = useState<{ plano: Plano } | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const sucesso = searchParams.get('sucesso') === '1';
 
   // Limpar ?sucesso=1 do URL e recarregar conta após pagamento
@@ -248,9 +249,15 @@ export default function TradeflowPage() {
     const plano = planos.find(p => p.id === plano_id);
     if (!plano) return;
     const precoActual = planos.find(p => p.id === conta?.plano_id)?.preco ?? 0;
-    // Upgrade para plano pago — mostrar modal de confirmação
     if (plano.preco > precoActual) {
+      // Upgrade — ir para checkout Stripe
       setUpgradeModal({ plano });
+      return;
+    }
+    if (conta?.billing_status === 'active' && plano.preco < precoActual) {
+      // Downgrade em conta activa — gerir via portal Stripe
+      mostrarToast('Para fazer downgrade, usa o portal de subscrição Stripe.', 'info');
+      irParaPortal();
       return;
     }
     irParaCheckout(plano_id);
@@ -279,6 +286,29 @@ export default function TradeflowPage() {
     } catch (err: unknown) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao iniciar checkout', 'error');
       setAcaoLoading('');
+    }
+  }
+
+  async function irParaPortal() {
+    setPortalLoading(true);
+    try {
+      const snap = await fetch('/api/tradeflow/conta').then(r => r.json());
+      const accountId = snap.conta?.id;
+      if (!accountId) throw new Error('Sem conta');
+      const res = await fetch('/api/tradeflow/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_id: accountId,
+          return_url: `${window.location.origin}/admin/tradeflow`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Erro ao abrir portal');
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao abrir portal Stripe', 'error');
+      setPortalLoading(false);
     }
   }
 
@@ -326,6 +356,29 @@ export default function TradeflowPage() {
         ) : conta ? (
           /* ── VISTA: COM CONTA ── */
           <>
+            {/* Alerta suspensão */}
+            {(conta.billing_status === 'suspended' || conta.billing_status === 'cancelled') && (
+              <div style={{ background: '#fff0f0', border: '1px solid #ffc0c0', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <p style={{ fontWeight: 700, color: '#c53030', marginBottom: 4 }}>⚠ Conta {conta.billing_status === 'suspended' ? 'suspensa' : 'cancelada'}</p>
+                  <p style={{ fontSize: 13, color: '#742a2a' }}>A importação de produtos está bloqueada. Actualiza o método de pagamento para reactivar.</p>
+                </div>
+                <button className="btn btn-sm" style={{ background: '#c53030', color: 'white', border: 'none', whiteSpace: 'nowrap' }} onClick={irParaPortal} disabled={portalLoading}>
+                  {portalLoading ? 'A abrir...' : '💳 Gerir pagamento'}
+                </button>
+              </div>
+            )}
+
+            {/* Aviso trial a expirar */}
+            {conta.billing_status === 'trial' && dias !== null && dias <= 7 && dias >= 0 && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <p style={{ fontWeight: 700, color: '#92400e', marginBottom: 4 }}>⏰ Trial expira em {dias} dia{dias !== 1 ? 's' : ''}</p>
+                  <p style={{ fontSize: 13, color: '#78350f' }}>Subscreve um plano pago para continuar a importar produtos sem interrupções.</p>
+                </div>
+              </div>
+            )}
+
             {/* KPIs */}
             <div className="stats-grid" style={{ marginBottom: 20 }}>
               <div className="stat-card">
@@ -511,7 +564,12 @@ export default function TradeflowPage() {
             <div className="form-card">
               <h2 style={{ fontSize: 15, marginBottom: 16 }}>Acções</h2>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button className="btn btn-primary btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
+                {conta.billing_status === 'active' && (
+                  <button className="btn btn-primary btn-sm" onClick={irParaPortal} disabled={portalLoading}>
+                    {portalLoading ? 'A abrir...' : '💳 Gerir subscrição'}
+                  </button>
+                )}
+                <button className="btn btn-outline btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
                   {acaoLoading === 'renovar' ? 'A renovar...' : '↻ Renovar +1 mês'}
                 </button>
                 <button className="btn btn-outline btn-sm" onClick={resetCreditos} disabled={acaoLoading === 'reset'}>

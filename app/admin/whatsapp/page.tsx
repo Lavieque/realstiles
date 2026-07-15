@@ -35,6 +35,39 @@ export default function WhatsAppAdmin() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [aAccionar, setAAccionar] = useState(false);
+  const [temWhatsappTF, setTemWhatsappTF] = useState<boolean | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/tradeflow/conta').then(r => r.json()).then(d => {
+      setTemWhatsappTF(d.conta?.whatsapp_ativo === true);
+    }).catch(() => setTemWhatsappTF(false));
+  }, []);
+
+  const comprarAddon = async () => {
+    setPortalLoading(true);
+    try {
+      const snap = await fetch('/api/tradeflow/conta').then(r => r.json());
+      const accountId = snap.conta?.id;
+      if (!accountId) throw new Error('Sem conta TradeFlow');
+      const res = await fetch('/api/tradeflow/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_id: accountId,
+          plano_id: 'whatsapp',
+          success_url: `${window.location.origin}/admin/whatsapp?sucesso=1`,
+          cancel_url: `${window.location.origin}/admin/whatsapp`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Erro');
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao iniciar checkout', 'error');
+      setPortalLoading(false);
+    }
+  };
 
   useEffect(() => {
     setAderido(localStorage.getItem(STORAGE_KEY) === '1');
@@ -153,7 +186,16 @@ export default function WhatsAppAdmin() {
               </div>
             </div>
           </div>
-          <button className="btn btn-primary wn-onboarding-btn" onClick={aderir}>
+          {temWhatsappTF === false && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 18px', marginBottom: 16, textAlign: 'left' }}>
+              <p style={{ fontWeight: 700, color: '#92400e', marginBottom: 4, fontSize: 14 }}>⚠ O teu plano não inclui WhatsApp</p>
+              <p style={{ fontSize: 13, color: '#78350f', marginBottom: 12 }}>Adiciona o WhatsApp Add-on por €3.50/mês para activar este serviço.</p>
+              <button className="btn btn-primary btn-sm" onClick={comprarAddon} disabled={portalLoading}>
+                {portalLoading ? 'A redirecionar...' : '💳 Comprar WhatsApp Add-on — €3.50/mês'}
+              </button>
+            </div>
+          )}
+          <button className="btn btn-primary wn-onboarding-btn" onClick={aderir} disabled={temWhatsappTF === false}>
             Aderir ao serviço
           </button>
           <p className="wn-onboarding-note">
