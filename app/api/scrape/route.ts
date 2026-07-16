@@ -5,6 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
     if (!url) return NextResponse.json({ error: 'URL em falta' }, { status: 400 });
+    const cleanUrl = (() => { try { const u = new URL(url); return u.origin + u.pathname; } catch { return url; } })();
 
     const tfUrl = process.env.TRADEFLOW_API_URL;
     if (!tfUrl) {
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
           cores: direto.cores,
           tags: direto.tags,
           categoria: direto.categoria,
-          url,
+          url: cleanUrl,
           tier: 'direct',
         });
       }
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
           cores: r.cores ?? [],
           tags: r.tags ?? [],
           categoria: r.categoria,
-          url,
+          url: cleanUrl,
           tier: 'tradeflow',
           custo: pollData.custo,
         });
