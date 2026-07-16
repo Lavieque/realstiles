@@ -34,6 +34,7 @@ export default function AdminImportarPage() {
   const [estadoTF, setEstadoTF] = useState<EstadoTF>('verificando');
   const [infoTF, setInfoTF] = useState<{ usados: number; limite: number; plano: string } | null>(null);
   const [catTree, setCatTree] = useState<CatTree[]>([]);
+  const [imagemAtiva, setImagemAtiva] = useState(0);
 
   useEffect(() => {
     fetch('/api/config/categorias').then(r => r.json()).then(d => setCatTree(d.categorias || [])).catch(() => {});
@@ -91,6 +92,7 @@ export default function AdminImportarPage() {
       }
 
       setResultado(data);
+      setImagemAtiva(0);
       // Actualiza contador de uso
       if (infoTF) setInfoTF(i => i ? { ...i, usados: i.usados + 1 } : i);
       setAjustes({ nome: data.nome, preco: data.preco, descricao: data.descricao, imagens: data.imagens, tamanhos: data.tamanhos || [], cores: data.cores || [], tags: data.tags || [], categoria: data.categoria || '' });
@@ -251,12 +253,32 @@ export default function AdminImportarPage() {
           <>
             <div className="form-card">
               <h2>Pré-visualização</h2>
-              {resultado.imagens?.[0] && (
-                <div style={{ position: 'relative', width: '100%', maxWidth: 300, aspectRatio: '1/1', borderRadius: 12, overflow: 'hidden', marginBottom: 16, background: 'var(--gray-100)' }}>
-                  <Image src={resultado.imagens[0]} alt={resultado.nome} fill style={{ objectFit: 'contain' }} sizes="300px" />
-                </div>
+              {resultado.imagens?.length > 0 && (
+                <>
+                  {/* Imagem principal */}
+                  <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', borderRadius: 12, overflow: 'hidden', marginBottom: 12, background: 'var(--gray-100)' }}>
+                    <Image src={resultado.imagens[imagemAtiva]} alt={resultado.nome} fill style={{ objectFit: 'contain' }} sizes="700px" />
+                    {resultado.imagens.length > 1 && (
+                      <>
+                        <button onClick={() => setImagemAtiva(i => (i - 1 + resultado.imagens.length) % resultado.imagens.length)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', color: 'white', borderRadius: 8, width: 36, height: 36, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+                        <button onClick={() => setImagemAtiva(i => (i + 1) % resultado.imagens.length)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.45)', border: 'none', color: 'white', borderRadius: 8, width: 36, height: 36, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+                        <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.45)', color: 'white', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>{imagemAtiva + 1} / {resultado.imagens.length}</div>
+                      </>
+                    )}
+                  </div>
+                  {/* Thumbnails */}
+                  {resultado.imagens.length > 1 && (
+                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 }}>
+                      {resultado.imagens.map((img, i) => (
+                        <button key={i} onClick={() => setImagemAtiva(i)} style={{ flexShrink: 0, width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: `2px solid ${i === imagemAtiva ? 'var(--black)' : 'var(--gray-200)'}`, background: 'var(--gray-100)', cursor: 'pointer', padding: 0, position: 'relative' }}>
+                          <Image src={img} alt={`Imagem ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="64px" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
-              <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4 }}>Fonte: {resultado.url}</p>
+              <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4 }}>Fonte: <a href={resultado.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gray-400)' }}>{resultado.url}</a></p>
             </div>
 
             <div className="form-card">
