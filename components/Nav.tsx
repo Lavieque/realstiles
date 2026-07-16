@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useCarrinho, getTotalItems } from '@/store/carrinho';
 import { onAuthChange, getPerfil, logout } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
+import { ShoppingCart, Flame, Heart, Search } from 'lucide-react';
 
 export default function Nav() {
   const { items, bumped, abrirDrawer } = useCarrinho();
@@ -46,7 +47,7 @@ export default function Nav() {
       </Link>
 
       <ul className={`nav-links${menuOpen ? ' open' : ''}`}>
-        <li><Link href="/promocoes" style={{ color: 'var(--red)', fontWeight: 600 }}>Promoções 🔥</Link></li>
+        <li><Link href="/promocoes" style={{ color: 'var(--red)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>Promoções <Flame size={16} strokeWidth={1.5} /></Link></li>
 
         <li className="nav-dropdown">
           <Link href="/?cat=mulher">Mulher</Link>
@@ -106,7 +107,7 @@ export default function Nav() {
         <form onSubmit={handleSearch} className="nav-search-form">
           <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Pesquisar produtos..." className="nav-search-input" />
           <button type="submit" className="nav-search-submit">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <Search size={16} strokeWidth={1.5} />
           </button>
         </form>
 
@@ -118,7 +119,7 @@ export default function Nav() {
               </a>
               <ul className="nav-submenu">
                 <li><Link href="/conta">A minha conta</Link></li>
-                <li><Link href="/favoritos">Favoritos ♥</Link></li>
+                <li><Link href="/favoritos" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Favoritos <Heart size={14} strokeWidth={1.5} /></Link></li>
                 <li><Link href="/encomendas">Encomendas</Link></li>
                 {perfil.admin && <li><Link href="/admin">Admin</Link></li>}
                 <li className="nav-submenu-sep" />
@@ -131,7 +132,7 @@ export default function Nav() {
         )}
 
         <button className={`nav-cart-btn${bumped ? ' bumped' : ''}`} onClick={abrirDrawer}>
-          🛒 {count > 0 && <span className="cart-count">{count}</span>}
+          <ShoppingCart size={20} strokeWidth={1.5} /> {count > 0 && <span className="cart-count">{count}</span>}
         </button>
 
         <button className="nav-menu-btn" onClick={() => setMenuOpen(o => !o)}>

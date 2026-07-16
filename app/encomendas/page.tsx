@@ -6,11 +6,12 @@ import { onAuthChange } from '@/lib/auth';
 import { getEncomendasCliente, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
+import { Lock, Package, MessageCircle } from 'lucide-react';
 
 const ESTADOS = ['', 'pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
 const ESTADO_LABEL: Record<string, string> = {
-  '': 'Todas', pendente: '⏳ Pendentes', confirmada: '✅ Confirmadas',
-  enviada: '🚚 Enviadas', entregue: '📦 Entregues', cancelada: '❌ Canceladas',
+  '': 'Todas', pendente: 'Pendentes', confirmada: 'Confirmadas',
+  enviada: 'Enviadas', entregue: 'Entregues', cancelada: 'Canceladas',
 };
 const PAGE_SIZE = 8;
 
@@ -72,7 +73,7 @@ export default function EncomendasPage() {
       <div className="page-wrapper">
         <div className="container">
           <div className="empty-state" style={{ paddingTop: 80 }}>
-            <div className="icon">🔒</div>
+            <div className="icon"><Lock size={40} strokeWidth={1.5} /></div>
             <h3>Acesso restrito</h3>
             <p>Tens de entrar na tua conta para ver as encomendas.</p>
             <Link href="/conta?redirect=/encomendas" className="btn btn-primary" style={{ marginTop: 20 }}>Entrar</Link>
@@ -122,7 +123,7 @@ export default function EncomendasPage() {
 
         {visiveis.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">📦</div>
+            <div className="icon"><Package size={40} strokeWidth={1.5} /></div>
             <h3>{filtro ? 'Sem encomendas nesta categoria' : 'Sem encomendas'}</h3>
             <p>{filtro ? 'Tenta outro filtro.' : 'Ainda não fizeste nenhuma encomenda.'}</p>
             <Link href="/" className="btn btn-primary" style={{ marginTop: 20 }}>Ver produtos</Link>
@@ -158,7 +159,7 @@ export default function EncomendasPage() {
                       {(enc.itens?.map(i => i.nome).join(', ').length || 0) > 60 ? '…' : ''}
                     </div>
                     {enc.notas_admin && (
-                      <div className="enc-row-nota">💬 {enc.notas_admin}</div>
+                      <div className="enc-row-nota" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MessageCircle size={13} strokeWidth={1.5} /> {enc.notas_admin}</div>
                     )}
                   </div>
 
