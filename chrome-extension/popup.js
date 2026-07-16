@@ -50,17 +50,22 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token'], async (cfg) => {
         return;
       }
 
-      const cookieString = cookies
-        .map(c => `${c.name}=${c.value}`)
-        .join('; ');
+      // Envia objectos completos (com httpOnly, secure, sameSite, etc.)
+      const cookieObjects = cookies.map(c => ({
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path || '/',
+        secure: c.secure || false,
+        httpOnly: c.httpOnly || false,
+        sameSite: c.sameSite || 'Lax',
+        expires: c.expirationDate || -1,
+      }));
 
       const res = await fetch(`${cfg.tradeflow_url}/cookies`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-capture-token': cfg.capture_token,
-        },
-        body: JSON.stringify({ domain, cookies: cookieString }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, cookies: JSON.stringify(cookieObjects), token: cfg.capture_token }),
       });
 
       if (!res.ok) {
