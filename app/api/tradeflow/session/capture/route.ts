@@ -15,6 +15,9 @@ export async function POST(req: NextRequest) {
     headers: { 'Content-Type': 'application/json', 'x-license-key': stored.license_key, 'x-store-url': stored.store_url },
     body: JSON.stringify(body),
   });
-  const data = await r.json();
+  const text = await r.text();
+  console.log('[session/capture] TradeFlow status:', r.status, 'body:', text.slice(0, 500));
+  let data: any;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
   return NextResponse.json(data, { status: r.status });
 }
