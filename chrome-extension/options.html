@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>TradeFlow Cookie Capture — Configuração</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f8f8f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .logo { font-size: 32px; margin-bottom: 8px; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #888; margin-bottom: 28px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: #111; }
+    .hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #111;
+      color: #fff;
+    }
+    .btn:hover { background: #333; }
+    .status {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      text-align: center;
+    }
+    .status.success { background: #f0fdf4; color: #166534; display: block; }
+    .status.error   { background: #fef2f2; color: #991b1b; display: block; }
+    hr { border: none; border-top: 1px solid #f0f0f0; margin: 24px 0; }
+    .info { font-size: 12px; color: #aaa; line-height: 1.6; }
+    .info strong { color: #555; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🍪</div>
+    <h1>Configuração</h1>
+    <p class="sub">TradeFlow Cookie Capture</p>
+
+    <div class="form-group">
+      <label>URL do TradeFlow API</label>
+      <input type="url" id="tradeflow_url" placeholder="https://tradeflow.exemplo.com/tradeflow" />
+      <div class="hint">URL base da API TradeFlow (sem barra no fim)</div>
+    </div>
+
+    <div class="form-group">
+      <label>Token de captura</label>
+      <input type="password" id="capture_token" placeholder="••••••••••••••••" />
+      <div class="hint">Valor da variável <code>COOKIE_CAPTURE_TOKEN</code> no TradeFlow</div>
+    </div>
+
+    <button class="btn" id="btn-save">Guardar configuração</button>
+    <div class="status" id="status"></div>
+
+    <hr />
+    <div class="info">
+      <strong>Como usar:</strong><br/>
+      1. Abre o site onde queres capturar cookies (ex: shein.com)<br/>
+      2. Navega normalmente e resolve qualquer CAPTCHA<br/>
+      3. Clica no ícone da extensão na barra do browser<br/>
+      4. Clica em "Capturar e enviar cookies"<br/>
+      5. Volta ao painel de importação e tenta novamente
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

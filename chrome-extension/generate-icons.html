@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Generate Icons</title></head>
+<body>
+<script>
+function createIcon(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#111111';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size * 0.2);
+  ctx.fill();
+  ctx.font = `${size * 0.65}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🍪', size / 2, size / 2 + size * 0.03);
+  return canvas.toDataURL('image/png');
+}
+
+[16, 48, 128].forEach(size => {
+  const a = document.createElement('a');
+  a.href = createIcon(size);
+  a.download = `icon${size}.png`;
+  a.textContent = `Download icon${size}.png`;
+  a.style.display = 'block';
+  a.style.margin = '8px';
+  a.style.fontFamily = 'sans-serif';
+  document.body.appendChild(a);
+  a.click(); // auto-download
+});
+</script>
+</body>
+</html>
