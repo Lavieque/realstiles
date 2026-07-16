@@ -6,6 +6,18 @@ import { usePathname } from 'next/navigation';
 import AdminGuard from '@/components/AdminGuard';
 import { logout } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
+import type { ReactNode } from 'react';
+import {
+  LayoutDashboard, Package, ShirtIcon, Layers, Users, Pencil, Bell,
+  ClipboardList, Zap, MessageCircle, Link as LinkIcon,
+} from 'lucide-react';
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  section?: string;
+}
 
 function AdminTopBar() {
   const path = usePathname();
@@ -14,24 +26,24 @@ function AdminTopBar() {
   const titulo = item?.label ?? 'Admin';
   return (
     <div className="admin-topbar">
-      <span className="admin-topbar-titulo">{item?.icon} {titulo}</span>
+      <span className="admin-topbar-titulo" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{item?.icon} {titulo}</span>
       <Link href="/" className="btn btn-outline btn-sm" target="_blank">Ver loja</Link>
     </div>
   );
 }
 
-const NAV = [
-  { href: '/admin', label: 'Dashboard', icon: '📊', section: 'Principal' },
-  { href: '/admin/encomendas', label: 'Encomendas', icon: '📦' },
-  { href: '/admin/produtos', label: 'Produtos', icon: '👕', section: 'Catálogo' },
-  { href: '/admin/importar', label: 'Importar via link', icon: '🔗' },
-  { href: '/admin/categorias', label: 'Categorias', icon: '🗂️' },
-  { href: '/admin/clientes', label: 'Clientes', icon: '👥', section: 'Clientes' },
-  { href: '/admin/conteudo', label: 'Conteúdo do site', icon: '✏️', section: 'Site' },
-  { href: '/admin/banner', label: 'Barra de anúncios', icon: '📢' },
-  { href: '/admin/reclamacoes', label: 'Reclamações', icon: '📋' },
-  { href: '/admin/tradeflow', label: 'TradeFlow', icon: '⚡', section: 'Integrações' },
-  { href: '/admin/whatsapp', label: 'WhatsApp Notify', icon: '💬' },
+const NAV: NavItem[] = [
+  { href: '/admin', label: 'Dashboard', icon: <BarChart2 size={18} strokeWidth={1.5} />, section: 'Principal' },
+  { href: '/admin/encomendas', label: 'Encomendas', icon: <Package size={18} strokeWidth={1.5} /> },
+  { href: '/admin/produtos', label: 'Produtos', icon: <Tag size={18} strokeWidth={1.5} />, section: 'Catálogo' },
+  { href: '/admin/importar', label: 'Importar via link', icon: <LinkIcon size={18} strokeWidth={1.5} /> },
+  { href: '/admin/categorias', label: 'Categorias', icon: <Layers size={18} strokeWidth={1.5} /> },
+  { href: '/admin/clientes', label: 'Clientes', icon: <Users size={18} strokeWidth={1.5} />, section: 'Clientes' },
+  { href: '/admin/conteudo', label: 'Conteúdo do site', icon: <Pencil size={18} strokeWidth={1.5} />, section: 'Site' },
+  { href: '/admin/banner', label: 'Barra de anúncios', icon: <Bell size={18} strokeWidth={1.5} /> },
+  { href: '/admin/reclamacoes', label: 'Reclamações', icon: <ClipboardList size={18} strokeWidth={1.5} /> },
+  { href: '/admin/tradeflow', label: 'TradeFlow', icon: <Zap size={18} strokeWidth={1.5} />, section: 'Integrações' },
+  { href: '/admin/whatsapp', label: 'WhatsApp Notify', icon: <MessageCircle size={18} strokeWidth={1.5} /> },
 ];
 
 function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boolean; onClose: () => void }) {
