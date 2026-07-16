@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Package, Mail, MapPin, Phone, FileText, Download } from 'lucide-react';
 import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
@@ -103,7 +104,7 @@ export default function AdminEncomendasPage() {
       <div style={{ width: 420, borderRight: '1px solid var(--gray-200)', display: 'flex', flexDirection: 'column', background: 'white' }}>
         <div className="admin-topbar" style={{ position: 'sticky', top: 0 }}>
           <h1>Encomendas</h1>
-          <button className="btn btn-outline btn-sm" onClick={exportarCSV} title="Exportar CSV">↓ CSV</button>
+          <button className="btn btn-outline btn-sm" onClick={exportarCSV} title="Exportar CSV" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Download size={14} strokeWidth={1.5} /> CSV</button>
         </div>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-200)' }}>
           <input
@@ -139,7 +140,7 @@ export default function AdminEncomendasPage() {
       <div style={{ flex: 1, overflowY: 'auto', background: '#f8f8f6' }}>
         {!seleccionada ? (
           <div className="empty-state" style={{ paddingTop: 120 }}>
-            <div className="icon">📦</div>
+            <div className="icon"><Package size={40} strokeWidth={1.5} /></div>
             <h3>Selecciona uma encomenda</h3>
           </div>
         ) : (
@@ -189,10 +190,10 @@ export default function AdminEncomendasPage() {
             {/* Entrega */}
             <div style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', padding: 20 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Entrega</h3>
-              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4 }}>📧 {seleccionada.cliente_email}</p>
-              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4 }}>📍 {seleccionada.morada_entrega}, {seleccionada.cidade_entrega}</p>
-              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4 }}>📞 {seleccionada.telefone_contacto}</p>
-              {seleccionada.notas && <p style={{ fontSize: 14, color: 'var(--gray-600)' }}>📝 {seleccionada.notas}</p>}
+              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={14} strokeWidth={1.5} /> {seleccionada.cliente_email}</p>
+              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={14} strokeWidth={1.5} /> {seleccionada.morada_entrega}, {seleccionada.cidade_entrega}</p>
+              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={14} strokeWidth={1.5} /> {seleccionada.telefone_contacto}</p>
+              {seleccionada.notas && <p style={{ fontSize: 14, color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={14} strokeWidth={1.5} /> {seleccionada.notas}</p>}
             </div>
           </div>
         )}

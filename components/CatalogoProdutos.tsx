@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
 import { getProdutos, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
@@ -200,7 +201,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [] }: {
 
   const conteudo = erro ? (
     <div className="empty-state">
-      <div className="icon">⚠️</div>
+      <div className="icon"><AlertTriangle size={40} strokeWidth={1.5} /></div>
       <h3>Erro ao carregar produtos</h3>
       <p>Verifica a tua ligação e tenta novamente.</p>
       <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => carregarProdutos(catActual, false)}>Tentar novamente</button>

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Mail, Check, User, Send } from 'lucide-react';
 import { getDocs, collection, doc, updateDoc, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatarData } from '@/lib/encomendas';
@@ -76,12 +77,12 @@ export default function AdminReclamacoesPage() {
         <div className="admin-topbar" style={{ position: 'sticky', top: 0 }}><h1>Reclamações</h1></div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? <div className="loading"><div className="spinner" /></div> :
-            reclamacoes.length === 0 ? <div className="empty-state"><div className="icon">✉️</div><h3>Sem reclamações</h3></div> :
+            reclamacoes.length === 0 ? <div className="empty-state"><div className="icon"><Mail size={40} strokeWidth={1.5} /></div><h3>Sem reclamações</h3></div> :
             reclamacoes.map(r => (
               <div key={r.id} onClick={() => seleccionar(r)} style={{ padding: '14px 20px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer', background: sel?.id === r.id ? 'var(--gray-100)' : 'white' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{r.nome}</p>
-                  {r.respondida && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>✓ Respondida</span>}
+                  {r.respondida && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}><Check size={11} strokeWidth={1.5} /> Respondida</span>}
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 2 }}>{r.assunto}</p>
                 <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{formatarData(r.criado_em)}</p>
@@ -94,7 +95,7 @@ export default function AdminReclamacoesPage() {
       <div style={{ flex: 1, overflowY: 'auto', background: '#f8f8f6', padding: 32 }}>
         {!sel ? (
           <div className="empty-state" style={{ paddingTop: 120 }}>
-            <div className="icon">✉️</div>
+            <div className="icon"><Mail size={40} strokeWidth={1.5} /></div>
             <h3>Selecciona uma reclamação</h3>
           </div>
         ) : (
@@ -102,7 +103,7 @@ export default function AdminReclamacoesPage() {
             {/* Detalhes da reclamação */}
             <div style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', padding: 24, marginBottom: 16 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>{sel.assunto}</h2>
-              <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 4 }}>👤 {sel.nome} · {sel.email}</p>
+              <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><User size={14} strokeWidth={1.5} /> {sel.nome} · {sel.email}</p>
               <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 16 }}>{formatarData(sel.criado_em)}</p>
               <p style={{ fontSize: 14, color: 'var(--gray-800)', lineHeight: 1.7, background: 'var(--gray-100)', borderRadius: 8, padding: 16 }}>{sel.descricao}</p>
             </div>
@@ -123,7 +124,7 @@ export default function AdminReclamacoesPage() {
                     onClick={enviarResposta}
                     disabled={enviando || !resposta.trim()}
                   >
-                    {enviando ? 'A enviar...' : '✉️ Enviar resposta'}
+                    {enviando ? 'A enviar...' : <><Send size={14} strokeWidth={1.5} /> Enviar resposta</>}
                   </button>
                   <button className="btn btn-outline" onClick={marcarRespondida} disabled={enviando}>
                     Marcar como respondida
@@ -132,7 +133,7 @@ export default function AdminReclamacoesPage() {
               </div>
             ) : (
               <div style={{ background: '#f0f7f0', borderRadius: 12, border: '1px solid #c3e6cb', padding: 20, textAlign: 'center' }}>
-                <p style={{ fontSize: 14, color: 'var(--green)', fontWeight: 600 }}>✓ Reclamação respondida</p>
+                <p style={{ fontSize: 14, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Check size={16} strokeWidth={1.5} /> Reclamação respondida</p>
               </div>
             )}
           </div>

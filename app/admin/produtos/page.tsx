@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { ShoppingBag, X } from 'lucide-react';
 import { getProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
@@ -109,7 +110,7 @@ export default function AdminProdutosPage() {
       <div style={{ flex: 1, overflowY: 'auto', background: '#f8f8f6' }}>
         {!seleccionado ? (
           <div className="empty-state" style={{ paddingTop: 120 }}>
-            <div className="icon">👕</div>
+            <div className="icon"><ShoppingBag size={40} strokeWidth={1.5} /></div>
             <h3>Selecciona ou cria um produto</h3>
             <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={novo}>+ Novo produto</button>
           </div>
@@ -173,7 +174,7 @@ export default function AdminProdutosPage() {
                 {seleccionado.imagens?.map((img, i) => (
                   <div key={i} className="img-preview">
                     <Image src={img} alt={`img ${i}`} fill style={{ objectFit: 'cover' }} sizes="80px" />
-                    <button className="img-preview-remove" onClick={() => setSeleccionado(s => ({ ...s, imagens: s?.imagens?.filter((_, j) => j !== i) }))}>✕</button>
+                    <button className="img-preview-remove" onClick={() => setSeleccionado(s => ({ ...s, imagens: s?.imagens?.filter((_, j) => j !== i) }))}><X size={12} strokeWidth={1.5} /></button>
                   </div>
                 ))}
               </div>

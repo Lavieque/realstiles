@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Zap, AlertTriangle, Package } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';
 import CookieCapturePopup from '@/components/CookieCapturePopup';
 import type { Produto } from '@/lib/produtos';
@@ -156,7 +157,7 @@ export default function AdminImportarPage() {
         {estadoTF === 'sem_conta' && (
           <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: '24px 28px', marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 24, lineHeight: 1 }}>⚡</span>
+              <Zap size={24} strokeWidth={1.5} style={{ color: '#d97706', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 15, fontWeight: 700, color: '#92400e', marginBottom: 6 }}>Precisas de uma subscrição TradeFlow para importar produtos</p>
                 <p style={{ fontSize: 13, color: '#b45309', lineHeight: 1.6, marginBottom: 16 }}>
@@ -184,7 +185,7 @@ export default function AdminImportarPage() {
         {estadoTF === 'inativo' && (
           <div style={{ background: '#fff0f0', border: '1px solid #ffc0c0', borderRadius: 14, padding: '24px 28px', marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 24, lineHeight: 1 }}>⚠️</span>
+              <AlertTriangle size={24} strokeWidth={1.5} style={{ color: 'var(--red)', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}>A tua conta TradeFlow está suspensa</p>
                 <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, marginBottom: 16 }}>
@@ -201,7 +202,7 @@ export default function AdminImportarPage() {
         {estadoTF === 'sem_limite' && (
           <div style={{ background: '#fff0f0', border: '1px solid #ffc0c0', borderRadius: 14, padding: '24px 28px', marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 24, lineHeight: 1 }}>📦</span>
+              <Package size={24} strokeWidth={1.5} style={{ color: 'var(--red)', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}>Limite de produtos atingido este mês</p>
                 <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, marginBottom: 16 }}>

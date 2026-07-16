@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { mostrarToast } from '@/components/Toast';
+import { ClipboardList, X } from 'lucide-react';
 
 interface SubSub {
   nome: string;
@@ -30,7 +31,7 @@ function ItemRow({ label, slug, onRemove, disabled }: { label: string; slug: str
         <span style={{ fontWeight: 500, fontSize: 13 }}>{label}</span>
         <span style={{ fontSize: 11, color: 'var(--gray-400)', marginLeft: 6 }}>/{slug}</span>
       </span>
-      <button onClick={onRemove} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', fontSize: 18, lineHeight: 1, padding: '2px 6px' }}>×</button>
+      <button onClick={onRemove} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', padding: '2px 6px' }}><X size={16} strokeWidth={1.5} /></button>
     </div>
   );
 }
@@ -125,7 +126,7 @@ export default function AdminCategoriasPage() {
 
       {seeded && (
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 18px', marginBottom: 20, fontSize: 13, color: '#92400e', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-          <span>📋 Categorias actuais do site carregadas. Guarda para as gravar na base de dados.</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ClipboardList size={16} strokeWidth={1.5} /> Categorias actuais do site carregadas. Guarda para as gravar na base de dados.</span>
           <button className="btn btn-primary btn-sm" onClick={() => guardar(categorias)} disabled={salvando}>{salvando ? 'A guardar...' : 'Guardar na BD'}</button>
         </div>
       )}
@@ -151,7 +152,7 @@ export default function AdminCategoriasPage() {
                   <span style={{ fontSize: 12, color: 'var(--gray-400)', marginLeft: 8 }}>/{cat.slug}</span>
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--gray-400)', marginRight: 8 }}>{cat.subcategorias.length} sub</span>
-                <button onClick={e => { e.stopPropagation(); removeCat(cat.slug); }} disabled={salvando} style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontSize: 13 }}>✕</button>
+                <button onClick={e => { e.stopPropagation(); removeCat(cat.slug); }} disabled={salvando} style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={14} strokeWidth={1.5} /></button>
               </div>
 
               {expandCat[cat.slug] && (
@@ -171,7 +172,7 @@ export default function AdminCategoriasPage() {
                             <span style={{ fontSize: 11, color: 'var(--gray-400)', marginLeft: 6 }}>/{sub.slug}</span>
                           </span>
                           <span style={{ fontSize: 11, color: 'var(--gray-400)', marginRight: 6 }}>{sub.subcategorias.length} sub</span>
-                          <button onClick={e => { e.stopPropagation(); removeSub(cat.slug, sub.slug); }} disabled={salvando} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', fontSize: 18, lineHeight: 1 }}>×</button>
+                          <button onClick={e => { e.stopPropagation(); removeSub(cat.slug, sub.slug); }} disabled={salvando} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center' }}><X size={16} strokeWidth={1.5} /></button>
                         </div>
 
                         {/* Nível 3 — Sub-subcategorias */}

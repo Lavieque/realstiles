@@ -12,6 +12,7 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
+import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft } from 'lucide-react';
 
 type Tab = 'entrar' | 'registar' | 'recuperar';
 type Metodo = 'email' | 'whatsapp';
@@ -197,7 +198,7 @@ function ContaInner() {
           {!user.emailVerified && user.email && (
             <div style={{ background: '#fff8e1', border: '1px solid #f39c12', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div>
-                <p style={{ fontWeight: 600, fontSize: 14, color: '#b7770d', marginBottom: 2 }}>⚠️ Email não verificado</p>
+                <p style={{ fontWeight: 600, fontSize: 14, color: '#b7770d', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} strokeWidth={1.5} /> Email não verificado</p>
                 <p style={{ fontSize: 13, color: '#8a5c00', margin: 0 }}>Verifica o teu email para activar todas as funcionalidades da conta.</p>
               </div>
               <button className="btn btn-sm" onClick={reenviarVerificacao} disabled={loading} style={{ background: '#f39c12', color: 'white', border: 'none', whiteSpace: 'nowrap' }}>
@@ -235,10 +236,10 @@ function ContaInner() {
               </div>
 
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <a href="/encomendas" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }}>📦 Todas as encomendas</a>
-                {perfil.admin && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }}>⚙️ Painel admin</a>}
-                {user.email && <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left' }} onClick={handlePasswordReset} disabled={loading}>🔑 Alterar password</button>}
-                <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', color: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => { await logout(); setUser(null); setPerfil(null); setEncomendas([]); }}>← Sair da conta</button>
+                <a href="/encomendas" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Package size={16} strokeWidth={1.5} /> Todas as encomendas</a>
+                {perfil.admin && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Settings size={16} strokeWidth={1.5} /> Painel admin</a>}
+                {user.email && <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }} onClick={handlePasswordReset} disabled={loading}><Key size={16} strokeWidth={1.5} /> Alterar password</button>}
+                <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => { await logout(); setUser(null); setPerfil(null); setEncomendas([]); }}><LogOut size={16} strokeWidth={1.5} /> Sair da conta</button>
               </div>
             </div>
 
@@ -249,7 +250,7 @@ function ContaInner() {
               </div>
               {encomendas.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--gray-400)' }}>
-                  <p style={{ fontSize: 32, marginBottom: 12 }}>📦</p>
+                  <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Package size={48} strokeWidth={1.5} /></div>
                   <p style={{ fontSize: 14, marginBottom: 16 }}>Ainda não fizeste nenhuma encomenda.</p>
                   <a href="/" className="btn btn-primary btn-sm">Ver produtos</a>
                 </div>
@@ -302,9 +303,9 @@ function ContaInner() {
           <h2 className="auth-marca-titulo">Veste o teu<br /><em>estilo.</em></h2>
           <p className="auth-marca-sub">As melhores peças de vestuário, cuidadosamente seleccionadas para ti.</p>
           <div className="auth-marca-pontos">
-            <div className="auth-ponto"><span>✓</span> Entrega em todo o país</div>
-            <div className="auth-ponto"><span>✓</span> Pagamento seguro</div>
-            <div className="auth-ponto"><span>✓</span> Devoluções em 30 dias</div>
+            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Entrega em todo o país</div>
+            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Pagamento seguro</div>
+            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Devoluções em 30 dias</div>
           </div>
           {/* WhatsApp info — só aparece quando o serviço está activo */}
           {whatsappActivo && (
@@ -319,7 +320,7 @@ function ContaInner() {
             </div>
           )}
         </div>
-        <Link href="/" className="auth-volta-loja">← Voltar à loja</Link>
+        <Link href="/" className="auth-volta-loja" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} strokeWidth={1.5} /> Voltar à loja</Link>
       </div>
 
       <div className="auth-lado-form">
@@ -348,15 +349,17 @@ function ContaInner() {
                     type="button"
                     className={`auth-metodo-tab${metodo === 'email' ? ' active' : ''}`}
                     onClick={() => setMetodo('email')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   >
-                    ✉️ Email
+                    <Mail size={14} strokeWidth={1.5} /> Email
                   </button>
                   <button
                     type="button"
                     className={`auth-metodo-tab${metodo === 'whatsapp' ? ' active' : ''}`}
                     onClick={() => { setMetodo('whatsapp'); setOtpStep('telefone'); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   >
-                    📱 WhatsApp
+                    <Smartphone size={14} strokeWidth={1.5} /> WhatsApp
                   </button>
                 </div>
               )}
@@ -406,7 +409,7 @@ function ContaInner() {
                     />
                   </div>
                   <button className="btn btn-wa btn-full" type="submit" disabled={loading}>
-                    {loading ? 'A enviar...' : '📱 Enviar código via WhatsApp'}
+                    {loading ? 'A enviar...' : <><Smartphone size={14} strokeWidth={1.5} /> Enviar código via WhatsApp</>}
                   </button>
                 </form>
               ) : (
@@ -431,7 +434,7 @@ function ContaInner() {
                     {loading ? 'A verificar...' : 'Verificar código'}
                   </button>
                   <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setOtpStep('telefone')}>
-                    ← Alterar número
+                    <ArrowLeft size={14} strokeWidth={1.5} /> Alterar número
                   </button>
                 </form>
               )}
@@ -471,7 +474,7 @@ function ContaInner() {
                     <input type="tel" required value={form.telefone} onChange={f('telefone')} placeholder="+258 8X XXX XXXX" />
                   </div>
                   <button className="btn btn-wa btn-full" type="submit" disabled={loading}>
-                    {loading ? 'A enviar...' : '📱 Enviar código via WhatsApp'}
+                    {loading ? 'A enviar...' : <><Smartphone size={14} strokeWidth={1.5} /> Enviar código via WhatsApp</>}
                   </button>
                 </form>
               ) : (
@@ -496,7 +499,7 @@ function ContaInner() {
                     {loading ? 'A verificar...' : 'Verificar código'}
                   </button>
                   <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setOtpStep('telefone')}>
-                    ← Alterar número
+                    <ArrowLeft size={14} strokeWidth={1.5} /> Alterar número
                   </button>
                 </form>
               )}
@@ -507,7 +510,7 @@ function ContaInner() {
             <form onSubmit={handleRecuperar} className="auth-form">
               <div className="form-group"><label>Email</label><input type="email" required value={form.email} onChange={f('email')} placeholder="o-teu@email.com" /></div>
               <button className="btn btn-primary btn-full" type="submit" disabled={loading}>{loading ? 'A enviar...' : 'Enviar link de recuperação'}</button>
-              <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setTab('entrar')}>← Voltar</button>
+              <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => setTab('entrar')}><ArrowLeft size={14} strokeWidth={1.5} /> Voltar</button>
             </form>
           )}
 

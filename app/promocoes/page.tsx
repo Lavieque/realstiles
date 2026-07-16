@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import ProdutoCard from '@/components/ProdutoCard';
 import { getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
+import { Flame, Tag } from 'lucide-react';
 
 const PAGE = 12;
 
@@ -39,7 +40,7 @@ export default function PromocoesPage() {
           <p>Os melhores artigos com descontos especiais. Aproveita enquanto há stock!</p>
         </div>
         <div className="promo-hero-badge">
-          🔥 {loading ? 'A carregar...' : `${todos.length} artigos em promoção`}
+          <Flame size={20} strokeWidth={1.5} /> {loading ? 'A carregar...' : `${todos.length} artigos em promoção`}
         </div>
       </div>
 
@@ -80,7 +81,7 @@ export default function PromocoesPage() {
           <div className="loading"><div className="spinner" /> A carregar promoções...</div>
         ) : filtrados.length === 0 ? (
           <div className="promo-vazio">
-            <div className="icon">🏷️</div>
+            <div className="icon"><Tag size={40} strokeWidth={1.5} /></div>
             <h3>Sem promoções {catActual ? 'nesta categoria' : 'activas'}</h3>
             <p>Volta em breve para novos descontos.</p>
           </div>

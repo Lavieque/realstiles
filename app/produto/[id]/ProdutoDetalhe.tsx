@@ -7,6 +7,7 @@ import { mostrarToast } from '@/components/Toast';
 import ProdutoCard from '@/components/ProdutoCard';
 import { getProduto as getProdutoClient, getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
+import { Frown, AlertTriangle, Link as LinkIcon } from 'lucide-react';
 
 const COR_MAP: Record<string, string> = {
   'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
@@ -91,7 +92,7 @@ export default function ProdutoDetalhe({
     <div className="page-wrapper">
       <div className="container">
         <div className="empty-state" style={{ paddingTop: 80 }}>
-          <div className="icon">😕</div>
+          <div className="icon"><Frown size={40} strokeWidth={1.5} /></div>
           <h3>Produto não encontrado</h3>
           <p>Este produto pode ter sido removido ou o link está incorrecto.</p>
           <Link href="/" className="btn btn-primary" style={{ marginTop: 20 }}>Voltar à loja</Link>
@@ -271,8 +272,8 @@ export default function ProdutoDetalhe({
             </div>
 
             {produto.stock > 0 && produto.stock <= 5 && (
-              <p style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, marginBottom: 10 }}>
-                ⚠ Apenas {produto.stock} unidade{produto.stock !== 1 ? 's' : ''} disponível{produto.stock !== 1 ? 'eis' : ''}!
+              <p style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertTriangle size={13} strokeWidth={1.5} /> Apenas {produto.stock} unidade{produto.stock !== 1 ? 's' : ''} disponível{produto.stock !== 1 ? 'eis' : ''}!
               </p>
             )}
 
@@ -308,7 +309,7 @@ export default function ProdutoDetalhe({
                   mostrarToast('Link copiado!', 'success');
                 }}
               >
-                🔗
+                <LinkIcon size={16} strokeWidth={1.5} />
               </button>
             </div>
 

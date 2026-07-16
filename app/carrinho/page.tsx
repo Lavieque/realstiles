@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ShoppingBag } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
 import { criarEncomenda } from '@/lib/encomendas';
 import { onAuthChange, getPerfil } from '@/lib/auth';
@@ -54,7 +55,7 @@ export default function CarrinhoPage() {
       <div className="page-wrapper">
         <div className="container">
           <div className="empty-state" style={{ paddingTop: 80 }}>
-            <div className="icon">🛍️</div>
+            <div className="icon"><ShoppingBag size={40} strokeWidth={1.5} /></div>
             <h3>O teu carrinho está vazio</h3>
             <p>Adiciona produtos para começar</p>
             <Link href="/" className="btn btn-primary" style={{ marginTop: 20 }}>Ver produtos</Link>

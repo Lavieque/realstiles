@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { mostrarToast } from '@/components/Toast';
+import { Zap, AlertTriangle, Package, Key, Eye, EyeOff, Check, CreditCard, RefreshCw, Clock } from 'lucide-react';
 
 interface Plano {
   id: string;
@@ -371,7 +372,7 @@ export default function TradeflowPage() {
           <div className="loading"><div className="spinner" /> A ligar ao TradeFlow...</div>
         ) : erro ? (
           <div style={{ background: '#fff0f0', border: '1px solid #ffc0c0', borderRadius: 12, padding: 24, marginBottom: 20 }}>
-            <p style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 8 }}>⚠ Não foi possível ligar ao TradeFlow</p>
+            <p style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16} strokeWidth={1.5} /> Não foi possível ligar ao TradeFlow</p>
             <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 16 }}>{erro}</p>
             <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>
               Verifica que <code>TRADEFLOW_API_URL</code> e <code>TRADEFLOW_ADMIN_TOKEN</code> estão definidos no <code>.env.local</code> e que o servidor TradeFlow está a correr.
@@ -384,11 +385,11 @@ export default function TradeflowPage() {
             {(conta.billing_status === 'suspended' || conta.billing_status === 'cancelled') && (
               <div style={{ background: '#fff0f0', border: '1px solid #ffc0c0', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
-                  <p style={{ fontWeight: 700, color: '#c53030', marginBottom: 4 }}>⚠ Conta {conta.billing_status === 'suspended' ? 'suspensa' : 'cancelada'}</p>
+                  <p style={{ fontWeight: 700, color: '#c53030', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16} strokeWidth={1.5} /> Conta {conta.billing_status === 'suspended' ? 'suspensa' : 'cancelada'}</p>
                   <p style={{ fontSize: 13, color: '#742a2a' }}>A importação de produtos está bloqueada. Actualiza o método de pagamento para reactivar.</p>
                 </div>
                 <button className="btn btn-sm" style={{ background: '#c53030', color: 'white', border: 'none', whiteSpace: 'nowrap' }} onClick={irParaPortal} disabled={portalLoading}>
-                  {portalLoading ? 'A abrir...' : '💳 Gerir pagamento'}
+                  {portalLoading ? 'A abrir...' : <><CreditCard size={14} strokeWidth={1.5} /> Gerir pagamento</>}
                 </button>
               </div>
             )}
@@ -397,7 +398,7 @@ export default function TradeflowPage() {
             {conta.billing_status === 'trial' && dias !== null && dias <= 7 && dias >= 0 && (
               <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
-                  <p style={{ fontWeight: 700, color: '#92400e', marginBottom: 4 }}>⏰ Trial expira em {dias} dia{dias !== 1 ? 's' : ''}</p>
+                  <p style={{ fontWeight: 700, color: '#92400e', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Clock size={16} strokeWidth={1.5} /> Trial expira em {dias} dia{dias !== 1 ? 's' : ''}</p>
                   <p style={{ fontSize: 13, color: '#78350f' }}>Subscreve um plano pago para continuar a importar produtos sem interrupções.</p>
                 </div>
               </div>
@@ -474,7 +475,7 @@ export default function TradeflowPage() {
               <div style={{ background: 'var(--black)', borderRadius: 16, padding: '20px 24px', marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 2 }}>🔑 License Key</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><Key size={12} strokeWidth={1.5} /> License Key</p>
                     <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Header <code style={{ background: 'rgba(255,255,255,0.1)', padding: '1px 6px', borderRadius: 4 }}>x-license-key</code> nas chamadas ao TradeFlow</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -482,13 +483,13 @@ export default function TradeflowPage() {
                       onClick={() => setKeyVisivel(v => !v)}
                       style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
                     >
-                      {keyVisivel ? '🙈 Ocultar' : '👁 Mostrar'}
+                      {keyVisivel ? <><EyeOff size={14} strokeWidth={1.5} /> Ocultar</> : <><Eye size={14} strokeWidth={1.5} /> Mostrar</>}
                     </button>
                     <button
                       onClick={copiarKey}
                       style={{ background: 'var(--accent)', border: 'none', color: 'var(--black)', fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
                     >
-                      {copiado ? '✓ Copiado!' : 'Copiar'}
+                      {copiado ? <><Check size={14} strokeWidth={1.5} /> Copiado!</> : 'Copiar'}
                     </button>
                   </div>
                 </div>
@@ -506,8 +507,8 @@ export default function TradeflowPage() {
                   {conta.license_key || licenseKeyLocal}
                 </code>
                 {conta.offline && (
-                  <p style={{ fontSize: 11, color: 'rgba(255,200,100,0.7)', marginTop: 8 }}>
-                    ⚠ TradeFlow offline — a mostrar chave guardada localmente.
+                  <p style={{ fontSize: 11, color: 'rgba(255,200,100,0.7)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <AlertTriangle size={12} strokeWidth={1.5} /> TradeFlow offline — a mostrar chave guardada localmente.
                   </p>
                 )}
               </div>
@@ -574,7 +575,7 @@ export default function TradeflowPage() {
                         )}
                         {p.tipo !== 'wa' && p.whatsapp_incluido && (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, background: activo ? 'rgba(37,211,102,0.2)' : '#dcfce7', color: activo ? '#86efac' : '#15803d', padding: '3px 8px', borderRadius: 100 }}>
-                            ✓ WhatsApp incluído
+                            <Check size={10} strokeWidth={1.5} /> WhatsApp incluído
                           </span>
                         )}
                       </div>
@@ -590,14 +591,14 @@ export default function TradeflowPage() {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {conta.billing_status === 'active' && (
                   <button className="btn btn-primary btn-sm" onClick={irParaPortal} disabled={portalLoading}>
-                    {portalLoading ? 'A abrir...' : '💳 Gerir subscrição'}
+                    {portalLoading ? 'A abrir...' : <><CreditCard size={14} strokeWidth={1.5} /> Gerir subscrição</>}
                   </button>
                 )}
                 <button className="btn btn-outline btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
-                  {acaoLoading === 'renovar' ? 'A renovar...' : '↻ Renovar +1 mês'}
+                  {acaoLoading === 'renovar' ? 'A renovar...' : <><RefreshCw size={14} strokeWidth={1.5} /> Renovar +1 mês</>}
                 </button>
                 <button className="btn btn-outline btn-sm" onClick={resetCreditos} disabled={acaoLoading === 'reset'}>
-                  {acaoLoading === 'reset' ? 'A repor...' : '⟳ Repor importações'}
+                  {acaoLoading === 'reset' ? 'A repor...' : <><RefreshCw size={14} strokeWidth={1.5} /> Repor importações</>}
                 </button>
                 {conta.billing_status === 'active' && (
                   <button
@@ -681,7 +682,7 @@ export default function TradeflowPage() {
                     )}
                     {p.tipo !== 'wa' && p.whatsapp_incluido && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, fontSize: 10, fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: 100 }}>
-                        ✓ WhatsApp incluído · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                        <Check size={10} strokeWidth={1.5} /> WhatsApp incluído · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
                       </span>
                     )}
                     <button className="btn btn-primary btn-full btn-sm" style={{ pointerEvents: 'none' }}>
@@ -701,7 +702,7 @@ export default function TradeflowPage() {
                 className="btn btn-outline btn-sm"
                 onClick={() => setLigarOpen(true)}
               >
-                🔑 Ligar conta existente
+                <Key size={14} strokeWidth={1.5} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Ligar conta existente
               </button>
             </div>
 
@@ -780,7 +781,7 @@ export default function TradeflowPage() {
       {cancelarModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><AlertTriangle size={36} strokeWidth={1.5} style={{ color: 'var(--red)' }} /></div>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>Cancelar subscrição?</h2>
             <p style={{ fontSize: 13, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
               O acesso mantém-se activo até ao fim do período já pago. Após essa data, a conta será suspensa.
@@ -804,7 +805,7 @@ export default function TradeflowPage() {
       {upgradeModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>💳</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><CreditCard size={36} strokeWidth={1.5} /></div>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>Upgrade para {upgradeModal.plano.nome}</h2>
             <p style={{ fontSize: 13, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
               Este plano custa <strong style={{ color: 'var(--black)' }}>

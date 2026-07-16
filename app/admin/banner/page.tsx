@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { mostrarToast } from '@/components/Toast';
 import { ICONES } from '@/lib/announcement-icons';
+import { ArrowUp, ArrowDown, X } from 'lucide-react';
 
 interface ItemAnuncio {
   id: string;
@@ -159,9 +160,9 @@ export default function AdminBannerPage() {
                 {item.descricao && <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>{item.descricao}</span>}
               </span>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button className="btn btn-outline btn-sm" onClick={() => mover(i, -1)} disabled={i === 0 || salvando} title="Mover para cima">↑</button>
-                <button className="btn btn-outline btn-sm" onClick={() => mover(i, 1)} disabled={i === itens.length - 1 || salvando} title="Mover para baixo">↓</button>
-                <button className="btn btn-sm" onClick={() => remover(item.id)} disabled={salvando} style={{ background: 'var(--red)', color: 'white', border: 'none' }}>✕</button>
+                <button className="btn btn-outline btn-sm" onClick={() => mover(i, -1)} disabled={i === 0 || salvando} title="Mover para cima"><ArrowUp size={14} strokeWidth={1.5} /></button>
+                <button className="btn btn-outline btn-sm" onClick={() => mover(i, 1)} disabled={i === itens.length - 1 || salvando} title="Mover para baixo"><ArrowDown size={14} strokeWidth={1.5} /></button>
+                <button className="btn btn-sm" onClick={() => remover(item.id)} disabled={salvando} style={{ background: 'var(--red)', color: 'white', border: 'none', display: 'flex', alignItems: 'center' }}><X size={14} strokeWidth={1.5} /></button>
               </div>
             </div>
           ))

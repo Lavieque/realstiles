@@ -9,6 +9,7 @@ import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
+import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft } from 'lucide-react';
 
 const WHATSAPP_NUM = '258878753754';
 
@@ -77,7 +78,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     return (
       <div className="page-wrapper"><div className="container">
         <div className="empty-state" style={{ paddingTop: 80 }}>
-          <div className="icon">🔒</div>
+          <div className="icon"><Lock size={40} strokeWidth={1.5} /></div>
           <h3>Acesso restrito</h3>
           <Link href="/conta" className="btn btn-primary" style={{ marginTop: 20 }}>Entrar</Link>
         </div>
@@ -89,7 +90,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     return (
       <div className="page-wrapper"><div className="container">
         <div className="empty-state" style={{ paddingTop: 80 }}>
-          <div className="icon">😕</div>
+          <div className="icon"><Frown size={40} strokeWidth={1.5} /></div>
           <h3>Encomenda não encontrada</h3>
           <Link href="/encomendas" className="btn btn-primary" style={{ marginTop: 20 }}>As minhas encomendas</Link>
         </div>
@@ -118,7 +119,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
 
         {confirmada && (
           <div className="enc-confirmada-banner">
-            <span>✅</span>
+            <CheckCircle2 size={24} strokeWidth={1.5} />
             <div>
               <p style={{ fontWeight: 700 }}>Encomenda confirmada!</p>
               <p style={{ fontSize: 14, opacity: 0.9 }}>Receberás um email com os detalhes. Entraremos em contacto em breve.</p>
@@ -127,7 +128,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         )}
 
         <div className="page-header" style={{ paddingBottom: 24 }}>
-          <Link href="/encomendas" className="enc-back-link">← Voltar às encomendas</Link>
+          <Link href="/encomendas" className="enc-back-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} strokeWidth={1.5} /> Voltar às encomendas</Link>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h1 style={{ fontSize: '1.6rem' }}>
@@ -143,22 +144,23 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
 
         {/* Acções rápidas */}
         <div className="enc-acoes">
-          <button className="btn btn-outline btn-sm" onClick={handleRepetir} title="Adicionar os mesmos artigos ao carrinho">
-            🔁 Repetir encomenda
+          <button className="btn btn-outline btn-sm" onClick={handleRepetir} title="Adicionar os mesmos artigos ao carrinho" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RotateCcw size={14} strokeWidth={1.5} /> Repetir encomenda
           </button>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">
-            💬 Contactar via WhatsApp
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <MessageCircle size={14} strokeWidth={1.5} /> Contactar via WhatsApp
           </a>
-          <button className="btn btn-outline btn-sm enc-print-btn" onClick={handleImprimir}>
-            🖨️ Imprimir / PDF
+          <button className="btn btn-outline btn-sm enc-print-btn" onClick={handleImprimir} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Printer size={14} strokeWidth={1.5} /> Imprimir / PDF
           </button>
           {encomenda.estado === 'pendente' && (
             <button
               className="btn btn-sm enc-cancel-btn"
               onClick={() => setConfirmarCancel(true)}
               disabled={cancelando}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              ✕ Cancelar encomenda
+              <X size={14} strokeWidth={1.5} /> Cancelar encomenda
             </button>
           )}
         </div>
@@ -226,7 +228,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           {encomenda.estado === 'cancelada' ? (
             <ul className="timeline">
               <li>
-                <div className="tl-dot done" style={{ background: 'var(--red)', borderColor: 'var(--red)' }}>❌</div>
+                <div className="tl-dot done" style={{ background: 'var(--red)', borderColor: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} strokeWidth={2} color="white" /></div>
                 <div className="tl-body">
                   <strong>Encomenda cancelada</strong>
                   <span>{formatarData(encomenda.actualizado_em || encomenda.criado_em)}</span>
@@ -268,7 +270,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Link href="/encomendas" className="btn btn-outline">← As minhas encomendas</Link>
+          <Link href="/encomendas" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} strokeWidth={1.5} /> As minhas encomendas</Link>
           <Link href="/" className="btn btn-primary">Continuar a comprar</Link>
         </div>
       </div>

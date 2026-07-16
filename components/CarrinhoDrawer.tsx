@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCarrinho, getTotalItems, getTotalPreco } from '@/store/carrinho';
+import { X, ShoppingBag, ArrowRight } from 'lucide-react';
 
 export default function CarrinhoDrawer() {
   const { items, drawerOpen, fecharDrawer, removerItem, actualizarQuantidade } = useCarrinho();
@@ -14,13 +15,13 @@ export default function CarrinhoDrawer() {
       <div className={`cart-drawer${drawerOpen ? ' open' : ''}`}>
         <div className="cart-drawer-header">
           <h3>O meu carrinho <span style={{ color: 'var(--gray-400)', fontWeight: 400, fontSize: 14 }}>{count > 0 ? `(${count})` : ''}</span></h3>
-          <button className="cart-drawer-close" onClick={fecharDrawer}>✕</button>
+          <button className="cart-drawer-close" onClick={fecharDrawer}><X size={20} strokeWidth={1.5} /></button>
         </div>
 
         <div className="cart-drawer-items">
           {items.length === 0 ? (
             <div className="cd-empty">
-              <div className="icon">🛍️</div>
+              <div className="icon"><ShoppingBag size={40} strokeWidth={1.5} /></div>
               <p>O teu carrinho está vazio</p>
             </div>
           ) : (
@@ -46,7 +47,7 @@ export default function CarrinhoDrawer() {
                     <button onClick={() => actualizarQuantidade(item.key, Math.min(item.stock, item.quantidade + 1))}>+</button>
                   </div>
                 </div>
-                <button className="cd-item-remove" onClick={() => removerItem(item.key)}>✕</button>
+                <button className="cd-item-remove" onClick={() => removerItem(item.key)}><X size={16} strokeWidth={1.5} /></button>
               </div>
             ))
           )}
@@ -59,8 +60,8 @@ export default function CarrinhoDrawer() {
                 <span>Total</span>
                 <strong>{total.toFixed(2)} MZN</strong>
               </div>
-              <Link href="/carrinho" className="btn btn-primary btn-full" onClick={fecharDrawer}>
-                Ir para o checkout →
+              <Link href="/carrinho" className="btn btn-primary btn-full" onClick={fecharDrawer} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                Ir para o checkout <ArrowRight size={16} strokeWidth={1.5} />
               </Link>
               <button onClick={fecharDrawer} className="btn btn-outline btn-full" style={{ marginTop: 8 }}>
                 Continuar a comprar

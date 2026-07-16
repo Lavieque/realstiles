@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { mostrarToast } from '@/components/Toast';
+import { Lock, Package, Smartphone, AlertTriangle, CreditCard, Play, RefreshCw } from 'lucide-react';
 
 type Status = {
   status: 'ligado' | 'desligado' | 'aguarda_qr';
@@ -165,21 +166,21 @@ export default function WhatsAppAdmin() {
           </p>
           <div className="wn-features">
             <div className="wn-feature">
-              <span className="wn-feature-icon">🔐</span>
+              <span className="wn-feature-icon"><Lock size={24} strokeWidth={1.5} /></span>
               <div>
                 <strong>Autenticação OTP</strong>
                 <p>Login por código enviado via WhatsApp</p>
               </div>
             </div>
             <div className="wn-feature">
-              <span className="wn-feature-icon">📦</span>
+              <span className="wn-feature-icon"><Package size={24} strokeWidth={1.5} /></span>
               <div>
                 <strong>Notificações de encomendas</strong>
                 <p>Atualizações de estado em tempo real</p>
               </div>
             </div>
             <div className="wn-feature">
-              <span className="wn-feature-icon">📱</span>
+              <span className="wn-feature-icon"><Smartphone size={24} strokeWidth={1.5} /></span>
               <div>
                 <strong>Um número, tudo incluído</strong>
                 <p>Usa o teu número pessoal ou de empresa</p>
@@ -188,10 +189,10 @@ export default function WhatsAppAdmin() {
           </div>
           {temWhatsappTF === false && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 18px', marginBottom: 16, textAlign: 'left' }}>
-              <p style={{ fontWeight: 700, color: '#92400e', marginBottom: 4, fontSize: 14 }}>⚠ O teu plano não inclui WhatsApp</p>
+              <p style={{ fontWeight: 700, color: '#92400e', marginBottom: 4, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16} strokeWidth={1.5} /> O teu plano não inclui WhatsApp</p>
               <p style={{ fontSize: 13, color: '#78350f', marginBottom: 12 }}>Adiciona o WhatsApp Add-on por €3.50/mês para activar este serviço.</p>
-              <button className="btn btn-primary btn-sm" onClick={comprarAddon} disabled={portalLoading}>
-                {portalLoading ? 'A redirecionar...' : '💳 Comprar WhatsApp Add-on — €3.50/mês'}
+              <button className="btn btn-primary btn-sm" onClick={comprarAddon} disabled={portalLoading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {portalLoading ? 'A redirecionar...' : <><CreditCard size={14} strokeWidth={1.5} /> Comprar WhatsApp Add-on — €3.50/mês</>}
               </button>
             </div>
           )}
@@ -243,8 +244,8 @@ export default function WhatsAppAdmin() {
 
           <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {!isLigado && !isAguarda && (
-              <button className="btn btn-primary" onClick={conectar} disabled={aAccionar}>
-                {aAccionar ? 'A ligar...' : '▶ Ligar WhatsApp'}
+              <button className="btn btn-primary" onClick={conectar} disabled={aAccionar} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {aAccionar ? 'A ligar...' : <><Play size={14} strokeWidth={1.5} /> Ligar WhatsApp</>}
               </button>
             )}
             {isLigado && (
@@ -308,7 +309,7 @@ export default function WhatsAppAdmin() {
       <div className="card" style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3>Histórico de mensagens</h3>
-          <button className="btn btn-outline btn-sm" onClick={fetchMensagens}>↻ Actualizar</button>
+          <button className="btn btn-outline btn-sm" onClick={fetchMensagens} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><RefreshCw size={14} strokeWidth={1.5} /> Actualizar</button>
         </div>
         {mensagens.length === 0 ? (
           <p style={{ color: 'var(--gray-400)', textAlign: 'center', padding: '32px 0' }}>

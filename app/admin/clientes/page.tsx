@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import { getDocs, collection, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { mostrarToast } from '@/components/Toast';
@@ -50,7 +51,7 @@ export default function AdminClientesPage() {
                       <td style={{ fontWeight: 500 }}>{c.nome || '—'}</td>
                       <td>{c.email}</td>
                       <td>{c.telefone || '—'}</td>
-                      <td>{c.admin ? <span style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Admin</span> : <span style={{ color: 'var(--gray-400)' }}>—</span>}</td>
+                      <td>{c.admin ? <span style={{ color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}><Check size={14} strokeWidth={1.5} /> Admin</span> : <span style={{ color: 'var(--gray-400)' }}>—</span>}</td>
                       <td>
                         <button className="btn btn-outline btn-sm" onClick={() => toggleAdmin(c)}>
                           {c.admin ? 'Remover admin' : 'Tornar admin'}

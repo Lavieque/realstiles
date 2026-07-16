@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 import { getProdutos } from '@/lib/produtos';
 import { getTodasEncomendas, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
 import { getDocs, collection } from 'firebase/firestore';
@@ -107,7 +108,7 @@ export default function AdminDashboard() {
             {/* Alertas stock baixo */}
             {produtosBaixoStock.length > 0 && (
               <div className="stock-alert">
-                <div className="stock-alert-header">⚠️ Stock baixo — {produtosBaixoStock.length} produto{produtosBaixoStock.length !== 1 ? 's' : ''}</div>
+                <div className="stock-alert-header" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16} strokeWidth={1.5} /> Stock baixo — {produtosBaixoStock.length} produto{produtosBaixoStock.length !== 1 ? 's' : ''}</div>
                 {produtosBaixoStock.map(p => (
                   <div key={p.id} className="stock-item">
                     <span>{p.nome}</span>
