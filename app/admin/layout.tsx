@@ -8,7 +8,7 @@ import { logout } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 import type { ReactNode } from 'react';
 import {
-  LayoutDashboard, Package, ShirtIcon, Layers, Users, Pencil, Bell,
+  BarChart2, Package, Tag, Layers, Users, Pencil, Bell,
   ClipboardList, Zap, MessageCircle, Link as LinkIcon,
 } from 'lucide-react';
 
