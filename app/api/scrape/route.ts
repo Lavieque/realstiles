@@ -33,8 +33,10 @@ export async function POST(req: NextRequest) {
     };
 
     // ── Tier 1: Scrape direto (0.5 créditos) ─────────────────────────────────
-    console.log(`[scrape] Tier 1 — a tentar scrape direto: ${url}`);
-    try {
+    const TIER1_SKIP = ['aliexpress.com', 'temu.com'];
+    const skipTier1 = TIER1_SKIP.some(d => url.includes(d));
+    console.log(`[scrape] Tier 1 — ${skipTier1 ? 'skipped (site não suportado)' : 'a tentar scrape direto'}: ${url}`);
+    if (!skipTier1) try {
       const direto = await scrapeDireto(url);
       console.log(`[scrape] Tier 1 resultado — nome="${direto.nome}" preco=${direto.preco} imagens=${direto.imagens.length} variantes=${direto.variantes.length}`);
       const temDadosSuficientes =
