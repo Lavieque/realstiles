@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Tiers 2-4: TradeFlow (sidecar / Evomi+Claude / fetch+Claude) ─────────
+    console.log(`[scrape] A chamar TradeFlow: ${tfUrl}/scrape`);
     const tfRes = await fetch(`${tfUrl}/scrape`, {
       method: 'POST',
       headers: tfHeaders,
