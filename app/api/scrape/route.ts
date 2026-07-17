@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 
       if (pollData.status === 'error' || pollData.status === 'failed') {
         const erro = pollData.erro ?? 'O scraping falhou. Tenta novamente.';
-        const needs_cookies = /block|cookie|captcha|access|denied|forbidden|robot|protected/i.test(erro) || true;
+        const needs_cookies = /block|cookie|captcha|access|denied|forbidden|robot|protected|upstream/i.test(erro);
         return NextResponse.json({ error: erro, needs_cookies }, { status: 422 });
       }
     }
