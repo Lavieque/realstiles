@@ -210,7 +210,7 @@ export default function AdminImportarPage() {
             </div>
 
             <ol style={{ paddingLeft: 20, fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.9, marginBottom: 24 }}>
-              <li>Instala a extensão <strong>Realstiles Importer</strong> no Chrome</li>
+              <li>Instala a extensão <strong>TradeFlow Importer</strong> no Chrome</li>
               <li>
                 {temuPopup === 'url'
                   ? <><strong>Abre o produto</strong> que tentaste importar na Temu</>
