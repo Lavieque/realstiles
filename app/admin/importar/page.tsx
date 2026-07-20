@@ -44,18 +44,43 @@ export default function AdminImportarPage() {
   const [temuPopup, setTemuPopup] = useState<'url' | 'manual' | null>(null);
   const [temuToken, setTemuToken] = useState('');
   const [temuAguardar, setTemuAguardar] = useState(false);
+  const [extensaoInstalada, setExtensaoInstalada] = useState<boolean | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const iniciarTemuEspera = (modo: 'url' | 'manual') => {
+    const instalada = localStorage.getItem('tradeflow_importer_installed') === '1';
+    setExtensaoInstalada(instalada);
     const token = gerarToken();
     setTemuToken(token);
     setTemuPopup(modo);
-    setTemuAguardar(true);
-    localStorage.setItem('rs_temu_token', token);
+    setTemuAguardar(instalada); // só começa a aguardar se extensão estiver instalada
+    if (instalada) localStorage.setItem('rs_temu_token', token);
 
     pollingRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/import/temu?token=${token}`);
+        const data = await res.json();
+        if (data.ready && data.produto) {
+          clearInterval(pollingRef.current!);
+          setTemuAguardar(false);
+          setTemuPopup(null);
+          localStorage.removeItem('rs_temu_token');
+          const p = data.produto;
+          setResultado(p);
+          setImagemAtiva(0);
+          setAjustes({ nome: p.nome, preco: p.preco, descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
+        }
+      } catch { /* silencioso */ }
+    }, 2000);
+  };
+
+  const confirmarExtensaoInstalada = () => {
+    setExtensaoInstalada(true);
+    setTemuAguardar(true);
+    localStorage.setItem('rs_temu_token', temuToken);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/import/temu?token=${temuToken}`);
         const data = await res.json();
         if (data.ready && data.produto) {
           clearInterval(pollingRef.current!);
@@ -195,48 +220,84 @@ export default function AdminImportarPage() {
       {temuPopup && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'var(--white)', borderRadius: 18, padding: '32px 36px', maxWidth: 480, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            {/* Cabeçalho */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#ff6100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#ff6100', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Puzzle size={22} color="white" strokeWidth={1.5} />
               </div>
               <div>
                 <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--black)' }}>Importar da Temu</p>
-                <p style={{ fontSize: 12, color: 'var(--gray-500)' }}>Requer extensão de browser</p>
+                <p style={{ fontSize: 12, color: 'var(--gray-500)' }}>
+                  {extensaoInstalada === false ? 'Passo 1 de 2 — Instalar extensão' : 'Passo 2 de 2 — Usar extensão'}
+                </p>
               </div>
             </div>
 
-            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#9a3412', lineHeight: 1.6 }}>
-              A Temu usa proteções anti-bot que impedem o scraping automático. Para importar, usa a extensão de browser que envia os dados directamente desta página.
-            </div>
+            {/* PASSO 1 — extensão não instalada */}
+            {extensaoInstalada === false && (
+              <>
+                <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#9a3412', lineHeight: 1.6 }}>
+                  A Temu usa proteções anti-bot que impedem o scraping automático. É necessária a extensão <strong>TradeFlow Importer</strong> para fazer a importação.
+                </div>
 
-            <ol style={{ paddingLeft: 20, fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.9, marginBottom: 24 }}>
-              <li>Instala a extensão <strong>TradeFlow Importer</strong> no Chrome</li>
-              <li>
-                {temuPopup === 'url'
-                  ? <><strong>Abre o produto</strong> que tentaste importar na Temu</>
-                  : <>Navega até ao produto que queres importar na Temu</>
-                }
-              </li>
-              <li>Clica no ícone da extensão e depois em <strong>"Importar"</strong></li>
-              <li>Esta página actualiza automaticamente com os dados do produto</li>
-            </ol>
+                <a
+                  href="/downloads/tradeflow-importer.zip"
+                  download
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#ff6100', color: 'white', borderRadius: 10, padding: '12px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 16 }}
+                >
+                  <ExternalLink size={15} strokeWidth={2} />
+                  Descarregar TradeFlow Importer
+                </a>
 
-            {temuPopup === 'url' && url && (
-              <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--black)', textDecoration: 'none', marginBottom: 20, fontWeight: 600 }}>
-                <ExternalLink size={14} strokeWidth={2} />
-                Abrir produto na Temu
-              </a>
+                <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-600)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Como instalar</p>
+                  <ol style={{ paddingLeft: 18, fontSize: 13, color: 'var(--gray-700)', lineHeight: 2 }}>
+                    <li>Descomprime o ficheiro .zip descarregado</li>
+                    <li>Abre o Chrome e vai a <strong>chrome://extensions</strong></li>
+                    <li>Activa o <strong>Modo de programador</strong> (canto superior direito)</li>
+                    <li>Clica em <strong>"Carregar sem compressão"</strong> e selecciona a pasta</li>
+                    <li>Nas definições da extensão, introduz o URL deste site</li>
+                  </ol>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn btn-outline" onClick={cancelarTemuEspera} style={{ flex: 1 }}>Cancelar</button>
+                  <button className="btn btn-primary" onClick={confirmarExtensaoInstalada} style={{ flex: 1 }}>Já instalei →</button>
+                </div>
+              </>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {temuAguardar && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, fontSize: 13, color: 'var(--gray-500)' }}>
-                  <div className="spinner" style={{ width: 14, height: 14 }} />
-                  À espera da extensão...
+            {/* PASSO 2 — extensão instalada, aguardar uso */}
+            {extensaoInstalada === true && (
+              <>
+                <ol style={{ paddingLeft: 20, fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.9, marginBottom: 20 }}>
+                  <li>
+                    {temuPopup === 'url'
+                      ? <><strong>Abre o produto</strong> que tentaste importar na Temu</>
+                      : <>Navega até ao produto que queres importar na Temu</>
+                    }
+                  </li>
+                  <li>Clica no ícone da extensão <strong>TradeFlow Importer</strong> na barra do Chrome</li>
+                  <li>Clica em <strong>"Importar este produto"</strong></li>
+                  <li>Esta página actualiza automaticamente</li>
+                </ol>
+
+                {temuPopup === 'url' && url && (
+                  <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--black)', textDecoration: 'none', marginBottom: 16, fontWeight: 600 }}>
+                    <ExternalLink size={14} strokeWidth={2} />
+                    Abrir produto na Temu
+                  </a>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, fontSize: 13, color: 'var(--gray-500)' }}>
+                    <div className="spinner" style={{ width: 14, height: 14 }} />
+                    À espera da extensão...
+                  </div>
+                  <button className="btn btn-outline" onClick={cancelarTemuEspera}>Cancelar</button>
                 </div>
-              )}
-              <button className="btn btn-outline" onClick={cancelarTemuEspera} style={{ marginLeft: 'auto' }}>Cancelar</button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
