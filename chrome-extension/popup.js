@@ -84,10 +84,11 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
         }
       }
 
+      // Se não há token em nenhuma tab aberta, gerar um novo e abrir/focar realstiles
+      let openedNewTab = false;
       if (!token) {
-        showStatus(temuStatus, 'Nenhuma página de importação Realstiles aberta. Abre /admin/importar e clica "Importar da Temu".', 'error');
-        btnTemuImport.disabled = false;
-        return;
+        token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        openedNewTab = true;
       }
 
       // Enviar dados para o Realstiles
@@ -99,7 +100,20 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
 
       if (!postRes.ok) throw new Error(`Erro ${postRes.status}`);
 
-      showStatus(temuStatus, '✓ Produto enviado! Volta ao Realstiles.', 'success');
+      if (openedNewTab) {
+        // Focar tab do realstiles se existir, senão abrir nova
+        const realstilesHost = new URL(realstilesBase).hostname;
+        const existingTabs = await chrome.tabs.query({ url: `*://${realstilesHost}/*` });
+        if (existingTabs.length > 0) {
+          await chrome.tabs.update(existingTabs[0].id, { url: `${realstilesBase}/admin/importar?temu_token=${token}`, active: true });
+          await chrome.windows.update(existingTabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: `${realstilesBase}/admin/importar?temu_token=${token}` });
+        }
+        showStatus(temuStatus, '✓ Produto enviado! A abrir Realstiles...', 'success');
+      } else {
+        showStatus(temuStatus, '✓ Produto enviado! Volta ao Realstiles.', 'success');
+      }
     } catch (err) {
       showStatus(temuStatus, 'Erro: ' + (err.message || 'Falha ao importar'), 'error');
       btnTemuImport.disabled = false;

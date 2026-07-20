@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Zap, AlertTriangle, Package, ExternalLink, Puzzle } from 'lucide-react';
@@ -28,7 +29,12 @@ type EstadoTF = 'verificando' | 'sem_conta' | 'inativo' | 'sem_limite' | 'ok';
 const isTemu = (u: string) => { try { return new URL(u).hostname.includes('temu.com'); } catch { return false; } };
 const gerarToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-export default function AdminImportarPage() {
+export default function Page() {
+  return <Suspense><AdminImportarPage /></Suspense>;
+}
+
+function AdminImportarPage() {
+  const searchParams = useSearchParams();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<ScrapeResult | null>(null);
@@ -105,6 +111,32 @@ export default function AdminImportarPage() {
   };
 
   useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
+
+  // Extensão pode abrir esta página com ?temu_token= quando não havia tab aberta
+  useEffect(() => {
+    const token = searchParams.get('temu_token');
+    if (!token || pollingRef.current) return;
+    setExtensaoInstalada(true);
+    setTemuToken(token);
+    setTemuPopup('manual');
+    setTemuAguardar(true);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/import/temu?token=${token}`);
+        const data = await res.json();
+        if (data.ready && data.produto) {
+          clearInterval(pollingRef.current!);
+          setTemuAguardar(false);
+          setTemuPopup(null);
+          const p = data.produto;
+          setResultado(p);
+          setImagemAtiva(0);
+          setAjustes({ nome: p.nome, preco: p.preco, descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
+        }
+      } catch { /* silencioso */ }
+    }, 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetch('/api/config/categorias').then(r => r.json()).then(d => setCatTree(d.categorias || [])).catch(() => {});
