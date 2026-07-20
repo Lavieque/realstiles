@@ -1,1 +1,1 @@
-try { localStorage.setItem('tradeflow_importer_installed', '1'); } catch {}
+try { localStorage.setItem('tradeflow_importer_ts', Date.now().toString()); } catch {}

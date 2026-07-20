@@ -28,6 +28,10 @@ type EstadoTF = 'verificando' | 'sem_conta' | 'inativo' | 'sem_limite' | 'ok';
 
 const isTemu = (u: string) => { try { return new URL(u).hostname.includes('temu.com'); } catch { return false; } };
 const gerarToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const extensaoActiva = () => {
+  const ts = parseInt(localStorage.getItem('tradeflow_importer_ts') || '0', 10);
+  return Date.now() - ts < 60 * 60 * 1000; // válido durante 1 hora
+};
 
 export default function Page() {
   return <Suspense><AdminImportarPage /></Suspense>;
@@ -54,7 +58,7 @@ function AdminImportarPage() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const iniciarTemuEspera = (modo: 'url' | 'manual') => {
-    const instalada = localStorage.getItem('tradeflow_importer_installed') === '1';
+    const instalada = extensaoActiva();
     setExtensaoInstalada(instalada);
     const token = gerarToken();
     setTemuToken(token);
