@@ -23,7 +23,7 @@ btnOptions.addEventListener('click', openOptions);
 if (btnOptions2) btnOptions2.addEventListener('click', openOptions);
 
 chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], async (cfg) => {
-  if (!cfg.tradeflow_url || !cfg.capture_token) {
+  if (!cfg.realstiles_url) {
     mainBody.style.display = 'none';
     notConfigured.style.display = 'block';
     return;
