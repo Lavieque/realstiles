@@ -20,11 +20,6 @@ btnSave.addEventListener('click', () => {
     statusEl.className = 'status error';
     return;
   }
-  if (!url || !token) {
-    statusEl.textContent = 'Preenche o URL e token do TradeFlow.';
-    statusEl.className = 'status error';
-    return;
-  }
 
   chrome.storage.local.set({ realstiles_url: realstilesUrl, tradeflow_url: url, capture_token: token }, () => {
     statusEl.textContent = '✓ Configuração guardada!';
