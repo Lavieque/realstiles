@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Zap, AlertTriangle, Package } from 'lucide-react';
+import { Zap, AlertTriangle, Package, ExternalLink, Puzzle } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';
 import CookieCapturePopup from '@/components/CookieCapturePopup';
 import type { Produto } from '@/lib/produtos';
@@ -25,6 +25,9 @@ interface ScrapeResult {
 
 type EstadoTF = 'verificando' | 'sem_conta' | 'inativo' | 'sem_limite' | 'ok';
 
+const isTemu = (u: string) => { try { return new URL(u).hostname.includes('temu.com'); } catch { return false; } };
+const gerarToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
 export default function AdminImportarPage() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,47 @@ export default function AdminImportarPage() {
   const [infoTF, setInfoTF] = useState<{ usados: number; limite: number; plano: string } | null>(null);
   const [catTree, setCatTree] = useState<CatTree[]>([]);
   const [imagemAtiva, setImagemAtiva] = useState(0);
+
+  // Modo Temu via extensão
+  const [temuPopup, setTemuPopup] = useState<'url' | 'manual' | null>(null);
+  const [temuToken, setTemuToken] = useState('');
+  const [temuAguardar, setTemuAguardar] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const iniciarTemuEspera = (modo: 'url' | 'manual') => {
+    const token = gerarToken();
+    setTemuToken(token);
+    setTemuPopup(modo);
+    setTemuAguardar(true);
+    localStorage.setItem('rs_temu_token', token);
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/import/temu?token=${token}`);
+        const data = await res.json();
+        if (data.ready && data.produto) {
+          clearInterval(pollingRef.current!);
+          setTemuAguardar(false);
+          setTemuPopup(null);
+          localStorage.removeItem('rs_temu_token');
+          const p = data.produto;
+          setResultado(p);
+          setImagemAtiva(0);
+          setAjustes({ nome: p.nome, preco: p.preco, descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
+        }
+      } catch { /* silencioso */ }
+    }, 2000);
+  };
+
+  const cancelarTemuEspera = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    setTemuPopup(null);
+    setTemuAguardar(false);
+    setTemuToken('');
+    localStorage.removeItem('rs_temu_token');
+  };
+
+  useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
 
   useEffect(() => {
     fetch('/api/config/categorias').then(r => r.json()).then(d => setCatTree(d.categorias || [])).catch(() => {});
@@ -56,6 +100,11 @@ export default function AdminImportarPage() {
 
   const scrape = async () => {
     if (!url.trim()) return;
+    // Temu não suporta scraping automático — usar extensão
+    if (isTemu(url)) {
+      iniciarTemuEspera('url');
+      return;
+    }
     setLoading(true);
     setResultado(null);
     try {
@@ -141,6 +190,57 @@ export default function AdminImportarPage() {
           onRetry={scrape}
         />
       )}
+
+      {/* Popup Temu — extensão de browser */}
+      {temuPopup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 18, padding: '32px 36px', maxWidth: 480, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#ff6100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Puzzle size={22} color="white" strokeWidth={1.5} />
+              </div>
+              <div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--black)' }}>Importar da Temu</p>
+                <p style={{ fontSize: 12, color: 'var(--gray-500)' }}>Requer extensão de browser</p>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#9a3412', lineHeight: 1.6 }}>
+              A Temu usa proteções anti-bot que impedem o scraping automático. Para importar, usa a extensão de browser que envia os dados directamente desta página.
+            </div>
+
+            <ol style={{ paddingLeft: 20, fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.9, marginBottom: 24 }}>
+              <li>Instala a extensão <strong>Realstiles Importer</strong> no Chrome</li>
+              <li>
+                {temuPopup === 'url'
+                  ? <><strong>Abre o produto</strong> que tentaste importar na Temu</>
+                  : <>Navega até ao produto que queres importar na Temu</>
+                }
+              </li>
+              <li>Clica no ícone da extensão e depois em <strong>"Importar"</strong></li>
+              <li>Esta página actualiza automaticamente com os dados do produto</li>
+            </ol>
+
+            {temuPopup === 'url' && url && (
+              <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--black)', textDecoration: 'none', marginBottom: 20, fontWeight: 600 }}>
+                <ExternalLink size={14} strokeWidth={2} />
+                Abrir produto na Temu
+              </a>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {temuAguardar && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, fontSize: 13, color: 'var(--gray-500)' }}>
+                  <div className="spinner" style={{ width: 14, height: 14 }} />
+                  À espera da extensão...
+                </div>
+              )}
+              <button className="btn btn-outline" onClick={cancelarTemuEspera} style={{ marginLeft: 'auto' }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="admin-topbar">
         <h1>Importar produto via link</h1>
       </div>
@@ -237,7 +337,7 @@ export default function AdminImportarPage() {
         <div className="form-card" style={{ opacity: bloqueado ? 0.4 : 1, pointerEvents: bloqueado ? 'none' : 'auto' }}>
           <h2>URL do produto</h2>
           <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 16 }}>
-            Cola o link de um produto (Temu, Shein, AliExpress, Zara, H&M, etc.)
+            Cola o link de um produto (Shein, AliExpress, Zara, H&M, etc.)
           </p>
           <div style={{ display: 'flex', gap: 12 }}>
             <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." style={{ flex: 1, padding: '11px 14px', borderRadius: 10, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none' }} onKeyDown={e => e.key === 'Enter' && scrape()} />
@@ -248,6 +348,21 @@ export default function AdminImportarPage() {
           {loading && (
             <div className="loading" style={{ paddingTop: 24 }}><div className="spinner" /> A ler o produto...</div>
           )}
+
+          {/* Divisor Temu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 16px' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--gray-200)' }} />
+            <span style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em' }}>ou</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--gray-200)' }} />
+          </div>
+          <button
+            className="btn btn-outline"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderColor: '#ff6100', color: '#ff6100' }}
+            onClick={() => iniciarTemuEspera('manual')}
+          >
+            <Puzzle size={15} strokeWidth={2} />
+            Importar da Temu via extensão
+          </button>
         </div>
 
         {resultado && (

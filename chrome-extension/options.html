@@ -70,9 +70,15 @@
 </head>
 <body>
   <div class="card">
-    <div class="logo">🍪</div>
+    <div class="logo">📦</div>
     <h1>Configuração</h1>
-    <p class="sub">TradeFlow Cookie Capture</p>
+    <p class="sub">TradeFlow Importer</p>
+
+    <div class="form-group">
+      <label>URL do Realstiles</label>
+      <input type="url" id="realstiles_url" placeholder="https://loja.realstiles.com" />
+      <div class="hint">URL base do teu Realstiles (sem barra no fim)</div>
+    </div>
 
     <div class="form-group">
       <label>URL do TradeFlow API</label>
@@ -81,7 +87,7 @@
     </div>
 
     <div class="form-group">
-      <label>Token de captura</label>
+      <label>Token de captura de cookies</label>
       <input type="password" id="capture_token" placeholder="••••••••••••••••" />
       <div class="hint">Valor da variável <code>COOKIE_CAPTURE_TOKEN</code> no TradeFlow</div>
     </div>
@@ -91,12 +97,15 @@
 
     <hr />
     <div class="info">
-      <strong>Como usar:</strong><br/>
-      1. Abre o site onde queres capturar cookies (ex: shein.com)<br/>
-      2. Navega normalmente e resolve qualquer CAPTCHA<br/>
-      3. Clica no ícone da extensão na barra do browser<br/>
-      4. Clica em "Capturar e enviar cookies"<br/>
-      5. Volta ao painel de importação e tenta novamente
+      <strong>Importar produtos Temu:</strong><br/>
+      1. Abre o produto na Temu<br/>
+      2. Clica no ícone da extensão<br/>
+      3. Clica em "Importar este produto"<br/>
+      4. O produto abre no Realstiles para confirmar<br/><br/>
+      <strong>Capturar cookies (outros sites):</strong><br/>
+      1. Abre o site (ex: shein.com) e faz login<br/>
+      2. Clica na extensão e em "Capturar e enviar cookies"<br/>
+      3. Volta ao painel de importação e tenta novamente
     </div>
   </div>
 

@@ -6,10 +6,13 @@ const statusEl = document.getElementById('status');
 const countEl = document.getElementById('count');
 const mainBody = document.getElementById('main-body');
 const notConfigured = document.getElementById('not-configured');
+const temuSection = document.getElementById('temu-section');
+const btnTemuImport = document.getElementById('btn-temu-import');
+const temuStatus = document.getElementById('temu-status');
 
-function showStatus(msg, type) {
-  statusEl.textContent = msg;
-  statusEl.className = 'status ' + type;
+function showStatus(el, msg, type) {
+  el.textContent = msg;
+  el.className = 'status ' + type;
 }
 
 function openOptions() {
@@ -19,7 +22,7 @@ function openOptions() {
 btnOptions.addEventListener('click', openOptions);
 if (btnOptions2) btnOptions2.addEventListener('click', openOptions);
 
-chrome.storage.local.get(['tradeflow_url', 'capture_token'], async (cfg) => {
+chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], async (cfg) => {
   if (!cfg.tradeflow_url || !cfg.capture_token) {
     mainBody.style.display = 'none';
     notConfigured.style.display = 'block';
@@ -27,30 +30,97 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token'], async (cfg) => {
   }
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const url = tab?.url || '';
+  const tabUrl = tab?.url || '';
   let domain = '';
   try {
-    domain = new URL(url).hostname.replace(/^www\./, '');
+    domain = new URL(tabUrl).hostname.replace(/^www\./, '');
   } catch {
     domain = 'Domínio inválido';
   }
   domainEl.textContent = domain;
 
+  // Mostrar secção Temu se estivermos em temu.com
+  const isTemu = domain === 'temu.com' || domain.endsWith('.temu.com');
+  if (isTemu) temuSection.style.display = 'block';
+
+  // --- Temu Import ---
+  btnTemuImport.addEventListener('click', async () => {
+    btnTemuImport.disabled = true;
+    showStatus(temuStatus, 'A extrair dados do produto...', 'loading');
+
+    try {
+      const realstilesBase = (cfg.realstiles_url || '').replace(/\/$/, '');
+      if (!realstilesBase) {
+        showStatus(temuStatus, 'URL do Realstiles não configurado. Vai às definições.', 'error');
+        btnTemuImport.disabled = false;
+        return;
+      }
+
+      // Extrair dados do produto na tab Temu actual
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: extractTemuProduct,
+      });
+
+      const produto = result?.result;
+      if (!produto || !produto.nome) {
+        showStatus(temuStatus, 'Não foi possível extrair dados. Certifica-te de que estás numa página de produto.', 'error');
+        btnTemuImport.disabled = false;
+        return;
+      }
+
+      // Ler token da tab do Realstiles que está em espera
+      const realstilesHost = new URL(realstilesBase).hostname;
+      const realstilesTabs = await chrome.tabs.query({ url: `*://${realstilesHost}/*` });
+      let token = null;
+      for (const rsTab of realstilesTabs) {
+        const [tokenResult] = await chrome.scripting.executeScript({
+          target: { tabId: rsTab.id },
+          func: () => localStorage.getItem('rs_temu_token'),
+        });
+        if (tokenResult?.result) {
+          token = tokenResult.result;
+          break;
+        }
+      }
+
+      if (!token) {
+        showStatus(temuStatus, 'Nenhuma página de importação Realstiles aberta. Abre /admin/importar e clica "Importar da Temu".', 'error');
+        btnTemuImport.disabled = false;
+        return;
+      }
+
+      // Enviar dados para o Realstiles
+      const postRes = await fetch(`${realstilesBase}/api/import/temu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, produto }),
+      });
+
+      if (!postRes.ok) throw new Error(`Erro ${postRes.status}`);
+
+      showStatus(temuStatus, '✓ Produto enviado! Volta ao Realstiles.', 'success');
+    } catch (err) {
+      showStatus(temuStatus, 'Erro: ' + (err.message || 'Falha ao importar'), 'error');
+      btnTemuImport.disabled = false;
+    }
+  });
+
+  // --- Cookie Capture ---
   btnCapture.addEventListener('click', async () => {
     btnCapture.disabled = true;
-    showStatus('A capturar cookies...', 'loading');
+    showStatus(statusEl, 'A capturar cookies...', 'loading');
     countEl.textContent = '';
 
     try {
       const cookies = await chrome.cookies.getAll({ domain });
 
       if (cookies.length === 0) {
-        showStatus('Nenhum cookie encontrado para este domínio. Abre o site e faz login primeiro.', 'error');
+        showStatus(statusEl, 'Nenhum cookie encontrado para este domínio. Abre o site e faz login primeiro.', 'error');
         btnCapture.disabled = false;
         return;
       }
 
-      // Envia objectos completos (com httpOnly, secure, sameSite, etc.)
       const cookieObjects = cookies.map(c => ({
         name: c.name,
         value: c.value,
@@ -73,12 +143,102 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token'], async (cfg) => {
         throw new Error(err.message || `Erro ${res.status}`);
       }
 
-      showStatus(`✓ ${cookies.length} cookies enviados para o TradeFlow!`, 'success');
+      showStatus(statusEl, `✓ ${cookies.length} cookies enviados para o TradeFlow!`, 'success');
       countEl.textContent = `Domínio: ${domain} · Cookies capturados: ${cookies.length} (incl. HttpOnly)`;
     } catch (err) {
-      showStatus('Erro: ' + (err.message || 'Não foi possível enviar os cookies.'), 'error');
+      showStatus(statusEl, 'Erro: ' + (err.message || 'Não foi possível enviar os cookies.'), 'error');
     } finally {
       btnCapture.disabled = false;
     }
   });
 });
+
+// Função injectada na página Temu para extrair dados do produto
+function extractTemuProduct() {
+  try {
+    // Tentar ler dados do __NEXT_DATA__ ou window state
+    let data = null;
+
+    // Estratégia 1: __NEXT_DATA__
+    const nextDataEl = document.getElementById('__NEXT_DATA__');
+    if (nextDataEl) {
+      try {
+        const nextData = JSON.parse(nextDataEl.textContent);
+        const props = nextData?.props?.pageProps;
+        if (props?.goods_detail_v2 || props?.goods_detail) {
+          data = props.goods_detail_v2 || props.goods_detail;
+        }
+      } catch {}
+    }
+
+    // Estratégia 2: script tags com product data JSON
+    if (!data) {
+      const scripts = document.querySelectorAll('script[type="application/json"]');
+      for (const s of scripts) {
+        try {
+          const parsed = JSON.parse(s.textContent);
+          if (parsed?.goods_name || parsed?.name) { data = parsed; break; }
+        } catch {}
+      }
+    }
+
+    // Estratégia 3: DOM directo
+    const nome =
+      data?.goods_name ||
+      data?.name ||
+      document.querySelector('h1[class*="title"], [class*="goods-title"], [class*="product-title"]')?.textContent?.trim() ||
+      document.title.split('|')[0].trim();
+
+    const precoRaw =
+      data?.min_normal_price ||
+      data?.price ||
+      document.querySelector('[class*="price-current"], [class*="sale-price"], [class*="goods-price"]')?.textContent?.replace(/[^0-9.,]/g, '').replace(',', '.') ||
+      '0';
+
+    const preco = parseFloat(String(precoRaw).replace(/[^0-9.]/g, '')) || 0;
+
+    // Imagens
+    let imagens = [];
+    if (data?.images || data?.goods_imgs) {
+      const imgs = data.images || data.goods_imgs;
+      imagens = (Array.isArray(imgs) ? imgs : []).map(i => typeof i === 'string' ? i : i.url || i.thumb_url || '').filter(Boolean).slice(0, 8);
+    }
+    if (imagens.length === 0) {
+      document.querySelectorAll('img[class*="goods"], img[class*="product"], [class*="carousel"] img').forEach(img => {
+        const src = img.src || img.dataset.src;
+        if (src && src.startsWith('http') && !imagens.includes(src)) imagens.push(src);
+      });
+      imagens = imagens.slice(0, 8);
+    }
+
+    // Tamanhos e cores
+    const tamanhos = [];
+    const cores = [];
+    if (data?.sku_list || data?.skus) {
+      const skus = data.sku_list || data.skus || [];
+      skus.forEach(sku => {
+        (sku.attributes || sku.specs || []).forEach(attr => {
+          const key = (attr.attr_name || attr.name || '').toLowerCase();
+          const val = attr.attr_value || attr.value || '';
+          if (key.includes('size') || key.includes('tamanho')) { if (!tamanhos.includes(val)) tamanhos.push(val); }
+          if (key.includes('color') || key.includes('cor')) { if (!cores.includes(val)) cores.push(val); }
+        });
+      });
+    }
+
+    const descricao = data?.goods_desc || data?.description || document.querySelector('[class*="description"]')?.textContent?.trim()?.slice(0, 1000) || '';
+
+    return {
+      nome,
+      preco,
+      descricao,
+      imagens,
+      tamanhos,
+      cores,
+      url: window.location.href,
+      fonte: 'temu',
+    };
+  } catch (e) {
+    return null;
+  }
+}
