@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { scrapeDireto, detectarFonte } from '@/lib/scrape-direto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,52 +31,7 @@ export async function POST(req: NextRequest) {
       'x-store-url': stored.store_url,
     };
 
-    // ── Tier 1: Scrape direto (0.5 créditos) ─────────────────────────────────
-    const TIER1_SKIP = ['aliexpress.com', 'temu.com'];
-    const skipTier1 = TIER1_SKIP.some(d => url.includes(d));
-    console.log(`[scrape] Tier 1 — ${skipTier1 ? 'skipped (site não suportado)' : 'a tentar scrape direto'}: ${url}`);
-    if (!skipTier1) try {
-      const direto = await scrapeDireto(url);
-      console.log(`[scrape] Tier 1 resultado — nome="${direto.nome}" preco=${direto.preco} imagens=${direto.imagens.length} variantes=${direto.variantes.length}`);
-      const temDadosSuficientes =
-        direto.nome &&
-        direto.preco > 0 &&
-        direto.imagens.length > 0 &&
-        direto.variantes.length > 0;
-
-      if (temDadosSuficientes) {
-        console.log(`[scrape] Tier 1 sucesso — a debitar 0.5 créditos`);
-        const fonte = detectarFonte(url);
-        fetch(`${tfUrl}/usage/deduct`, {
-          method: 'POST',
-          headers: tfHeaders,
-          body: JSON.stringify({ amount: 0.5, fonte }),
-        }).catch(() => { /* silencioso */ });
-
-        return NextResponse.json({
-          nome: direto.nome,
-          preco: direto.preco,
-          preco_original: direto.preco_original,
-          moeda: direto.moeda,
-          descricao: direto.descricao,
-          imagens: direto.imagens,
-          variantes: direto.variantes,
-          tamanhos: direto.tamanhos,
-          cores: direto.cores,
-          tags: direto.tags,
-          categoria: direto.categoria,
-          url: cleanUrl,
-          tier: 'direct',
-        });
-      }
-
-      console.log(`[scrape] Tier 1 insuficiente — a avançar para TradeFlow`);
-    } catch (err: any) {
-      console.log(`[scrape] Tier 1 erro — ${err?.message} — a avançar para TradeFlow`);
-    }
-
-    // ── Tiers 2-4: TradeFlow (sidecar / Evomi+Claude / fetch+Claude) ─────────
-    console.log(`[scrape] A chamar TradeFlow: ${tfUrl}/scrape`);
+    // ── TradeFlow (sidecar) ───────────────────────────────────────────────────
     const tfRes = await fetch(`${tfUrl}/scrape`, {
       method: 'POST',
       headers: tfHeaders,
