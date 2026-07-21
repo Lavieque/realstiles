@@ -254,8 +254,9 @@ function extractTemuProduct() {
         if (swatchImgs.length > 0 && swatchImgs.length <= 20) cores = unique(swatchImgs.map(el => el.getAttribute('alt').trim()));
       } catch {}
     }
+    const swatchEls = new Set(Array.from(document.querySelectorAll('[role="radio"] img,[role="option"] img,[aria-checked] img')));
     const imagens = unique(Array.from(document.querySelectorAll('img'))
-      .filter(el => isBeforeRec(el) && !Array.from(swatchContainers).some(sc => sc.contains(el)))
+      .filter(el => isBeforeRec(el) && !swatchEls.has(el))
       .flatMap(el => {
         const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
         return candidates.map(normalizeImg).filter(u => u && isCdnImg(u));
