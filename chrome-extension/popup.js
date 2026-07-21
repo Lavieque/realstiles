@@ -224,28 +224,22 @@ function extractTemuProduct() {
     // Excluir explicitamente containers de swatches de cor antes de procurar galeria
     const swatchContainers = new Set(Array.from(document.querySelectorAll('[role="radio"] img, [role="option"] img, [aria-checked] img')).map(el => { let p = el.parentElement; while (p) { if (p.hasAttribute('role')) return p; p = p.parentElement; } return null; }).filter(Boolean));
 
-    // Excluir secções de recomendados/similares que também têm imagens produto
-    const excludedSections = new Set(Array.from(document.querySelectorAll('[class*="recommend"],[class*="similar"],[class*="related"],[class*="also-like"],[class*="you-may"],[class*="more-product"],[class*="feed"],[class*="suggestion"]')));
-    const isInExcluded = (el) => Array.from(excludedSections).some(s => s.contains(el));
+    // Encontrar onde começam as recomendações pelo texto do heading
+    const recHeading = Array.from(document.querySelectorAll('h2,h3,h4,h5,[class*="section-title"],[class*="section_title"],[class*="module-title"]'))
+      .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
 
-    const gallerySelectors = ['[class*="gallery-main"]','[class*="main-gallery"]','[class*="product-gallery"]','[class*="detail-gallery"]','[class*="goods-gallery"]','[class*="gallery"]','[class*="swiper-wrapper"]','[class*="carousel"]'];
-    let imgScope = null;
-    for (const sel of gallerySelectors) {
-      const candidates = Array.from(document.querySelectorAll(sel)).filter(el =>
-        !isInExcluded(el) &&
-        !Array.from(swatchContainers).some(sc => sc.contains(el) || el.contains(sc))
-      );
-      const el = candidates[0];
-      if (el && el.querySelectorAll('img').length > 1) { imgScope = el; break; }
-    }
+    const isBeforeRec = (el) => {
+      if (!recHeading) return true;
+      return !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
+    };
 
     const isProductImg = (u) => u && isCdnImg(u);
-    const imagens = unique(Array.from((imgScope || document).querySelectorAll('img'))
-      .filter(el => !Array.from(swatchContainers).some(sc => sc.contains(el)) && !isInExcluded(el))
-      .flatMap(el => {
-        const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
-        return candidates.map(normalizeImg).filter(isProductImg);
-      })).slice(0, 10);
+    const allImgs = Array.from(document.querySelectorAll('img'))
+      .filter(el => isBeforeRec(el) && !Array.from(swatchContainers).some(sc => sc.contains(el)));
+    const imagens = unique(allImgs.flatMap(el => {
+      const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
+      return candidates.map(normalizeImg).filter(isProductImg);
+    })).slice(0, 10);
 
     // Tentar extrair preço do DOM — vários seletores Temu
     const priceSelectors = ['[class*="sale-price"]','[class*="current-price"]','[class*="price-sale"]','[class*="price--sale"]','[class*="goods-price"]','[class*="product-price"]','[class*="final-price"]','[class*="price_sale"]'];
