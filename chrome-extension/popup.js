@@ -69,6 +69,8 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
         btnTemuImport.disabled = false;
         return;
       }
+      // Mostrar debug: estratégia usada + resumo dos dados encontrados
+      showStatus(temuStatus, `[${produto._estrategia||'?'}] ${produto.imagens?.length||0} imgs · preço: ${produto.preco} · ${produto.cores?.length||0} cores · ${produto.tamanhos?.length||0} tam`, 'loading');
 
       // Gerar token e abrir tab Realstiles
       showStatus(temuStatus, '[2/3] A preparar...', 'loading');
@@ -183,7 +185,7 @@ function extractTemuProduct() {
       const product = findProduct(nextData);
       if (product) {
         const result = fromApiShape(product);
-        if (result) return result;
+        if (result) return { ...result, _estrategia: 'next-data' };
       }
     }
   } catch {}
@@ -200,7 +202,7 @@ function extractTemuProduct() {
         return null;
       };
       const product = findProduct(state);
-      if (product) { const result = fromApiShape(product); if (result) return result; }
+      if (product) { const result = fromApiShape(product); if (result) return { ...result, _estrategia: key }; }
     }
   } catch {}
 
@@ -214,7 +216,7 @@ function extractTemuProduct() {
       const priceRaw = variants[0]?.offers?.price || ld.offers?.price || 0;
       const imagens = unique((Array.isArray(ld.image) ? ld.image : ld.image ? [ld.image] : []).map(normalizeImg)).filter(Boolean);
       if (ld.name && (priceRaw || imagens.length)) {
-        return { nome: ld.name, preco: parseFloat(priceRaw) || 0, descricao: ld.description || '', imagens, tamanhos: unique(variants.map(v => v.size).filter(Boolean)), cores: unique([ld.color, ...variants.map(v => v.color)].filter(Boolean)), url: location.href, fonte: 'temu' };
+        return { nome: ld.name, preco: parseFloat(priceRaw) || 0, descricao: ld.description || '', imagens, tamanhos: unique(variants.map(v => v.size).filter(Boolean)), cores: unique([ld.color, ...variants.map(v => v.color)].filter(Boolean)), url: location.href, fonte: 'temu', _estrategia: 'json-ld' };
       }
     }
   } catch {}
@@ -239,9 +241,9 @@ function extractTemuProduct() {
     })).slice(0, 20);
 
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
-    return { nome, preco: 0, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu' };
+    return { nome, preco: 0, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu', _estrategia: 'dom' };
   } catch {
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
-    return { nome, preco: 0, descricao: '', imagens: [], tamanhos: [], cores: [], url: location.href, fonte: 'temu' };
+    return { nome, preco: 0, descricao: '', imagens: [], tamanhos: [], cores: [], url: location.href, fonte: 'temu', _estrategia: 'dom-err' };
   }
 }
