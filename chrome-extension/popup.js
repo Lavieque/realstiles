@@ -69,17 +69,9 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
         btnTemuImport.disabled = false;
         return;
       }
-      // Mostrar debug: estratégia usada + resumo dos dados encontrados
-      showStatus(temuStatus, `[${produto._estrategia||'?'}] ${produto.imagens?.length||0} imgs · preço: ${produto.preco} · ${produto.cores?.length||0} cores · ${produto.tamanhos?.length||0} tam`, 'loading');
-
-      // Gerar token e abrir tab Realstiles
-      showStatus(temuStatus, '[2/3] A preparar...', 'loading');
       const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
       const postBase = realstilesBase;
-      const openedNewTab = true;
 
-      // Enviar dados para o Realstiles
-      showStatus(temuStatus, '[3/3] A enviar para ' + postBase + '...', 'loading');
       const postRes = await fetch(`${postBase}/api/import/temu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,12 +80,9 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
 
       if (!postRes.ok) throw new Error(`Erro ${postRes.status}`);
 
-      if (openedNewTab) {
-        chrome.tabs.create({ url: `${realstilesBase}/admin/importar?temu_token=${token}` });
-        showStatus(temuStatus, '✓ Produto enviado! A abrir Realstiles...', 'success');
-      } else {
-        showStatus(temuStatus, '✓ Produto enviado! Volta ao Realstiles.', 'success');
-      }
+      chrome.tabs.create({ url: `${realstilesBase}/admin/importar?temu_token=${token}` });
+      // Debug visível após envio com sucesso
+      showStatus(temuStatus, `[${produto._estrategia||'?'}] ${produto.imagens?.length||0} imgs · preço: ${produto.preco} · ${produto.cores?.length||0} cores · ${produto.tamanhos?.length||0} tam`, 'success');
     } catch (err) {
       showStatus(temuStatus, 'Erro: ' + (err.message || 'Falha ao importar'), 'error');
       btnTemuImport.disabled = false;
