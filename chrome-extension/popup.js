@@ -212,7 +212,7 @@ function extractTemuProduct() {
 
   // ── Estratégia 4: DOM (igual ao sidecar dom-live) ────────────────────────
   try {
-    const isCdnImg = (src) => typeof src === 'string' && (src.includes('kwcdn.com') || src.includes('temu.com/goods_img') || src.includes('temu.com/img'));
+    const isCdnImg = (src) => typeof src === 'string' && src.includes('kwcdn.com') && src.includes('/product/');
     const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|X{2,5}L|[2-9]XL)\s*$/i;
     const uiLabelPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
     const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
@@ -241,10 +241,26 @@ function extractTemuProduct() {
         return candidates.map(normalizeImg).filter(isProductImg);
       })).slice(0, 20);
 
-    // Tentar extrair preço do DOM
-    const priceEl = document.querySelector('[class*="price"] [class*="value"], [class*="sale-price"], [class*="current-price"], [data-automation="product-price"]');
-    const priceText = priceEl?.textContent?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
-    const preco = parseFloat(priceText) || 0;
+    // Tentar extrair preço do DOM — vários seletores Temu
+    const priceSelectors = ['[class*="sale-price"]','[class*="current-price"]','[class*="price-sale"]','[class*="price--sale"]','[class*="goods-price"]','[class*="product-price"]','[class*="final-price"]','[class*="price_sale"]'];
+    let preco = 0;
+    for (const sel of priceSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const txt = el.textContent.replace(/[^\d,.]/g, '').trim();
+        const val = parseFloat(txt.replace(',', '.'));
+        if (val > 0) { preco = val; break; }
+      }
+    }
+    // fallback: primeiro elemento com texto que parece preço (ex: "13,59 MZN")
+    if (!preco) {
+      const all = Array.from(document.querySelectorAll('[class*="price"]'));
+      for (const el of all) {
+        const txt = el.textContent.replace(/[^\d,.]/g, '').trim();
+        const val = parseFloat(txt.replace(',', '.'));
+        if (val > 0 && val < 100000) { preco = val; break; }
+      }
+    }
 
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
     return { nome, preco, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu', _estrategia: 'dom' };
