@@ -30,7 +30,7 @@ const isTemu = (u: string) => { try { return new URL(u).hostname.includes('temu.
 const gerarToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const extensaoActiva = () => {
   const ts = parseInt(localStorage.getItem('tradeflow_importer_ts') || '0', 10);
-  return Date.now() - ts < 10_000; // extensão actualiza a cada 5s — se >10s está desinstalada
+  return Date.now() - ts < 60_000; // visibilitychange refresca ao voltar à aba; 60s cobre throttle do browser
 };
 
 export default function Page() {
