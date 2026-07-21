@@ -252,17 +252,66 @@ async function extractTemuProduct() {
     }
   }
 
-  // ── Estratégia 3: DOM (igual ao sidecar: extractDomFallback) ─────────────
+  // ── Estratégia 3: DOM ────────────────────────────────────────────────────
   const isCdnImg = (src) => typeof src === 'string' && (src.includes('kwcdn.com') || src.includes('temu.com/goods_img') || src.includes('temu.com/img'));
   const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|XXL|3XL|4XL|5XL)\s*$/i;
   const uiPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
   const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
-  const optionEls = Array.from(document.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]'));
-  const cores = unique(optionEls.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiPattern.test(v)));
-  const tamanhos = unique(optionEls.map(cleanLabel).filter(v => sizePattern.test(v) && v.length < 20));
-  const allImgs = Array.from(document.querySelectorAll('img'));
-  const imagens = unique(allImgs.flatMap(el => [el.src, el.dataset?.src, (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]].map(normalizeImg).filter(u => u && isCdnImg(u) && !u.includes('_60x60') && !u.includes('_100x100')))).slice(0, 20);
-  const nome = document.querySelector('h1')?.textContent?.trim() || document.title.split('|')[0].trim();
 
-  return { nome, preco: 0, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu' };
+  // Imagens — escopo para contentor da galeria, igual ao sidecar
+  const gallerySelectors = ['[class*="gallery"]','[class*="swiper"]','[class*="preview"]','[class*="thumbnail"]','[class*="carousel"]','[class*="main-img"]','[class*="product-img"]','[class*="detail-img"]'];
+  let galleryRoot = null;
+  for (const sel of gallerySelectors) {
+    const el = document.querySelector(sel);
+    if (el && el.querySelectorAll('img').length > 1) { galleryRoot = el; break; }
+  }
+  const imgScope = galleryRoot || document;
+  const imagens = unique(Array.from(imgScope.querySelectorAll('img')).flatMap(el =>
+    [el.src, el.dataset?.src, (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]]
+      .map(normalizeImg).filter(u => u && isCdnImg(u) && !u.includes('_60x60') && !u.includes('_100x100') && !u.includes('_100w'))
+  )).slice(0, 20);
+
+  // Cores e tamanhos — procurar por secção com heading "Cor"/"Tamanho"
+  const allOptionEls = Array.from(document.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]'));
+
+  // Tentar encontrar opções agrupadas por heading Cor/Tamanho
+  let coresDOM = [], tamanhosDOM = [];
+  const headings = Array.from(document.querySelectorAll('*')).filter(el => {
+    const txt = (el.textContent || '').trim().toLowerCase();
+    return (txt === 'cor' || txt === 'color' || txt === 'colour' || txt === 'tamanho' || txt === 'size' || txt.startsWith('cor:') || txt.startsWith('tamanho:')) && el.children.length === 0 && txt.length < 20;
+  });
+  for (const heading of headings) {
+    const isCor = /^cor|^color|^colour/i.test(heading.textContent.trim());
+    const isTam = /^tamanho|^size/i.test(heading.textContent.trim());
+    if (!isCor && !isTam) continue;
+    // Procurar options no mesmo bloco pai
+    let container = heading.parentElement;
+    for (let i = 0; i < 4; i++) {
+      const opts = container ? Array.from(container.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]')) : [];
+      if (opts.length > 0) {
+        const vals = unique(opts.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !uiPattern.test(v)));
+        if (isCor) coresDOM = vals;
+        if (isTam) tamanhosDOM = vals;
+        break;
+      }
+      container = container?.parentElement;
+    }
+  }
+
+  // Fallback: separar por padrão se headings não encontraram nada
+  if (coresDOM.length === 0 && tamanhosDOM.length === 0) {
+    tamanhosDOM = unique(allOptionEls.map(cleanLabel).filter(v => sizePattern.test(v) && v.length < 20));
+    coresDOM = unique(allOptionEls.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiPattern.test(v)));
+  }
+
+  // Preço DOM
+  let precoDOM = 0;
+  const priceEls = document.querySelectorAll('[class*="price"],[class*="Price"],[class*="sale"],[class*="Sale"]');
+  for (const el of priceEls) {
+    const m = (el.textContent || '').match(/(\d+[.,]\d{2})/);
+    if (m) { precoDOM = parseFloat(m[1].replace(',', '.')); break; }
+  }
+
+  const nome = document.querySelector('h1')?.textContent?.trim() || document.title.split('|')[0].trim();
+  return { nome, preco: precoDOM, descricao: '', imagens, tamanhos: tamanhosDOM, cores: coresDOM, url: location.href, fonte: 'temu' };
 }
