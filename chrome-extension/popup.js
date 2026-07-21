@@ -223,32 +223,47 @@ function extractTemuProduct() {
     let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
     let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    // Preço e cores do __NEXT_DATA__ (mais fiável)
+    // Preço e cores do __NEXT_DATA__ — scan específico por price_info e property_list
     let preco = 0;
     try {
       const nd = JSON.parse(document.querySelector('#__NEXT_DATA__')?.textContent || 'null');
       if (nd) {
-        const scan = (o, d = 0) => {
-          if (d > 10 || !o || typeof o !== 'object') return null;
-          if ((o.goods_name || o.display_name) && (o.price_info || o.sale_price !== undefined)) return o;
-          for (const v of Object.values(o)) { const f = scan(v, d + 1); if (f) return f; }
-          return null;
+        // Recolher TODOS os price_info e property_list encontrados
+        const allPriceInfos = [], allPropLists = [];
+        const collect = (o, d = 0) => {
+          if (d > 12 || !o || typeof o !== 'object' || Array.isArray(o)) {
+            if (Array.isArray(o)) o.forEach(item => collect(item, d + 1));
+            return;
+          }
+          if (o.price_info && typeof o.price_info === 'object') allPriceInfos.push(o.price_info);
+          if (Array.isArray(o.property_list) && o.property_list.length) allPropLists.push(o.property_list);
+          // preço direto no objeto
+          if ((o.sale_price !== undefined || o.price !== undefined) && !o.price_info) {
+            allPriceInfos.push({ price: o.sale_price ?? o.price });
+          }
+          for (const v of Object.values(o)) collect(v, d + 1);
         };
-        const p = scan(nd);
-        if (p) {
-          const raw = p.price_info?.price ?? p.price_info?.original_price ?? p.sale_price;
-          if (raw !== undefined) preco = normalizePrice(raw) || 0;
-          // Cores do __NEXT_DATA__ se DOM não encontrou
+        collect(nd);
+
+        // Primeiro price_info com valor
+        for (const pi of allPriceInfos) {
+          const raw = pi.price ?? pi.sale_price ?? pi.original_price ?? pi.display_price;
+          const val = normalizePrice(raw);
+          if (val && val > 0 && val < 10000) { preco = val; break; }
+        }
+
+        // Cores e tamanhos de property_list
+        const extractVals = (prop) => unique((prop.sku_property_values || prop.value_list || prop.attr_value_list || prop.values || []).map(v => firstNonEmpty(v?.property_value_name, v?.value_name, v?.spec_value, v?.name, typeof v === 'string' ? v : null)).filter(Boolean));
+        for (const propList of allPropLists) {
           if (!cores.length) {
-            const props = p.property_list || [];
-            const colorProp = props.find(pr => /color|colour|cor/i.test(pr.property_name || pr.spec_name || ''));
-            if (colorProp) cores = unique((colorProp.sku_property_values || colorProp.value_list || colorProp.values || []).map(v => v?.property_value_name || v?.value_name || v?.name || '').filter(Boolean));
+            const cp = propList.find(p => /color|colour|cor/i.test(p.property_name || p.spec_name || ''));
+            if (cp) cores = extractVals(cp);
           }
           if (!tamanhos.length) {
-            const props = p.property_list || [];
-            const sizeProp = props.find(pr => /size|tamanho|taille|talla/i.test(pr.property_name || pr.spec_name || ''));
-            if (sizeProp) tamanhos = unique((sizeProp.sku_property_values || sizeProp.value_list || sizeProp.values || []).map(v => v?.property_value_name || v?.value_name || v?.name || '').filter(Boolean));
+            const sp = propList.find(p => /size|tamanho|taille|talla/i.test(p.property_name || p.spec_name || ''));
+            if (sp) tamanhos = extractVals(sp);
           }
+          if (cores.length && tamanhos.length) break;
         }
       }
     } catch {}
