@@ -70,9 +70,10 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
       }
 
       // Ler token de QUALQUER tab que tenha rs_temu_token em localStorage
-      // Não filtrar por hostname — o URL do Vercel pode mudar entre deploys
+      // Guardar também o origin dessa tab para o POST ir para o deployment correcto
       const allTabs = await chrome.tabs.query({});
       let token = null;
+      let postBase = realstilesBase; // fallback: URL configurado nas opções
       for (const t of allTabs) {
         if (!t.url || t.url.startsWith('chrome') || t.url.startsWith('about') || t.url.startsWith('edge')) continue;
         try {
@@ -82,6 +83,8 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
           });
           if (tokenResult?.result) {
             token = tokenResult.result;
+            // POST vai para o mesmo origin da tab que está em espera
+            try { postBase = new URL(t.url).origin; } catch {}
             break;
           }
         } catch { /* tab restrita ou sem permissão */ }
@@ -94,8 +97,8 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
         openedNewTab = true;
       }
 
-      // Enviar dados para o Realstiles
-      const postRes = await fetch(`${realstilesBase}/api/import/temu`, {
+      // Enviar dados para o Realstiles — mesmo deployment que está a fazer polling
+      const postRes = await fetch(`${postBase}/api/import/temu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, produto }),
