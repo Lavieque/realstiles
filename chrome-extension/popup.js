@@ -210,20 +210,18 @@ function extractTemuProduct() {
     }
   } catch {}
 
-  // ── Estratégia 4: DOM + __NEXT_DATA__ para preço/cores ───────────────────
+  // ── Estratégia 4: DOM ────────────────────────────────────────────────────
   try {
     const isCdnImg = (src) => typeof src === 'string' && src.includes('kwcdn.com') && src.includes('/product/');
     const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|X{2,5}L|[2-9]XL)\s*$/i;
     const uiLabelPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
-    const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
 
-    // Cores e tamanhos via aria-label (vários padrões Temu)
-    const allOptionEls = Array.from(document.querySelectorAll('[role="radio"],[role="option"],[aria-checked],[data-e2e*="sku"],[class*="sku-item"],[class*="sku_item"]')).filter(el => el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('data-label'));
-    const getLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
-    let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
-    let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
+    // recHeading e isBeforeRec definidos primeiro para poder ser usados em todo o resto
+    const recHeading = Array.from(document.querySelectorAll('h2,h3,h4,h5,[class*="section-title"],[class*="section_title"],[class*="module-title"]'))
+      .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
+    const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
 
-    // Preço via text nodes — procura "13,59 €" ou "13.59€" antes da secção de recomendados
+    // Preço: procura "13,50€" no texto do DOM antes das recomendações
     let preco = 0;
     try {
       const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
@@ -239,55 +237,23 @@ function extractTemuProduct() {
       }
     } catch {}
 
-    // Cores via __NEXT_DATA__ + fallback DOM
-    try {
-      const nd = JSON.parse(document.querySelector('#__NEXT_DATA__')?.textContent || 'null');
-      if (nd) {
-        const allPropLists = [];
-        const collect = (o, d = 0) => {
-          if (d > 14 || !o || typeof o !== 'object') return;
-          if (Array.isArray(o)) { o.forEach(i => collect(i, d + 1)); return; }
-          if (Array.isArray(o.property_list) && o.property_list.length) allPropLists.push(o.property_list);
-          for (const v of Object.values(o)) collect(v, d + 1);
-        };
-        collect(nd);
-        const extractVals = (prop) => unique((prop.sku_property_values || prop.value_list || prop.attr_value_list || prop.values || []).map(v => firstNonEmpty(v?.property_value_name, v?.value_name, v?.spec_value, v?.name, typeof v === 'string' ? v : null)).filter(Boolean));
-        for (const propList of allPropLists) {
-          if (!cores.length) {
-            const cp = propList.find(p => /color|colour|cor/i.test(p.property_name || p.spec_name || ''));
-            if (cp) cores = extractVals(cp);
-          }
-          if (!tamanhos.length) {
-            const sp = propList.find(p => /size|tamanho|taille|talla/i.test(p.property_name || p.spec_name || ''));
-            if (sp) tamanhos = extractVals(sp);
-          }
-          if (cores.length && tamanhos.length) break;
-        }
-      }
-    } catch {}
+    // Cores e tamanhos: aria-label em elementos de opção antes das recomendações
+    const allOptionEls = Array.from(document.querySelectorAll('[role="radio"],[role="option"],[aria-checked],[data-e2e*="sku"],[class*="sku-item"],[class*="sku_item"]'))
+      .filter(el => isBeforeRec(el) && (el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('data-label')));
+    const getLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
+    let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
+    let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    // Fallback cores: labels de seletores de cor no DOM
+    // Fallback cores: alt de imagens de swatch antes das recomendações
     if (!cores.length) {
       try {
-        // Procura label "Cor" e lê os valores adjacentes
-        const allLabels = Array.from(document.querySelectorAll('*')).filter(el => /^cor[:\s]/i.test(el.textContent?.trim()) && el.children.length === 0);
-        if (!allLabels.length) {
-          // Tenta botões/spans dentro de um grupo de opções que não são tamanhos
-          const optBtns = Array.from(document.querySelectorAll('button,span[role="button"]')).filter(el => {
-            const t = el.textContent?.trim();
-            return t && t.length < 30 && !sizePattern.test(t) && !uiLabelPattern.test(t) && isBeforeRec(el);
-          });
-          // Só se houver poucos (< 20) e fizerem sentido como cores
-          if (optBtns.length > 0 && optBtns.length < 20) cores = unique(optBtns.map(el => el.textContent.trim()).filter(Boolean));
-        }
+        const swatchImgs = Array.from(document.querySelectorAll('img[alt]')).filter(el => {
+          const alt = el.getAttribute('alt')?.trim();
+          return alt && alt.length > 0 && alt.length < 40 && !sizePattern.test(alt) && !uiLabelPattern.test(alt) && isBeforeRec(el) && isCdnImg(el.getAttribute('src') || el.getAttribute('data-src') || '');
+        });
+        if (swatchImgs.length > 0 && swatchImgs.length <= 20) cores = unique(swatchImgs.map(el => el.getAttribute('alt').trim()));
       } catch {}
     }
-
-    // Imagens: só antes da secção de recomendados
-    const swatchContainers = new Set(Array.from(document.querySelectorAll('[role="radio"] img, [role="option"] img, [aria-checked] img')).map(el => { let p = el.parentElement; while (p) { if (p.hasAttribute('role')) return p; p = p.parentElement; } return null; }).filter(Boolean));
-    const recHeading = Array.from(document.querySelectorAll('h2,h3,h4,h5,[class*="section-title"],[class*="section_title"],[class*="module-title"]'))
-      .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
-    const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
     const imagens = unique(Array.from(document.querySelectorAll('img'))
       .filter(el => isBeforeRec(el) && !Array.from(swatchContainers).some(sc => sc.contains(el)))
       .flatMap(el => {
