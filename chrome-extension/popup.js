@@ -69,26 +69,22 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
         return;
       }
 
-      // Ler token da tab do Realstiles que está em espera
-      // Usar getAllTabs sem filtro de URL para evitar falhas do chrome.tabs.query
-      const realstilesHost = new URL(realstilesBase).hostname;
+      // Ler token de QUALQUER tab que tenha rs_temu_token em localStorage
+      // Não filtrar por hostname — o URL do Vercel pode mudar entre deploys
       const allTabs = await chrome.tabs.query({});
-      const realstilesTabs = allTabs.filter(t => {
-        try { return new URL(t.url || '').hostname === realstilesHost; } catch { return false; }
-      });
-
       let token = null;
-      for (const rsTab of realstilesTabs) {
+      for (const t of allTabs) {
+        if (!t.url || t.url.startsWith('chrome') || t.url.startsWith('about') || t.url.startsWith('edge')) continue;
         try {
           const [tokenResult] = await chrome.scripting.executeScript({
-            target: { tabId: rsTab.id },
+            target: { tabId: t.id },
             func: () => localStorage.getItem('rs_temu_token'),
           });
           if (tokenResult?.result) {
             token = tokenResult.result;
             break;
           }
-        } catch { /* tab pode não aceitar executeScript */ }
+        } catch { /* tab restrita ou sem permissão */ }
       }
 
       // Se não há token em nenhuma tab aberta, gerar um novo e abrir tab nova
