@@ -166,148 +166,103 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
   });
 });
 
-// Função injectada na página Temu para extrair dados do produto
-function extractTemuProduct() {
-  try {
-    let goodsData = null;
+// Função injectada na página Temu — porta a lógica do sidecar
+async function extractTemuProduct() {
+  const unique = (arr) => [...new Set((arr || []).filter(Boolean))];
+  const firstNonEmpty = (...vals) => { for (const v of vals) { if (typeof v === 'string' && v.trim()) return v.trim(); if (v !== null && v !== undefined && v !== '') return v; } return null; };
+  const normalizeImg = (v) => { if (!v || typeof v !== 'string') return null; if (v.startsWith('//')) return 'https:' + v; if (v.startsWith('http://')) return 'https://' + v.slice(7); return v; };
+  const normalizePrice = (v) => { if (typeof v === 'number') return String(v / 100); if (typeof v === 'string' && v.trim()) return v.trim(); return null; };
 
-    // Estratégia 1: variáveis globais que a Temu injeta
-    const globalKeys = ['__INIT_DATA__', '__INITIAL_STATE__', '__NEXT_DATA__', 'rawData', '__DATA__'];
-    for (const key of globalKeys) {
+  // Extrair goodsId da URL (igual ao sidecar: parseProductUrl)
+  const pathMatch = location.pathname.match(/-[pg]-(\d+)/i);
+  const goodsId = pathMatch?.[1] || new URLSearchParams(location.search).get('goods_id');
+
+  // ── Estratégia 1: Direct API fetch com sessão do utilizador ──────────────
+  let apiResult = null;
+  if (goodsId) {
+    const endpoints = [
+      { url: '/pt/api/bg/bg-nautilus-api/goods/get_goods_detail', body: { goods_id: goodsId, scene: 'goods_detail', language: 'pt-PT' } },
+      { url: '/pt/api/poppy/v1/goods',                             body: { goods_id: goodsId, scene: 'goods_detail' } },
+      { url: '/pt/api/bg/goods/get_goods_detail',                  body: { goods_id: goodsId } },
+    ];
+    for (const ep of endpoints) {
       try {
-        const val = window[key];
-        if (!val) continue;
-        const str = typeof val === 'string' ? val : JSON.stringify(val);
-        if (str.includes('goods_name') || str.includes('goods_price')) {
-          const obj = typeof val === 'string' ? JSON.parse(val) : val;
-          // Procurar goods_detail em qualquer nível
-          const find = (o, depth = 0) => {
-            if (!o || typeof o !== 'object' || depth > 6) return null;
-            if (o.goods_name && (o.goods_price !== undefined || o.min_normal_price !== undefined)) return o;
-            for (const v of Object.values(o)) {
-              const r = find(v, depth + 1);
-              if (r) return r;
-            }
-            return null;
-          };
-          goodsData = find(obj);
-          if (goodsData) break;
-        }
+        const res = await fetch(ep.url, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(ep.body) });
+        if (!res.ok) continue;
+        const payload = await res.json();
+        // findCandidateResultObjects — procurar objecto com shape de produto
+        const find = (obj, depth = 0, seen = new Set()) => {
+          if (!obj || typeof obj !== 'object' || depth > 8 || seen.has(obj)) return [];
+          seen.add(obj);
+          const matches = [];
+          const hasShape = 'price_info' in obj || 'property_list' in obj || 'sku_list' in obj || 'goods_imgs' in obj || 'display_name' in obj || 'goods_name' in obj || ('title' in obj && 'goods_id' in obj);
+          if (hasShape) matches.push(obj);
+          for (const v of Object.values(obj)) matches.push(...find(v, depth + 1, seen));
+          return matches;
+        };
+        const candidates = find(payload);
+        const best = candidates.filter(c => String(c.goods_id || c.goodsId || '') === String(goodsId)).sort((a, b) => {
+          const score = (o) => (o.price_info ? 10 : 0) + (o.goods_imgs?.length ? 10 : 0) + (o.property_list?.length ? 10 : 0) + (o.sku_list?.length ? 10 : 0) + (o.display_name || o.goods_name ? 10 : 0);
+          return score(b) - score(a);
+        })[0];
+        if (!best) continue;
+
+        const priceInfo = best.price_info || {};
+        const propertyList = Array.isArray(best.property_list) ? best.property_list : [];
+        const skuList = Array.isArray(best.sku_list) ? best.sku_list : [];
+
+        const extractPropVals = (list, pattern) => unique(list.filter(p => pattern.test(p?.property_name || p?.spec_name || '')).flatMap(p => (p.sku_property_values || p.value_list || p.attr_value_list || p.values || []).map(v => firstNonEmpty(v?.property_value_name, v?.spec_value, v?.value_name, v?.name, typeof v === 'string' ? v : null))));
+        const extractSkuSpecs = (list, pattern) => unique(list.flatMap(s => (s?.specs || s?.prop_list || []).filter(x => pattern.test(x?.spec_name || x?.prop_name || '')).map(x => firstNonEmpty(x?.spec_value, x?.prop_value))));
+
+        const cores = unique([...extractPropVals(propertyList, /color|colour|cor/i), ...(best.color_list || []).map(c => firstNonEmpty(c?.color_name, c?.name)), ...extractSkuSpecs(skuList, /color|colour|cor/i)]);
+        const tamanhos = unique([...extractPropVals(propertyList, /size|tamanho|taille|talla/i), ...extractSkuSpecs(skuList, /size|tamanho|taille|talla/i)]);
+        const imagens = unique((Array.isArray(best.goods_imgs) ? best.goods_imgs : []).map(i => normalizeImg(typeof i === 'string' ? i : i?.goods_image_url || i?.origin_url || i?.url || i?.img_url || i?.thumb_url))).filter(Boolean);
+        const rawPrice = priceInfo.price ?? best.sale_price;
+
+        apiResult = {
+          nome: firstNonEmpty(best.display_name, best.goods_name, best.title),
+          preco: rawPrice != null ? parseFloat(normalizePrice(rawPrice)) || 0 : 0,
+          descricao: firstNonEmpty(best.goods_desc, best.description) || '',
+          imagens,
+          tamanhos,
+          cores,
+          url: location.href,
+          fonte: 'temu',
+        };
+        if (apiResult.nome && (apiResult.preco > 0 || apiResult.imagens.length > 0)) break;
+        apiResult = null;
       } catch {}
     }
-
-    // Estratégia 2: todos os script tags com JSON
-    if (!goodsData) {
-      const scripts = document.querySelectorAll('script');
-      for (const s of scripts) {
-        const txt = s.textContent || '';
-        if (!txt.includes('goods_name')) continue;
-        try {
-          // Extrair JSON do script (pode ter window.__X__ = {...})
-          const match = txt.match(/\{.*"goods_name".*\}/s);
-          if (match) {
-            const parsed = JSON.parse(match[0]);
-            if (parsed.goods_name) { goodsData = parsed; break; }
-          }
-        } catch {}
-      }
-    }
-
-    // --- Extrair campos ---
-
-    // Nome
-    const nome =
-      goodsData?.goods_name ||
-      goodsData?.title ||
-      document.querySelector('h1')?.textContent?.trim() ||
-      document.title.split('|')[0].trim();
-
-    // Preço
-    let preco = 0;
-    if (goodsData) {
-      const rawPrice = goodsData.min_normal_price ?? goodsData.goods_price ?? goodsData.price ?? goodsData.sale_price;
-      preco = parseFloat(String(rawPrice ?? '0').replace(/[^0-9.]/g, '')) || 0;
-    }
-    if (!preco) {
-      // Fallback DOM — procurar o primeiro número decimal visível perto de "€" ou "EUR"
-      const priceEls = document.querySelectorAll('[class*="price"],[class*="Price"],[class*="sale"],[class*="Sale"]');
-      for (const el of priceEls) {
-        const txt = el.textContent || '';
-        const m = txt.match(/(\d+[.,]\d{2})/);
-        if (m) { preco = parseFloat(m[1].replace(',', '.')); break; }
-      }
-    }
-
-    // Imagens
-    let imagens = [];
-    if (goodsData) {
-      const imgs =
-        goodsData.goods_gallery_imgs ||
-        goodsData.images ||
-        goodsData.goods_imgs ||
-        goodsData.gallery ||
-        [];
-      imagens = (Array.isArray(imgs) ? imgs : [])
-        .map(i => {
-          if (typeof i === 'string') return i;
-          return i.goods_image_url || i.url || i.thumb_url || i.src || '';
-        })
-        .filter(u => u && u.startsWith('http'))
-        .slice(0, 8);
-
-      // Imagem principal
-      if (imagens.length === 0) {
-        const main = goodsData.goods_thumb_url || goodsData.main_image || goodsData.cover_image || '';
-        if (main) imagens = [main];
-      }
-    }
-    if (imagens.length === 0) {
-      // Fallback DOM — imagens grandes (>200px) que não sejam ícones
-      document.querySelectorAll('img').forEach(img => {
-        const src = img.src || img.dataset.src || '';
-        if (src && src.startsWith('http') && (img.naturalWidth > 200 || img.width > 200) && !imagens.includes(src)) {
-          imagens.push(src);
-        }
-      });
-      imagens = imagens.slice(0, 8);
-    }
-
-    // Tamanhos e cores
-    const tamanhos = [];
-    const cores = [];
-    const skuProps = goodsData?.sku_props || goodsData?.specs || goodsData?.attributes || goodsData?.sku_list || [];
-    if (Array.isArray(skuProps)) {
-      skuProps.forEach(prop => {
-        const propName = (prop.prop_name || prop.attr_name || prop.name || '').toLowerCase();
-        const values = prop.prop_values || prop.values || prop.options || [];
-        const isSize = propName.includes('size') || propName.includes('tamanho') || propName.includes('taille');
-        const isColor = propName.includes('color') || propName.includes('cor') || propName.includes('couleur');
-        (Array.isArray(values) ? values : []).forEach(v => {
-          const val = v.prop_value || v.value || v.name || v || '';
-          if (typeof val !== 'string') return;
-          if (isSize && !tamanhos.includes(val)) tamanhos.push(val);
-          if (isColor && !cores.includes(val)) cores.push(val);
-        });
-      });
-    }
-    // Fallback DOM para tamanhos
-    if (tamanhos.length === 0) {
-      document.querySelectorAll('[class*="size"] button, [class*="Size"] button').forEach(btn => {
-        const t = btn.textContent?.trim();
-        if (t && t.length < 10 && !tamanhos.includes(t)) tamanhos.push(t);
-      });
-    }
-
-    // Descrição
-    const descricao =
-      goodsData?.goods_desc ||
-      goodsData?.description ||
-      goodsData?.detail ||
-      document.querySelector('[class*="description"],[class*="Description"]')?.textContent?.trim()?.slice(0, 1000) ||
-      '';
-
-    return { nome, preco, descricao, imagens, tamanhos, cores, url: window.location.href, fonte: 'temu' };
-  } catch (e) {
-    return { nome: document.title.split('|')[0].trim(), preco: 0, descricao: '', imagens: [], tamanhos: [], cores: [], url: window.location.href, fonte: 'temu', erro: e.message };
   }
+  if (apiResult) return apiResult;
+
+  // ── Estratégia 2: JSON-LD (igual ao sidecar: extractStructuredFallback) ──
+  const jsonLdBlocks = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
+    .flatMap(s => { try { return [JSON.parse(s.textContent)]; } catch { return []; } });
+  const findProductLd = (blocks) => { const q = [...blocks]; while (q.length) { const c = q.shift(); if (!c) continue; if (Array.isArray(c)) { q.push(...c); continue; } if (c['@type'] === 'ProductGroup' || c['@type'] === 'Product') return c; for (const v of Object.values(c)) if (v && typeof v === 'object') q.push(v); } return null; };
+  const ldProduct = findProductLd(jsonLdBlocks);
+  if (ldProduct) {
+    const variants = Array.isArray(ldProduct.hasVariant) ? ldProduct.hasVariant : [];
+    const cores = unique([ldProduct.color, ...variants.map(v => v.color)]);
+    const tamanhos = unique(variants.map(v => v.size));
+    const imagens = unique((ldProduct.image || []).map(normalizeImg)).filter(Boolean);
+    const priceRaw = variants[0]?.offers?.price || ldProduct.offers?.price;
+    if (ldProduct.name && (priceRaw || imagens.length)) {
+      return { nome: ldProduct.name, preco: parseFloat(priceRaw) || 0, descricao: ldProduct.description || '', imagens, tamanhos, cores, url: location.href, fonte: 'temu' };
+    }
+  }
+
+  // ── Estratégia 3: DOM (igual ao sidecar: extractDomFallback) ─────────────
+  const isCdnImg = (src) => typeof src === 'string' && (src.includes('kwcdn.com') || src.includes('temu.com/goods_img') || src.includes('temu.com/img'));
+  const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|XXL|3XL|4XL|5XL)\s*$/i;
+  const uiPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
+  const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
+  const optionEls = Array.from(document.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]'));
+  const cores = unique(optionEls.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiPattern.test(v)));
+  const tamanhos = unique(optionEls.map(cleanLabel).filter(v => sizePattern.test(v) && v.length < 20));
+  const allImgs = Array.from(document.querySelectorAll('img'));
+  const imagens = unique(allImgs.flatMap(el => [el.src, el.dataset?.src, (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]].map(normalizeImg).filter(u => u && isCdnImg(u) && !u.includes('_60x60') && !u.includes('_100x100')))).slice(0, 20);
+  const nome = document.querySelector('h1')?.textContent?.trim() || document.title.split('|')[0].trim();
+
+  return { nome, preco: 0, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu' };
 }
