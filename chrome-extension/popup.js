@@ -174,6 +174,12 @@ async function extractTemuProduct() {
   const goodsId = pathMatch?.[1] || new URLSearchParams(location.search).get('goods_id');
 
   // ── Estratégia 1: Direct API fetch com sessão do utilizador ──────────────
+  const fetchT = (url, opts, ms = 6000) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
+  };
+
   let apiResult = null;
   if (goodsId) {
     const endpoints = [
@@ -183,7 +189,7 @@ async function extractTemuProduct() {
     ];
     for (const ep of endpoints) {
       try {
-        const res = await fetch(ep.url, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(ep.body) });
+        const res = await fetchT(ep.url, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(ep.body) });
         if (!res.ok) continue;
         const payload = await res.json();
         // findCandidateResultObjects — procurar objecto com shape de produto
