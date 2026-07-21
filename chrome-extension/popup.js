@@ -101,15 +101,7 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
       if (!postRes.ok) throw new Error(`Erro ${postRes.status}`);
 
       if (openedNewTab) {
-        // Focar tab do realstiles se existir, senão abrir nova
-        const realstilesHost = new URL(realstilesBase).hostname;
-        const existingTabs = await chrome.tabs.query({ url: `*://${realstilesHost}/*` });
-        if (existingTabs.length > 0) {
-          await chrome.tabs.update(existingTabs[0].id, { url: `${realstilesBase}/admin/importar?temu_token=${token}`, active: true });
-          await chrome.windows.update(existingTabs[0].windowId, { focused: true });
-        } else {
-          chrome.tabs.create({ url: `${realstilesBase}/admin/importar?temu_token=${token}` });
-        }
+        chrome.tabs.create({ url: `${realstilesBase}/admin/importar?temu_token=${token}` });
         showStatus(temuStatus, '✓ Produto enviado! A abrir Realstiles...', 'success');
       } else {
         showStatus(temuStatus, '✓ Produto enviado! Volta ao Realstiles.', 'success');
