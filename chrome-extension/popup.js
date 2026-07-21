@@ -169,57 +169,105 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
 // Função injectada na página Temu para extrair dados do produto
 function extractTemuProduct() {
   try {
-    // Tentar ler dados do __NEXT_DATA__ ou window state
-    let data = null;
+    let goodsData = null;
 
-    // Estratégia 1: __NEXT_DATA__
-    const nextDataEl = document.getElementById('__NEXT_DATA__');
-    if (nextDataEl) {
+    // Estratégia 1: variáveis globais que a Temu injeta
+    const globalKeys = ['__INIT_DATA__', '__INITIAL_STATE__', '__NEXT_DATA__', 'rawData', '__DATA__'];
+    for (const key of globalKeys) {
       try {
-        const nextData = JSON.parse(nextDataEl.textContent);
-        const props = nextData?.props?.pageProps;
-        if (props?.goods_detail_v2 || props?.goods_detail) {
-          data = props.goods_detail_v2 || props.goods_detail;
+        const val = window[key];
+        if (!val) continue;
+        const str = typeof val === 'string' ? val : JSON.stringify(val);
+        if (str.includes('goods_name') || str.includes('goods_price')) {
+          const obj = typeof val === 'string' ? JSON.parse(val) : val;
+          // Procurar goods_detail em qualquer nível
+          const find = (o, depth = 0) => {
+            if (!o || typeof o !== 'object' || depth > 6) return null;
+            if (o.goods_name && (o.goods_price !== undefined || o.min_normal_price !== undefined)) return o;
+            for (const v of Object.values(o)) {
+              const r = find(v, depth + 1);
+              if (r) return r;
+            }
+            return null;
+          };
+          goodsData = find(obj);
+          if (goodsData) break;
         }
       } catch {}
     }
 
-    // Estratégia 2: script tags com product data JSON
-    if (!data) {
-      const scripts = document.querySelectorAll('script[type="application/json"]');
+    // Estratégia 2: todos os script tags com JSON
+    if (!goodsData) {
+      const scripts = document.querySelectorAll('script');
       for (const s of scripts) {
+        const txt = s.textContent || '';
+        if (!txt.includes('goods_name')) continue;
         try {
-          const parsed = JSON.parse(s.textContent);
-          if (parsed?.goods_name || parsed?.name) { data = parsed; break; }
+          // Extrair JSON do script (pode ter window.__X__ = {...})
+          const match = txt.match(/\{.*"goods_name".*\}/s);
+          if (match) {
+            const parsed = JSON.parse(match[0]);
+            if (parsed.goods_name) { goodsData = parsed; break; }
+          }
         } catch {}
       }
     }
 
-    // Estratégia 3: DOM directo
+    // --- Extrair campos ---
+
+    // Nome
     const nome =
-      data?.goods_name ||
-      data?.name ||
-      document.querySelector('h1[class*="title"], [class*="goods-title"], [class*="product-title"]')?.textContent?.trim() ||
+      goodsData?.goods_name ||
+      goodsData?.title ||
+      document.querySelector('h1')?.textContent?.trim() ||
       document.title.split('|')[0].trim();
 
-    const precoRaw =
-      data?.min_normal_price ||
-      data?.price ||
-      document.querySelector('[class*="price-current"], [class*="sale-price"], [class*="goods-price"]')?.textContent?.replace(/[^0-9.,]/g, '').replace(',', '.') ||
-      '0';
-
-    const preco = parseFloat(String(precoRaw).replace(/[^0-9.]/g, '')) || 0;
+    // Preço
+    let preco = 0;
+    if (goodsData) {
+      const rawPrice = goodsData.min_normal_price ?? goodsData.goods_price ?? goodsData.price ?? goodsData.sale_price;
+      preco = parseFloat(String(rawPrice ?? '0').replace(/[^0-9.]/g, '')) || 0;
+    }
+    if (!preco) {
+      // Fallback DOM — procurar o primeiro número decimal visível perto de "€" ou "EUR"
+      const priceEls = document.querySelectorAll('[class*="price"],[class*="Price"],[class*="sale"],[class*="Sale"]');
+      for (const el of priceEls) {
+        const txt = el.textContent || '';
+        const m = txt.match(/(\d+[.,]\d{2})/);
+        if (m) { preco = parseFloat(m[1].replace(',', '.')); break; }
+      }
+    }
 
     // Imagens
     let imagens = [];
-    if (data?.images || data?.goods_imgs) {
-      const imgs = data.images || data.goods_imgs;
-      imagens = (Array.isArray(imgs) ? imgs : []).map(i => typeof i === 'string' ? i : i.url || i.thumb_url || '').filter(Boolean).slice(0, 8);
+    if (goodsData) {
+      const imgs =
+        goodsData.goods_gallery_imgs ||
+        goodsData.images ||
+        goodsData.goods_imgs ||
+        goodsData.gallery ||
+        [];
+      imagens = (Array.isArray(imgs) ? imgs : [])
+        .map(i => {
+          if (typeof i === 'string') return i;
+          return i.goods_image_url || i.url || i.thumb_url || i.src || '';
+        })
+        .filter(u => u && u.startsWith('http'))
+        .slice(0, 8);
+
+      // Imagem principal
+      if (imagens.length === 0) {
+        const main = goodsData.goods_thumb_url || goodsData.main_image || goodsData.cover_image || '';
+        if (main) imagens = [main];
+      }
     }
     if (imagens.length === 0) {
-      document.querySelectorAll('img[class*="goods"], img[class*="product"], [class*="carousel"] img').forEach(img => {
-        const src = img.src || img.dataset.src;
-        if (src && src.startsWith('http') && !imagens.includes(src)) imagens.push(src);
+      // Fallback DOM — imagens grandes (>200px) que não sejam ícones
+      document.querySelectorAll('img').forEach(img => {
+        const src = img.src || img.dataset.src || '';
+        if (src && src.startsWith('http') && (img.naturalWidth > 200 || img.width > 200) && !imagens.includes(src)) {
+          imagens.push(src);
+        }
       });
       imagens = imagens.slice(0, 8);
     }
@@ -227,31 +275,39 @@ function extractTemuProduct() {
     // Tamanhos e cores
     const tamanhos = [];
     const cores = [];
-    if (data?.sku_list || data?.skus) {
-      const skus = data.sku_list || data.skus || [];
-      skus.forEach(sku => {
-        (sku.attributes || sku.specs || []).forEach(attr => {
-          const key = (attr.attr_name || attr.name || '').toLowerCase();
-          const val = attr.attr_value || attr.value || '';
-          if (key.includes('size') || key.includes('tamanho')) { if (!tamanhos.includes(val)) tamanhos.push(val); }
-          if (key.includes('color') || key.includes('cor')) { if (!cores.includes(val)) cores.push(val); }
+    const skuProps = goodsData?.sku_props || goodsData?.specs || goodsData?.attributes || goodsData?.sku_list || [];
+    if (Array.isArray(skuProps)) {
+      skuProps.forEach(prop => {
+        const propName = (prop.prop_name || prop.attr_name || prop.name || '').toLowerCase();
+        const values = prop.prop_values || prop.values || prop.options || [];
+        const isSize = propName.includes('size') || propName.includes('tamanho') || propName.includes('taille');
+        const isColor = propName.includes('color') || propName.includes('cor') || propName.includes('couleur');
+        (Array.isArray(values) ? values : []).forEach(v => {
+          const val = v.prop_value || v.value || v.name || v || '';
+          if (typeof val !== 'string') return;
+          if (isSize && !tamanhos.includes(val)) tamanhos.push(val);
+          if (isColor && !cores.includes(val)) cores.push(val);
         });
       });
     }
+    // Fallback DOM para tamanhos
+    if (tamanhos.length === 0) {
+      document.querySelectorAll('[class*="size"] button, [class*="Size"] button').forEach(btn => {
+        const t = btn.textContent?.trim();
+        if (t && t.length < 10 && !tamanhos.includes(t)) tamanhos.push(t);
+      });
+    }
 
-    const descricao = data?.goods_desc || data?.description || document.querySelector('[class*="description"]')?.textContent?.trim()?.slice(0, 1000) || '';
+    // Descrição
+    const descricao =
+      goodsData?.goods_desc ||
+      goodsData?.description ||
+      goodsData?.detail ||
+      document.querySelector('[class*="description"],[class*="Description"]')?.textContent?.trim()?.slice(0, 1000) ||
+      '';
 
-    return {
-      nome,
-      preco,
-      descricao,
-      imagens,
-      tamanhos,
-      cores,
-      url: window.location.href,
-      fonte: 'temu',
-    };
+    return { nome, preco, descricao, imagens, tamanhos, cores, url: window.location.href, fonte: 'temu' };
   } catch (e) {
-    return null;
+    return { nome: document.title.split('|')[0].trim(), preco: 0, descricao: '', imagens: [], tamanhos: [], cores: [], url: window.location.href, fonte: 'temu', erro: e.message };
   }
 }
