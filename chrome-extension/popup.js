@@ -213,7 +213,7 @@ function extractTemuProduct() {
   // ── Estratégia 4: DOM (igual ao sidecar dom-live) ────────────────────────
   try {
     const isCdnImg = (src) => typeof src === 'string' && (src.includes('kwcdn.com') || src.includes('temu.com/goods_img') || src.includes('temu.com/img'));
-    const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|XXL|3XL|4XL|5XL)\s*$/i;
+    const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|X{2,5}L|[2-9]XL)\s*$/i;
     const uiLabelPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
     const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
 
@@ -221,16 +221,33 @@ function extractTemuProduct() {
     const cores = unique(allOptionEls.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
     const tamanhos = unique(allOptionEls.map(cleanLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    const gallerySelectors = ['[class*="gallery"]','[class*="swiper"]','[class*="preview"]','[class*="thumbnail"]','[class*="carousel"]','[class*="main-img"]','[class*="product-img"]','[class*="detail-img"]'];
+    // Excluir explicitamente containers de swatches de cor antes de procurar galeria
+    const swatchContainers = new Set(Array.from(document.querySelectorAll('[role="radio"] img, [role="option"] img, [aria-checked] img')).map(el => { let p = el.parentElement; while (p) { if (p.hasAttribute('role')) return p; p = p.parentElement; } return null; }).filter(Boolean));
+
+    const gallerySelectors = ['[class*="gallery-main"]','[class*="main-gallery"]','[class*="product-gallery"]','[class*="detail-gallery"]','[class*="goods-gallery"]','[class*="gallery"]','[class*="swiper-wrapper"]','[class*="carousel"]'];
     let imgScope = null;
-    for (const sel of gallerySelectors) { const el = document.querySelector(sel); if (el && el.querySelectorAll('img').length > 0) { imgScope = el; break; } }
-    const imagens = unique(Array.from((imgScope || document).querySelectorAll('img')).flatMap(el => {
-      const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0], (el.getAttribute('data-srcset') || '').split(',')[0]?.trim().split(' ')[0]];
-      return candidates.map(normalizeImg).filter(u => u && isCdnImg(u) && !u.includes('thumbnail') && !u.includes('_60x60') && !u.includes('_100x100'));
-    })).slice(0, 20);
+    for (const sel of gallerySelectors) {
+      const candidates = Array.from(document.querySelectorAll(sel)).filter(el => !Array.from(swatchContainers).some(sc => sc.contains(el) || el.contains(sc)));
+      const el = candidates[0];
+      if (el && el.querySelectorAll('img').length > 1) { imgScope = el; break; }
+    }
+
+    // Filtrar: só imagens kwcdn de produto, sem swatches (URLs curtos = ícones/swatches)
+    const isProductImg = (u) => u && isCdnImg(u) && !u.includes('_60x60') && !u.includes('_100x100') && !u.includes('/icon') && !u.includes('/flag') && !u.includes('/avatar') && u.length > 60;
+    const imagens = unique(Array.from((imgScope || document).querySelectorAll('img'))
+      .filter(el => !Array.from(swatchContainers).some(sc => sc.contains(el)))
+      .flatMap(el => {
+        const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
+        return candidates.map(normalizeImg).filter(isProductImg);
+      })).slice(0, 20);
+
+    // Tentar extrair preço do DOM
+    const priceEl = document.querySelector('[class*="price"] [class*="value"], [class*="sale-price"], [class*="current-price"], [data-automation="product-price"]');
+    const priceText = priceEl?.textContent?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
+    const preco = parseFloat(priceText) || 0;
 
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
-    return { nome, preco: 0, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu', _estrategia: 'dom' };
+    return { nome, preco, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu', _estrategia: 'dom' };
   } catch {
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
     return { nome, preco: 0, descricao: '', imagens: [], tamanhos: [], cores: [], url: location.href, fonte: 'temu', _estrategia: 'dom-err' };
