@@ -210,57 +210,60 @@ function extractTemuProduct() {
     }
   } catch {}
 
-  // ── Estratégia 4: DOM (igual ao sidecar dom-live) ────────────────────────
+  // ── Estratégia 4: DOM + __NEXT_DATA__ para preço/cores ───────────────────
   try {
     const isCdnImg = (src) => typeof src === 'string' && src.includes('kwcdn.com') && src.includes('/product/');
     const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|X{2,5}L|[2-9]XL)\s*$/i;
     const uiLabelPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
     const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
 
-    const allOptionEls = Array.from(document.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]'));
-    const cores = unique(allOptionEls.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
-    const tamanhos = unique(allOptionEls.map(cleanLabel).filter(v => sizePattern.test(v) && v.length < 20));
+    // Cores e tamanhos via aria-label (vários padrões Temu)
+    const allOptionEls = Array.from(document.querySelectorAll('[role="radio"],[role="option"],[aria-checked],[data-e2e*="sku"],[class*="sku-item"],[class*="sku_item"]')).filter(el => el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('data-label'));
+    const getLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
+    let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
+    let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    // Excluir explicitamente containers de swatches de cor antes de procurar galeria
+    // Preço e cores do __NEXT_DATA__ (mais fiável)
+    let preco = 0;
+    try {
+      const nd = JSON.parse(document.querySelector('#__NEXT_DATA__')?.textContent || 'null');
+      if (nd) {
+        const scan = (o, d = 0) => {
+          if (d > 10 || !o || typeof o !== 'object') return null;
+          if ((o.goods_name || o.display_name) && (o.price_info || o.sale_price !== undefined)) return o;
+          for (const v of Object.values(o)) { const f = scan(v, d + 1); if (f) return f; }
+          return null;
+        };
+        const p = scan(nd);
+        if (p) {
+          const raw = p.price_info?.price ?? p.price_info?.original_price ?? p.sale_price;
+          if (raw !== undefined) preco = normalizePrice(raw) || 0;
+          // Cores do __NEXT_DATA__ se DOM não encontrou
+          if (!cores.length) {
+            const props = p.property_list || [];
+            const colorProp = props.find(pr => /color|colour|cor/i.test(pr.property_name || pr.spec_name || ''));
+            if (colorProp) cores = unique((colorProp.sku_property_values || colorProp.value_list || colorProp.values || []).map(v => v?.property_value_name || v?.value_name || v?.name || '').filter(Boolean));
+          }
+          if (!tamanhos.length) {
+            const props = p.property_list || [];
+            const sizeProp = props.find(pr => /size|tamanho|taille|talla/i.test(pr.property_name || pr.spec_name || ''));
+            if (sizeProp) tamanhos = unique((sizeProp.sku_property_values || sizeProp.value_list || sizeProp.values || []).map(v => v?.property_value_name || v?.value_name || v?.name || '').filter(Boolean));
+          }
+        }
+      }
+    } catch {}
+
+    // Imagens: só antes da secção de recomendados
     const swatchContainers = new Set(Array.from(document.querySelectorAll('[role="radio"] img, [role="option"] img, [aria-checked] img')).map(el => { let p = el.parentElement; while (p) { if (p.hasAttribute('role')) return p; p = p.parentElement; } return null; }).filter(Boolean));
-
-    // Encontrar onde começam as recomendações pelo texto do heading
     const recHeading = Array.from(document.querySelectorAll('h2,h3,h4,h5,[class*="section-title"],[class*="section_title"],[class*="module-title"]'))
       .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
-
-    const isBeforeRec = (el) => {
-      if (!recHeading) return true;
-      return !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
-    };
-
-    const isProductImg = (u) => u && isCdnImg(u);
-    const allImgs = Array.from(document.querySelectorAll('img'))
-      .filter(el => isBeforeRec(el) && !Array.from(swatchContainers).some(sc => sc.contains(el)));
-    const imagens = unique(allImgs.flatMap(el => {
-      const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
-      return candidates.map(normalizeImg).filter(isProductImg);
-    })).slice(0, 10);
-
-    // Tentar extrair preço do DOM — vários seletores Temu
-    const priceSelectors = ['[class*="sale-price"]','[class*="current-price"]','[class*="price-sale"]','[class*="price--sale"]','[class*="goods-price"]','[class*="product-price"]','[class*="final-price"]','[class*="price_sale"]'];
-    let preco = 0;
-    for (const sel of priceSelectors) {
-      const el = document.querySelector(sel);
-      if (el) {
-        const txt = el.textContent.replace(/[^\d,.]/g, '').trim();
-        const val = parseFloat(txt.replace(',', '.'));
-        if (val > 0) { preco = val; break; }
-      }
-    }
-    // fallback: primeiro elemento com texto que parece preço (ex: "13,59 MZN")
-    if (!preco) {
-      const all = Array.from(document.querySelectorAll('[class*="price"]'));
-      for (const el of all) {
-        const txt = el.textContent.replace(/[^\d,.]/g, '').trim();
-        const val = parseFloat(txt.replace(',', '.'));
-        if (val > 0 && val < 100000) { preco = val; break; }
-      }
-    }
+    const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
+    const imagens = unique(Array.from(document.querySelectorAll('img'))
+      .filter(el => isBeforeRec(el) && !Array.from(swatchContainers).some(sc => sc.contains(el)))
+      .flatMap(el => {
+        const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
+        return candidates.map(normalizeImg).filter(u => u && isCdnImg(u));
+      })).slice(0, 10);
 
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
     return { nome, preco, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu', _estrategia: 'dom' };
