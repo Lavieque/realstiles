@@ -173,56 +173,73 @@ function extractTemuProduct() {
     }
 
     // ── DOM ──────────────────────────────────────────────────────────────────
-    const isCdnImg = (src) => typeof src === 'string' && (src.includes('kwcdn.com') || src.includes('temu.com/goods_img') || src.includes('temu.com/img'));
-    const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|XXL|3XL|4XL|5XL)\s*$/i;
-    const uiPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
+    const isCdnImg = (src) => typeof src === 'string' && (src.includes('kwcdn.com') || src.includes('temu.com/goods_img'));
+    // Excluir thumbnails — URLs de kwcdn têm sufixo _NxN para thumbnails
+    const isFullImg = (src) => isCdnImg(src) && !/_\d+x\d+/.test(src) && !src.includes('_100w') && !src.includes('thumbnail');
+    const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d+)?(?:\s*(?:cm|mm|EU|UK|US|FR|IT))?\s*|XXS|XS|S|M|L|XL|2XL|XXL|3XL|4XL|5XL)\s*$/i;
+    const uiPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos|adicionar|add/i;
     const cleanLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
 
-    // Imagens — galeria do produto
-    const gallerySelectors = ['[class*="gallery"]','[class*="swiper"]','[class*="preview"]','[class*="thumbnail"]','[class*="carousel"]','[class*="main-img"]','[class*="product-img"]'];
-    let galleryRoot = null;
+    // Imagens — apanhar o PRIMEIRO contentor de swiper/galeria no topo da página
+    // e filtrar apenas imagens sem sufixo de thumbnail
+    const allImgs = Array.from(document.querySelectorAll('img'));
+    const gallerySelectors = ['[class*="swiper-wrapper"]','[class*="gallery"]','[class*="preview"]','[class*="carousel"]','[class*="main-img"]','[class*="product-img"]','[class*="goods-img"]'];
+    let imagens = [];
     for (const sel of gallerySelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.querySelectorAll('img').length > 1) { galleryRoot = el; break; }
+      const container = document.querySelector(sel);
+      if (!container) continue;
+      const imgs = Array.from(container.querySelectorAll('img'))
+        .map(el => normalizeImg(el.src || el.dataset?.src || '')).filter(isFullImg);
+      if (imgs.length > 0) { imagens = unique(imgs).slice(0, 12); break; }
     }
-    const imgScope = galleryRoot || document;
-    const imagens = unique(Array.from(imgScope.querySelectorAll('img')).flatMap(el =>
-      [el.src, el.dataset?.src, (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]]
-        .map(normalizeImg).filter(u => u && isCdnImg(u) && !u.includes('_60x60') && !u.includes('_100x100') && !u.includes('_100w'))
-    )).slice(0, 20);
+    // Fallback: primeiras imagens full-size da página (excluindo as de baixo do fold)
+    if (!imagens.length) {
+      imagens = unique(allImgs.slice(0, 30).map(el => normalizeImg(el.src || el.dataset?.src || '')).filter(isFullImg)).slice(0, 12);
+    }
 
-    // Cores e tamanhos por heading
-    const allOpts = Array.from(document.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]'));
+    // Preço — procurar o primeiro número com formato monetário num elemento visível e proeminente
+    // Temu mostra o preço de venda num elemento com classe que inclui "price" perto do h1
+    let preco = 0;
+    const h1El = document.querySelector('h1');
+    const priceScope = h1El ? (h1El.closest('section,main,[class*="detail"],[class*="product"]') || document.body) : document.body;
+    for (const el of priceScope.querySelectorAll('[class*="price"],[class*="Price"],[class*="sale-price"],[class*="salePrice"]')) {
+      const txt = el.textContent || '';
+      const m = txt.match(/[\d]+[.,]\d{2}/);
+      if (m) { preco = parseFloat(m[0].replace(',', '.')); break; }
+    }
+
+    // Cores e tamanhos — procurar grupos de opções por label/heading
+    const allOpts = Array.from(document.querySelectorAll('[role="radio"],[role="option"],[aria-checked]')).filter(el => el.getAttribute('aria-label') || el.getAttribute('title'));
     let cores = [], tamanhos = [];
-    const headings = Array.from(document.querySelectorAll('*')).filter(el => {
-      const txt = (el.textContent || '').trim().toLowerCase();
-      return (txt === 'cor' || txt === 'color' || txt === 'tamanho' || txt === 'size' || txt.startsWith('cor:') || txt.startsWith('tamanho:')) && el.children.length === 0 && txt.length < 20;
-    });
-    for (const h of headings) {
-      const isCor = /^cor|^color/i.test(h.textContent.trim());
-      const isTam = /^tamanho|^size/i.test(h.textContent.trim());
-      let container = h.parentElement;
-      for (let i = 0; i < 4; i++) {
-        const opts = container ? Array.from(container.querySelectorAll('[role="radio"][aria-label],[role="option"][aria-label],[aria-checked][aria-label]')) : [];
+
+    // Temu tem secções com texto "Color" / "Colour" / "Cor" e "Size" / "Tamanho"
+    // O texto aparece muitas vezes como "Color: Red" (inclui o valor actual)
+    const allTextEls = Array.from(document.querySelectorAll('span,p,label,div')).filter(el => el.children.length <= 1);
+    for (const el of allTextEls) {
+      const txt = (el.textContent || '').trim();
+      const lower = txt.toLowerCase();
+      const isCor = /^(cor|color|colour)\b/i.test(txt);
+      const isTam = /^(tamanho|size)\b/i.test(txt);
+      if (!isCor && !isTam) continue;
+      // Subir até encontrar um contentor com opções
+      let container = el.parentElement;
+      for (let i = 0; i < 5; i++) {
+        if (!container) break;
+        const opts = Array.from(container.querySelectorAll('[role="radio"],[role="option"],[aria-checked]')).filter(o => o.getAttribute('aria-label') || o.getAttribute('title'));
         if (opts.length > 0) {
-          const vals = unique(opts.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !uiPattern.test(v)));
-          if (isCor) cores = vals;
-          if (isTam) tamanhos = vals;
+          const vals = unique(opts.map(cleanLabel).filter(v => v.length > 0 && v.length < 50 && !uiPattern.test(v)));
+          if (isCor && !cores.length) cores = vals;
+          if (isTam && !tamanhos.length) tamanhos = vals;
           break;
         }
-        container = container?.parentElement;
+        container = container.parentElement;
       }
     }
-    if (!cores.length && !tamanhos.length) {
-      tamanhos = unique(allOpts.map(cleanLabel).filter(v => sizePattern.test(v) && v.length < 20));
-      cores = unique(allOpts.map(cleanLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiPattern.test(v)));
-    }
 
-    // Preço
-    let preco = 0;
-    for (const el of document.querySelectorAll('[class*="price"],[class*="Price"],[class*="sale"],[class*="Sale"]')) {
-      const m = (el.textContent || '').match(/(\d+[.,]\d{2})/);
-      if (m) { preco = parseFloat(m[1].replace(',', '.')); break; }
+    // Fallback: separar todas as opções por padrão de tamanho
+    if (!cores.length && !tamanhos.length && allOpts.length) {
+      tamanhos = unique(allOpts.map(cleanLabel).filter(v => sizePattern.test(v)));
+      cores = unique(allOpts.map(cleanLabel).filter(v => v.length > 0 && v.length < 50 && !sizePattern.test(v) && !uiPattern.test(v)));
     }
 
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
