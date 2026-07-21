@@ -28,14 +28,10 @@ type EstadoTF = 'verificando' | 'sem_conta' | 'inativo' | 'sem_limite' | 'ok';
 
 const isTemu = (u: string) => { try { return new URL(u).hostname.includes('temu.com'); } catch { return false; } };
 const gerarToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-const extensaoActiva = (): Promise<boolean> => new Promise(resolve => {
-  const timeout = setTimeout(() => resolve(false), 300);
-  document.addEventListener('tradeflow_response', () => {
-    clearTimeout(timeout);
-    resolve(true);
-  }, { once: true });
-  document.dispatchEvent(new CustomEvent('tradeflow_check'));
-});
+const extensaoActiva = () => {
+  const ts = parseInt(localStorage.getItem('tradeflow_importer_ts') || '0', 10);
+  return Date.now() - ts < 10_000; // extensão actualiza a cada 5s — se >10s está desinstalada
+};
 
 export default function Page() {
   return <Suspense><AdminImportarPage /></Suspense>;
@@ -61,8 +57,8 @@ function AdminImportarPage() {
   const [extensaoInstalada, setExtensaoInstalada] = useState<boolean | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const iniciarTemuEspera = async (modo: 'url' | 'manual') => {
-    const instalada = await extensaoActiva();
+  const iniciarTemuEspera = (modo: 'url' | 'manual') => {
+    const instalada = extensaoActiva();
     setExtensaoInstalada(instalada);
     const token = gerarToken();
     setTemuToken(token);

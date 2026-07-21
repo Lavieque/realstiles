@@ -1,3 +1,3 @@
-document.addEventListener('tradeflow_check', () => {
-  document.dispatchEvent(new CustomEvent('tradeflow_response', { detail: { installed: true } }));
-});
+const _tfSet = () => { try { localStorage.setItem('tradeflow_importer_ts', Date.now().toString()); } catch {} };
+_tfSet();
+setInterval(_tfSet, 5000);
