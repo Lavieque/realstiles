@@ -223,36 +223,34 @@ function extractTemuProduct() {
     let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
     let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    // Preço e cores do __NEXT_DATA__ — scan específico por price_info e property_list
+    // Preço via text nodes — procura "13,59 €" ou "13.59€" antes da secção de recomendados
     let preco = 0;
+    try {
+      const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while ((node = walker.nextNode()) && !preco) {
+        const txt = node.textContent.trim();
+        const m = priceRe.exec(txt);
+        if (m && node.parentElement && isBeforeRec(node.parentElement)) {
+          const val = parseFloat(m[1].replace(',', '.'));
+          if (val > 0 && val < 10000) preco = val;
+        }
+      }
+    } catch {}
+
+    // Cores via __NEXT_DATA__ + fallback DOM
     try {
       const nd = JSON.parse(document.querySelector('#__NEXT_DATA__')?.textContent || 'null');
       if (nd) {
-        // Recolher TODOS os price_info e property_list encontrados
-        const allPriceInfos = [], allPropLists = [];
+        const allPropLists = [];
         const collect = (o, d = 0) => {
-          if (d > 12 || !o || typeof o !== 'object' || Array.isArray(o)) {
-            if (Array.isArray(o)) o.forEach(item => collect(item, d + 1));
-            return;
-          }
-          if (o.price_info && typeof o.price_info === 'object') allPriceInfos.push(o.price_info);
+          if (d > 14 || !o || typeof o !== 'object') return;
+          if (Array.isArray(o)) { o.forEach(i => collect(i, d + 1)); return; }
           if (Array.isArray(o.property_list) && o.property_list.length) allPropLists.push(o.property_list);
-          // preço direto no objeto
-          if ((o.sale_price !== undefined || o.price !== undefined) && !o.price_info) {
-            allPriceInfos.push({ price: o.sale_price ?? o.price });
-          }
           for (const v of Object.values(o)) collect(v, d + 1);
         };
         collect(nd);
-
-        // Primeiro price_info com valor
-        for (const pi of allPriceInfos) {
-          const raw = pi.price ?? pi.sale_price ?? pi.original_price ?? pi.display_price;
-          const val = normalizePrice(raw);
-          if (val && val > 0 && val < 10000) { preco = val; break; }
-        }
-
-        // Cores e tamanhos de property_list
         const extractVals = (prop) => unique((prop.sku_property_values || prop.value_list || prop.attr_value_list || prop.values || []).map(v => firstNonEmpty(v?.property_value_name, v?.value_name, v?.spec_value, v?.name, typeof v === 'string' ? v : null)).filter(Boolean));
         for (const propList of allPropLists) {
           if (!cores.length) {
@@ -267,6 +265,23 @@ function extractTemuProduct() {
         }
       }
     } catch {}
+
+    // Fallback cores: labels de seletores de cor no DOM
+    if (!cores.length) {
+      try {
+        // Procura label "Cor" e lê os valores adjacentes
+        const allLabels = Array.from(document.querySelectorAll('*')).filter(el => /^cor[:\s]/i.test(el.textContent?.trim()) && el.children.length === 0);
+        if (!allLabels.length) {
+          // Tenta botões/spans dentro de um grupo de opções que não são tamanhos
+          const optBtns = Array.from(document.querySelectorAll('button,span[role="button"]')).filter(el => {
+            const t = el.textContent?.trim();
+            return t && t.length < 30 && !sizePattern.test(t) && !uiLabelPattern.test(t) && isBeforeRec(el);
+          });
+          // Só se houver poucos (< 20) e fizerem sentido como cores
+          if (optBtns.length > 0 && optBtns.length < 20) cores = unique(optBtns.map(el => el.textContent.trim()).filter(Boolean));
+        }
+      } catch {}
+    }
 
     // Imagens: só antes da secção de recomendados
     const swatchContainers = new Set(Array.from(document.querySelectorAll('[role="radio"] img, [role="option"] img, [aria-checked] img')).map(el => { let p = el.parentElement; while (p) { if (p.hasAttribute('role')) return p; p = p.parentElement; } return null; }).filter(Boolean));
