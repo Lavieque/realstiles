@@ -164,6 +164,12 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
 
 // Função injectada na página Temu — porta a lógica do sidecar
 async function extractTemuProduct() {
+  const _domFallback = () => {
+    const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
+    return { nome, preco: 0, descricao: '', imagens: [], tamanhos: [], cores: [], url: location.href, fonte: 'temu' };
+  };
+  try {
+
   const unique = (arr) => [...new Set((arr || []).filter(Boolean))];
   const firstNonEmpty = (...vals) => { for (const v of vals) { if (typeof v === 'string' && v.trim()) return v.trim(); if (v !== null && v !== undefined && v !== '') return v; } return null; };
   const normalizeImg = (v) => { if (!v || typeof v !== 'string') return null; if (v.startsWith('//')) return 'https:' + v; if (v.startsWith('http://')) return 'https://' + v.slice(7); return v; };
@@ -174,11 +180,11 @@ async function extractTemuProduct() {
   const goodsId = pathMatch?.[1] || new URLSearchParams(location.search).get('goods_id');
 
   // ── Estratégia 1: Direct API fetch com sessão do utilizador ──────────────
-  const fetchT = (url, opts, ms = 6000) => {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), ms);
-    return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
-  };
+  // Promise.race garante timeout mesmo se o fetch ignorar o AbortSignal
+  const fetchT = (url, opts, ms = 5000) => Promise.race([
+    fetch(url, opts),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+  ]);
 
   let apiResult = null;
   if (goodsId) {
@@ -314,6 +320,8 @@ async function extractTemuProduct() {
     if (m) { precoDOM = parseFloat(m[1].replace(',', '.')); break; }
   }
 
-  const nome = document.querySelector('h1')?.textContent?.trim() || document.title.split('|')[0].trim();
+  const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
   return { nome, preco: precoDOM, descricao: '', imagens, tamanhos: tamanhosDOM, cores: coresDOM, url: location.href, fonte: 'temu' };
+
+  } catch (e) { return _domFallback(); }
 }
