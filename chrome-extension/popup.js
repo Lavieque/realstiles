@@ -57,6 +57,7 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
       }
 
       // Extrair dados do produto na tab Temu actual
+      showStatus(temuStatus, '[1/3] A extrair dados...', 'loading');
       const [result] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: extractTemuProduct,
@@ -64,16 +65,16 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
 
       const produto = result?.result;
       if (!produto || !produto.nome) {
-        showStatus(temuStatus, 'Não foi possível extrair dados. Certifica-te de que estás numa página de produto.', 'error');
+        showStatus(temuStatus, 'Sem dados: ' + JSON.stringify(produto).slice(0, 80), 'error');
         btnTemuImport.disabled = false;
         return;
       }
 
       // Ler token de QUALQUER tab que tenha rs_temu_token em localStorage
-      // Guardar também o origin dessa tab para o POST ir para o deployment correcto
+      showStatus(temuStatus, '[2/3] A procurar tab Realstiles...', 'loading');
       const allTabs = await chrome.tabs.query({});
       let token = null;
-      let postBase = realstilesBase; // fallback: URL configurado nas opções
+      let postBase = realstilesBase;
       for (const t of allTabs) {
         if (!t.url || t.url.startsWith('chrome') || t.url.startsWith('about') || t.url.startsWith('edge')) continue;
         try {
@@ -83,21 +84,20 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
           });
           if (tokenResult?.result) {
             token = tokenResult.result;
-            // POST vai para o mesmo origin da tab que está em espera
             try { postBase = new URL(t.url).origin; } catch {}
             break;
           }
         } catch { /* tab restrita ou sem permissão */ }
       }
 
-      // Se não há token em nenhuma tab aberta, gerar um novo e abrir tab nova
       let openedNewTab = false;
       if (!token) {
         token = Math.random().toString(36).slice(2) + Date.now().toString(36);
         openedNewTab = true;
       }
 
-      // Enviar dados para o Realstiles — mesmo deployment que está a fazer polling
+      // Enviar dados para o Realstiles
+      showStatus(temuStatus, '[3/3] A enviar para ' + postBase + '...', 'loading');
       const postRes = await fetch(`${postBase}/api/import/temu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
