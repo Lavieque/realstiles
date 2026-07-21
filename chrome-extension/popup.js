@@ -70,31 +70,11 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
         return;
       }
 
-      // Ler token de QUALQUER tab que tenha rs_temu_token em localStorage
-      showStatus(temuStatus, '[2/3] A procurar tab Realstiles...', 'loading');
-      const allTabs = await chrome.tabs.query({});
-      let token = null;
-      let postBase = realstilesBase;
-      for (const t of allTabs) {
-        if (!t.url || t.url.startsWith('chrome') || t.url.startsWith('about') || t.url.startsWith('edge')) continue;
-        try {
-          const [tokenResult] = await chrome.scripting.executeScript({
-            target: { tabId: t.id },
-            func: () => localStorage.getItem('rs_temu_token'),
-          });
-          if (tokenResult?.result) {
-            token = tokenResult.result;
-            try { postBase = new URL(t.url).origin; } catch {}
-            break;
-          }
-        } catch { /* tab restrita ou sem permissão */ }
-      }
-
-      let openedNewTab = false;
-      if (!token) {
-        token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-        openedNewTab = true;
-      }
+      // Gerar token e abrir tab Realstiles
+      showStatus(temuStatus, '[2/3] A preparar...', 'loading');
+      const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const postBase = realstilesBase;
+      const openedNewTab = true;
 
       // Enviar dados para o Realstiles
       showStatus(temuStatus, '[3/3] A enviar para ' + postBase + '...', 'loading');
