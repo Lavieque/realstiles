@@ -502,7 +502,7 @@ function AdminImportarPage() {
                 </>
                 );
               })()}
-              <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4 }}>Fonte: <a href={resultado.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gray-400)' }}>{resultado.url}</a></p>
+              <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>Fonte: <a href={resultado.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gray-400)' }}>{resultado.url}</a></p>
             </div>
 
             <div className="form-card">
