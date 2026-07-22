@@ -214,7 +214,7 @@ function extractTemuProduct() {
   try {
     const isCdnImg = (src) => typeof src === 'string' && src.includes('kwcdn.com') && src.includes('/product/');
     const sizePattern = /^\s*(?:\d{1,3}(?:[.,]\d)?(?:\s*(?:cm|mm|EU|UK|US))?\s*|XXS|XS|S|M|L|XL|X{2,5}L|[2-9]XL)\s*$/i;
-    const uiLabelPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos/i;
+    const uiLabelPattern = /botão|button|select|tudo|all|fechar|close|mais|more|less|menos|autêntic|qualidade|entrega rápida|declaração|loja oficial|garantia|marca\s+(de|oficial)|vendedor|100%/i;
 
     // recHeading e isBeforeRec definidos primeiro para poder ser usados em todo o resto
     const recHeading = Array.from(document.querySelectorAll('h2,h3,h4,h5,[class*="section-title"],[class*="section_title"],[class*="module-title"]'))
@@ -279,7 +279,7 @@ function extractTemuProduct() {
           while ((node = walker.nextNode())) {
             const txt = node.textContent.trim();
             const m = /^cor\s*:\s*(?:cor\s+)?(.+)$/i.exec(txt);
-            if (m && isBeforeRec(node.parentElement)) { cores = [m[1].trim()]; break; }
+            if (m && isBeforeRec(node.parentElement)) { cores = [m[1].replace(/[【】「」《》\[\]🔥🧡]/g, '').trim()]; break; }
           }
         }
       } catch {}
@@ -302,13 +302,16 @@ function extractTemuProduct() {
               const cdnImgs = Array.from(container.querySelectorAll('img')).filter(img =>
                 isCdnImg(img.getAttribute('src') || img.getAttribute('data-src') || '')
               );
-              if (cdnImgs.length >= 2) {
-                imagens = unique(cdnImgs.flatMap(img => {
+              if (cdnImgs.length >= 2 && cdnImgs.length <= 10) {
+                const beforeRecImgs = cdnImgs.filter(img => isBeforeRec(img));
+                const pool = beforeRecImgs.length >= 2 ? beforeRecImgs : cdnImgs;
+                imagens = unique(pool.flatMap(img => {
                   const c = [img.getAttribute('src'), img.getAttribute('data-src'), (img.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
                   return c.map(normalizeImg).filter(u => u && isCdnImg(u));
-                })).slice(0, 12);
+                })).slice(0, 10);
                 break;
               }
+              if (cdnImgs.length > 10) break;
               container = container.parentElement;
             }
           }
