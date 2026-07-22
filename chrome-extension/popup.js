@@ -221,28 +221,27 @@ function extractTemuProduct() {
       .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
     const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
 
-    // Preço: Temu renderiza "12,97€" em spans separados — pegar o elemento leaf mais curto com padrão de preço
+    // Preço: Temu usa span de acessibilidade "€12.97" (símbolo antes) + spans aria-hidden para visual
     let preco = 0;
     try {
       const promoPattern = /klarna|cashback|pague hoje|scalepay|bnpl|crédito|voucher|cupão|desconto adicional|taxa|imposto/i;
-      const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
-      // Candidatos: elementos antes das recomendações cujo innerText sem espaços começa com preço
+      // Aceitar €12.97 ou 12,97€ — o span de acessibilidade do Temu usa o formato com símbolo antes
+      const priceRe = /(?:[€$£]\s*(\d{1,4}[.,]\d{2})|(\d{1,4}[.,]\d{2})\s*[€$£])/;
       const candidates = Array.from(document.querySelectorAll('*')).filter(el => {
         if (!isBeforeRec(el)) return false;
+        if (el.getAttribute('aria-hidden') === 'true') return false;
         if (promoPattern.test(el.textContent || '')) return false;
         const raw = (el.innerText || '').replace(/\s/g, '');
         return raw.length >= 4 && raw.length <= 15 && priceRe.test(raw);
       });
-      // Pegar o candidato com innerText mais curto (mais específico = mais próximo do valor real)
-      candidates.sort((a, b) => {
-        const ra = (a.innerText || '').replace(/\s/g, '').length;
-        const rb = (b.innerText || '').replace(/\s/g, '').length;
-        return ra - rb;
-      });
+      // Pegar o candidato com innerText mais curto (mais específico)
+      candidates.sort((a, b) =>
+        (a.innerText || '').replace(/\s/g, '').length - (b.innerText || '').replace(/\s/g, '').length
+      );
       if (candidates.length > 0) {
         const raw = (candidates[0].innerText || '').replace(/\s/g, '');
         const m = priceRe.exec(raw);
-        if (m) preco = parseFloat(m[1].replace(',', '.'));
+        if (m) preco = parseFloat((m[1] || m[2]).replace(',', '.'));
       }
     } catch {}
 
