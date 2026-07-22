@@ -224,7 +224,7 @@ function extractTemuProduct() {
     // Preço: o Temu divide "12,97€" em spans — encontrar o elemento de preço mais próximo do h1
     let preco = 0;
     try {
-      const promoPattern = /klarna|cashback|pague hoje|scalepay|bnpl/i;
+      const promoPattern = /klarna|cashback|pague hoje|scalepay|bnpl|crédito por atraso|em crédito|voucher|cupão|desconto adicional/i;
       const priceRe = /^(\d{1,4}[.,]\d{2})\s*[€$£]/;
       const h1 = document.querySelector('h1');
       // Calcular ancestrais do h1 para medir proximidade
