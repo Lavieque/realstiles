@@ -331,14 +331,17 @@ function extractTemuProduct() {
     try {
       const detail = document.querySelector('#goodsDetail');
       if (detail) {
-        const skipWords = /^(detalhes do produto|guardar|ver todos os detalhes|informações do comerciante|informações de segurança e contactos|aviso\s*:?)$/i;
+        const skipWords = /^(detalhes do produto|guardar|ver todos os detalhes|informações do comerciante|informações de segurança e contactos|aviso\s*:?|características|copiar|id do artigo|artigo\s*n[°º]?)$/i;
         const leafTexts = Array.from(detail.querySelectorAll('*'))
           .filter(el => el.childElementCount === 0 && !skipWords.test((el.textContent || '').trim()))
           .map(el => (el.textContent || '').trim())
-          .filter(t => t.length > 0 && t.length < 80);
-        // Pares chave→valor (specs)
+          .filter(t => t.length > 1 && t.length < 80);
+        // Pares chave→valor (specs) — só pares onde a chave não parece um valor
         const specs = [];
-        for (let i = 0; i + 1 < leafTexts.length; i += 2) specs.push(`${leafTexts[i]}: ${leafTexts[i + 1]}`);
+        for (let i = 0; i + 1 < leafTexts.length; i += 2) {
+          const k = leafTexts[i], v = leafTexts[i + 1];
+          if (k && v && k !== v) specs.push(`${k}: ${v}`);
+        }
         // Texto longo (avisos/descrição)
         const warnTexts = Array.from(detail.querySelectorAll('*'))
           .filter(el => el.childElementCount === 0)
@@ -346,23 +349,8 @@ function extractTemuProduct() {
           .filter(t => t.length >= 30 && !skipWords.test(t));
         const parts = [];
         if (specs.length) parts.push(specs.join('\n'));
-        if (warnTexts.length) parts.push(warnTexts.join('\n'));
+        if (warnTexts.length) parts.push([...new Set(warnTexts)].join('\n'));
         descricao = parts.join('\n\n');
-      }
-    } catch {}
-
-    // Imagens de detalhe do #goodsDetail (infográficos/marketing) — adicionar após galeria
-    try {
-      const detail = document.querySelector('#goodsDetail');
-      if (detail) {
-        const detailImgs = unique(
-          Array.from(detail.querySelectorAll('img'))
-            .map(img => img.getAttribute('src') || img.getAttribute('data-src') || '')
-            .filter(u => u && u.includes('kwcdn.com'))
-            .map(normalizeImg)
-            .filter(Boolean)
-        );
-        if (detailImgs.length) imagens = unique([...imagens, ...detailImgs]);
       }
     } catch {}
 
