@@ -221,65 +221,66 @@ function extractTemuProduct() {
       .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
     const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
 
-    // Preço: procura perto do h1 em vez do primeiro match do DOM
+    // Preço: o Temu divide "12,97€" em spans separados — usar innerText de elementos curtos
     let preco = 0;
     try {
+      const promoPattern = /crédito|klarna|cashback|pague hoje|atraso|voucher/i;
       const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
-      const h1 = document.querySelector('h1');
-      // Sobe até encontrar um container suficientemente largo com o preço
-      let priceScope = h1;
-      for (let i = 0; i < 6 && priceScope; i++) {
-        const txt = priceScope.innerText || '';
-        const m = priceRe.exec(txt);
-        if (m) { const val = parseFloat(m[1].replace(',', '.')); if (val > 0 && val < 10000) { preco = val; break; } }
-        priceScope = priceScope.parentElement;
-      }
-      // Fallback: primeiro match de texto no DOM antes das recomendações, mas excluindo promoções/créditos
-      if (!preco) {
-        const promoPattern = /crédito|voucher|cupão|coupon|desconto|cashback|envio|shipping/i;
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
-        let node;
-        while ((node = walker.nextNode()) && !preco) {
-          const parentTxt = node.parentElement?.closest('*')?.innerText || '';
-          if (promoPattern.test(parentTxt)) continue;
-          const txt = node.textContent.trim();
-          const m = priceRe.exec(txt);
-          if (m && node.parentElement && isBeforeRec(node.parentElement)) {
-            const val = parseFloat(m[1].replace(',', '.'));
-            if (val > 0 && val < 10000) preco = val;
-          }
-        }
+      // Iterar todos os elementos com innerText curto (≤ 10 chars sem espaços) antes das recomendações
+      const allEls = Array.from(document.querySelectorAll('*'));
+      for (const el of allEls) {
+        if (!isBeforeRec(el)) continue;
+        const raw = (el.innerText || '').replace(/\s/g, '');
+        if (raw.length < 4 || raw.length > 10) continue;
+        const m = priceRe.exec(raw);
+        if (!m) continue;
+        const val = parseFloat(m[1].replace(',', '.'));
+        if (val <= 0 || val >= 10000) continue;
+        // Verificar que não está dentro de um container de promoção
+        let anc = el, isPromo = false;
+        for (let i = 0; i < 5 && anc && !isPromo; i++) { if (promoPattern.test(anc.textContent || '')) isPromo = true; anc = anc.parentElement; }
+        if (isPromo) continue;
+        preco = val; break;
       }
     } catch {}
 
     // Cores e tamanhos: aria-label em elementos de opção antes das recomendações
     const allOptionEls = Array.from(document.querySelectorAll('[role="radio"],[role="option"],[aria-checked],[data-e2e*="sku"],[class*="sku-item"],[class*="sku_item"]'))
       .filter(el => isBeforeRec(el) && (el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('data-label')));
-    const getLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]]/g, '').trim();
+    const getLabel = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-label') || el.getAttribute('title') || '').replace(/[【】「」《》\[\]🔥]/g, '').trim();
     let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
     let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    // Cor única: lê "Cor: Oceano Verde" do label se não encontrou seletores interativos
+    // Cores: encontrar secção "Cor:" e ler todos os nomes de opção dentro dela
     if (!cores.length) {
       try {
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
-        let node;
-        while ((node = walker.nextNode())) {
-          const txt = node.textContent.trim();
-          const m = /^(?:cor|color|colour|couleur|farbe|color)[:\s]+(.+)$/i.exec(txt);
-          if (m && isBeforeRec(node.parentElement)) { cores = [m[1].trim()]; break; }
+        // Localiza o elemento com texto "Cor: X" para encontrar a secção de cor
+        const corLabelEl = Array.from(document.querySelectorAll('*')).find(el =>
+          el.childElementCount === 0 && /^cor\s*:/i.test(el.textContent?.trim()) && isBeforeRec(el)
+        );
+        if (corLabelEl) {
+          // Sobe até um container com vários filhos (a secção completa de cor)
+          let section = corLabelEl.parentElement;
+          while (section && section.childElementCount < 2) section = section.parentElement;
+          if (section) {
+            // Lê todos os textos curtos dentro da secção (nomes de cor)
+            const optTexts = Array.from(section.querySelectorAll('*'))
+              .filter(el => el.childElementCount === 0)
+              .map(el => (el.textContent || '').replace(/[【】「」《》🔥\[\]]/g, '').trim())
+              .filter(t => t && t.length > 0 && t.length <= 25 && !/^cor\s*:/i.test(t) && !sizePattern.test(t) && !uiLabelPattern.test(t));
+            if (optTexts.length > 0) cores = unique(optTexts);
+          }
         }
-      } catch {}
-    }
-
-    // Fallback cores: texto nos botões de swatch (nome visível abaixo da imagem, ex: "Preto")
-    if (!cores.length) {
-      try {
-        const swatchImgs = Array.from(document.querySelectorAll('img[alt]')).filter(el => {
-          const alt = el.getAttribute('alt')?.trim();
-          return alt && alt.length > 0 && alt.length < 40 && !sizePattern.test(alt) && !uiLabelPattern.test(alt) && isBeforeRec(el) && isCdnImg(el.getAttribute('src') || el.getAttribute('data-src') || '');
-        });
-        if (swatchImgs.length > 0 && swatchImgs.length <= 20) cores = unique(swatchImgs.map(el => el.getAttribute('alt').trim()));
+        // Se não encontrou secção "Cor:", tenta ler o nome da cor selecionada do label "Cor: X"
+        if (!cores.length) {
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+          let node;
+          while ((node = walker.nextNode())) {
+            const txt = node.textContent.trim();
+            const m = /^cor\s*:\s*(?:cor\s+)?(.+)$/i.exec(txt);
+            if (m && isBeforeRec(node.parentElement)) { cores = [m[1].trim()]; break; }
+          }
+        }
       } catch {}
     }
     // Imagens: usar top_gallery_url do URL para encontrar o container da galeria exacto
