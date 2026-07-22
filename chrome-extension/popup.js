@@ -221,18 +221,33 @@ function extractTemuProduct() {
       .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
     const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
 
-    // Preço: procura "13,50€" no texto do DOM antes das recomendações
+    // Preço: procura perto do h1 em vez do primeiro match do DOM
     let preco = 0;
     try {
       const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
-      let node;
-      while ((node = walker.nextNode()) && !preco) {
-        const txt = node.textContent.trim();
+      const h1 = document.querySelector('h1');
+      // Sobe até encontrar um container suficientemente largo com o preço
+      let priceScope = h1;
+      for (let i = 0; i < 6 && priceScope; i++) {
+        const txt = priceScope.innerText || '';
         const m = priceRe.exec(txt);
-        if (m && node.parentElement && isBeforeRec(node.parentElement)) {
-          const val = parseFloat(m[1].replace(',', '.'));
-          if (val > 0 && val < 10000) preco = val;
+        if (m) { const val = parseFloat(m[1].replace(',', '.')); if (val > 0 && val < 10000) { preco = val; break; } }
+        priceScope = priceScope.parentElement;
+      }
+      // Fallback: primeiro match de texto no DOM antes das recomendações, mas excluindo promoções/créditos
+      if (!preco) {
+        const promoPattern = /crédito|voucher|cupão|coupon|desconto|cashback|envio|shipping/i;
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+        let node;
+        while ((node = walker.nextNode()) && !preco) {
+          const parentTxt = node.parentElement?.closest('*')?.innerText || '';
+          if (promoPattern.test(parentTxt)) continue;
+          const txt = node.textContent.trim();
+          const m = priceRe.exec(txt);
+          if (m && node.parentElement && isBeforeRec(node.parentElement)) {
+            const val = parseFloat(m[1].replace(',', '.'));
+            if (val > 0 && val < 10000) preco = val;
+          }
         }
       }
     } catch {}
@@ -244,7 +259,20 @@ function extractTemuProduct() {
     let cores = unique(allOptionEls.map(getLabel).filter(v => v.length > 0 && v.length < 40 && !sizePattern.test(v) && !uiLabelPattern.test(v)));
     let tamanhos = unique(allOptionEls.map(getLabel).filter(v => sizePattern.test(v) && v.length < 20));
 
-    // Fallback cores: alt de imagens de swatch antes das recomendações
+    // Cor única: lê "Cor: Oceano Verde" do label se não encontrou seletores interativos
+    if (!cores.length) {
+      try {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+        let node;
+        while ((node = walker.nextNode())) {
+          const txt = node.textContent.trim();
+          const m = /^(?:cor|color|colour|couleur|farbe|color)[:\s]+(.+)$/i.exec(txt);
+          if (m && isBeforeRec(node.parentElement)) { cores = [m[1].trim()]; break; }
+        }
+      } catch {}
+    }
+
+    // Fallback cores: texto nos botões de swatch (nome visível abaixo da imagem, ex: "Preto")
     if (!cores.length) {
       try {
         const swatchImgs = Array.from(document.querySelectorAll('img[alt]')).filter(el => {
