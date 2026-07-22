@@ -221,32 +221,26 @@ function extractTemuProduct() {
       .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
     const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
 
-    // Preço: o Temu divide "12,97€" em spans — encontrar o elemento de preço mais próximo do h1
+    // Preço: Temu renderiza "12,97€" em spans separados — pegar o elemento leaf mais curto com padrão de preço
     let preco = 0;
     try {
-      const promoPattern = /klarna|cashback|pague hoje|scalepay|bnpl|crédito por atraso|em crédito|voucher|cupão|desconto adicional/i;
-      const priceRe = /^(\d{1,4}[.,]\d{2})\s*[€$£]/;
-      const h1 = document.querySelector('h1');
-      // Calcular ancestrais do h1 para medir proximidade
-      const h1Ancestors = new Set();
-      let _p = h1?.parentElement;
-      while (_p) { h1Ancestors.add(_p); _p = _p.parentElement; }
-      // Candidatos: elementos com innerText (sem espaços) de 4-30 chars que começam com preço
+      const promoPattern = /klarna|cashback|pague hoje|scalepay|bnpl|crédito|voucher|cupão|desconto adicional|taxa|imposto/i;
+      const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
+      // Candidatos: elementos antes das recomendações cujo innerText sem espaços começa com preço
       const candidates = Array.from(document.querySelectorAll('*')).filter(el => {
         if (!isBeforeRec(el)) return false;
+        if (promoPattern.test(el.textContent || '')) return false;
         const raw = (el.innerText || '').replace(/\s/g, '');
-        return raw.length >= 4 && raw.length <= 30 && priceRe.test(raw);
+        return raw.length >= 4 && raw.length <= 15 && priceRe.test(raw);
       });
-      // Escolher o candidato com mais ancestrais em comum com o h1 (mais próximo)
-      let bestEl = null, bestShared = -1;
-      for (const el of candidates) {
-        if (promoPattern.test(el.textContent || '')) continue;
-        let shared = 0, a = el.parentElement;
-        while (a) { if (h1Ancestors.has(a)) shared++; a = a.parentElement; }
-        if (shared > bestShared) { bestShared = shared; bestEl = el; }
-      }
-      if (bestEl) {
-        const raw = (bestEl.innerText || '').replace(/\s/g, '');
+      // Pegar o candidato com innerText mais curto (mais específico = mais próximo do valor real)
+      candidates.sort((a, b) => {
+        const ra = (a.innerText || '').replace(/\s/g, '').length;
+        const rb = (b.innerText || '').replace(/\s/g, '').length;
+        return ra - rb;
+      });
+      if (candidates.length > 0) {
+        const raw = (candidates[0].innerText || '').replace(/\s/g, '');
         const m = priceRe.exec(raw);
         if (m) preco = parseFloat(m[1].replace(',', '.'));
       }
