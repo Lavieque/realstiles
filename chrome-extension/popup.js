@@ -282,13 +282,47 @@ function extractTemuProduct() {
         if (swatchImgs.length > 0 && swatchImgs.length <= 20) cores = unique(swatchImgs.map(el => el.getAttribute('alt').trim()));
       } catch {}
     }
-    const swatchEls = new Set(Array.from(document.querySelectorAll('[role="radio"] img,[role="option"] img,[aria-checked] img')));
-    const imagens = unique(Array.from(document.querySelectorAll('img'))
-      .filter(el => isBeforeRec(el) && !swatchEls.has(el))
-      .flatMap(el => {
-        const candidates = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
-        return candidates.map(normalizeImg).filter(u => u && isCdnImg(u));
-      })).slice(0, 10);
+    // Imagens: usar top_gallery_url do URL para encontrar o container da galeria exacto
+    let imagens = [];
+    try {
+      const topUrl = new URL(location.href).searchParams.get('top_gallery_url');
+      if (topUrl) {
+        // Encontra o filename UUID da primeira imagem da galeria
+        const fname = decodeURIComponent(topUrl).split('/').pop()?.split('?')[0];
+        if (fname) {
+          const topImg = Array.from(document.querySelectorAll('img')).find(img =>
+            (img.getAttribute('src') || img.getAttribute('data-src') || '').includes(fname)
+          );
+          if (topImg) {
+            // Sobe no DOM até encontrar container com várias imagens CDN (a galeria)
+            let container = topImg.parentElement;
+            for (let i = 0; i < 8 && container; i++) {
+              const cdnImgs = Array.from(container.querySelectorAll('img')).filter(img =>
+                isCdnImg(img.getAttribute('src') || img.getAttribute('data-src') || '')
+              );
+              if (cdnImgs.length >= 2) {
+                imagens = unique(cdnImgs.flatMap(img => {
+                  const c = [img.getAttribute('src'), img.getAttribute('data-src'), (img.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
+                  return c.map(normalizeImg).filter(u => u && isCdnImg(u));
+                })).slice(0, 12);
+                break;
+              }
+              container = container.parentElement;
+            }
+          }
+        }
+      }
+    } catch {}
+    // Fallback se top_gallery_url não encontrado
+    if (!imagens.length) {
+      const swatchEls = new Set(Array.from(document.querySelectorAll('[role="radio"] img,[role="option"] img,[aria-checked] img')));
+      imagens = unique(Array.from(document.querySelectorAll('img'))
+        .filter(el => isBeforeRec(el) && !swatchEls.has(el))
+        .flatMap(el => {
+          const c = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
+          return c.map(normalizeImg).filter(u => u && isCdnImg(u));
+        })).slice(0, 10);
+    }
 
     const nome = document.querySelector('h1')?.textContent?.trim() || document.title.replace(/\s*[-|].*$/, '').trim();
     return { nome, preco, descricao: '', imagens, tamanhos, cores, url: location.href, fonte: 'temu', _estrategia: 'dom' };
