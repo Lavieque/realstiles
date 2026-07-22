@@ -221,26 +221,34 @@ function extractTemuProduct() {
       .find(h => /explore|interesse|similar|também|recomend|suggest|may also|you may|like|discover|mais artigos/i.test(h.textContent));
     const isBeforeRec = (el) => !recHeading || !!(recHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
 
-    // Preço: o Temu divide "12,97€" em spans separados — usar innerText de elementos curtos
+    // Preço: o Temu divide "12,97€" em spans — encontrar o elemento de preço mais próximo do h1
     let preco = 0;
     try {
-      const promoPattern = /crédito|klarna|cashback|pague hoje|atraso|voucher/i;
-      const priceRe = /(\d{1,4}[.,]\d{2})\s*[€$£]/;
-      // Iterar todos os elementos com innerText curto (≤ 10 chars sem espaços) antes das recomendações
-      const allEls = Array.from(document.querySelectorAll('*'));
-      for (const el of allEls) {
-        if (!isBeforeRec(el)) continue;
+      const promoPattern = /klarna|cashback|pague hoje|scalepay|bnpl/i;
+      const priceRe = /^(\d{1,4}[.,]\d{2})\s*[€$£]/;
+      const h1 = document.querySelector('h1');
+      // Calcular ancestrais do h1 para medir proximidade
+      const h1Ancestors = new Set();
+      let _p = h1?.parentElement;
+      while (_p) { h1Ancestors.add(_p); _p = _p.parentElement; }
+      // Candidatos: elementos com innerText (sem espaços) de 4-30 chars que começam com preço
+      const candidates = Array.from(document.querySelectorAll('*')).filter(el => {
+        if (!isBeforeRec(el)) return false;
         const raw = (el.innerText || '').replace(/\s/g, '');
-        if (raw.length < 4 || raw.length > 10) continue;
+        return raw.length >= 4 && raw.length <= 30 && priceRe.test(raw);
+      });
+      // Escolher o candidato com mais ancestrais em comum com o h1 (mais próximo)
+      let bestEl = null, bestShared = -1;
+      for (const el of candidates) {
+        if (promoPattern.test(el.textContent || '')) continue;
+        let shared = 0, a = el.parentElement;
+        while (a) { if (h1Ancestors.has(a)) shared++; a = a.parentElement; }
+        if (shared > bestShared) { bestShared = shared; bestEl = el; }
+      }
+      if (bestEl) {
+        const raw = (bestEl.innerText || '').replace(/\s/g, '');
         const m = priceRe.exec(raw);
-        if (!m) continue;
-        const val = parseFloat(m[1].replace(',', '.'));
-        if (val <= 0 || val >= 10000) continue;
-        // Verificar que não está dentro de um container de promoção
-        let anc = el, isPromo = false;
-        for (let i = 0; i < 5 && anc && !isPromo; i++) { if (promoPattern.test(anc.textContent || '')) isPromo = true; anc = anc.parentElement; }
-        if (isPromo) continue;
-        preco = val; break;
+        if (m) preco = parseFloat(m[1].replace(',', '.'));
       }
     } catch {}
 
