@@ -140,7 +140,7 @@ chrome.storage.local.get(['tradeflow_url', 'capture_token', 'realstiles_url'], a
 function extractTemuProduct() {
   const unique = (arr) => [...new Set((arr || []).filter(Boolean))];
   const firstNonEmpty = (...vals) => { for (const v of vals) { if (typeof v === 'string' && v.trim()) return v.trim(); if (v !== null && v !== undefined && v !== '') return v; } return null; };
-  const normalizeImg = (v) => { if (!v || typeof v !== 'string') return null; if (v.startsWith('//')) return 'https:' + v; if (v.startsWith('http://')) return 'https://' + v.slice(7); return v.startsWith('https') ? v : null; };
+  const normalizeImg = (v) => { if (!v || typeof v !== 'string') return null; if (v.startsWith('//')) v = 'https:' + v; else if (v.startsWith('http://')) v = 'https://' + v.slice(7); if (!v.startsWith('https')) return null; try { const u = new URL(v); if (u.hostname.includes('kwcdn.com')) u.search = ''; return u.toString(); } catch { return v; } };
   const normalizePrice = (v) => { if (typeof v === 'number') return v / 100; if (typeof v === 'string' && v.trim()) return parseFloat(v.trim()); return null; };
 
   const extractPropVals = (list, pat) => unique(list.filter(p => pat.test(p?.property_name || p?.spec_name || '')).flatMap(p => (p.sku_property_values || p.value_list || p.attr_value_list || p.values || []).map(v => firstNonEmpty(v?.property_value_name, v?.spec_value, v?.value_name, v?.name, typeof v === 'string' ? v : null))));
