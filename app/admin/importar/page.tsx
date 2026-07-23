@@ -225,6 +225,11 @@ function AdminImportarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...ajustes, fonte: resultado?.fonte }),
       });
+      if (res.status === 402) {
+        const data = await res.json();
+        mostrarToast(data.error || 'Créditos insuficientes. Vai a Admin → TradeFlow para fazer upgrade.', 'error');
+        return;
+      }
       if (!res.ok) throw new Error(await res.text());
       mostrarToast('Produto importado com sucesso!', 'success');
       setResultado(null);
