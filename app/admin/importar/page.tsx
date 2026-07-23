@@ -222,7 +222,7 @@ function AdminImportarPage() {
       const res = await fetch('/api/produtos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ajustes),
+        body: JSON.stringify({ ...ajustes, fonte: resultado?.fonte }),
       });
       if (!res.ok) throw new Error(await res.text());
       mostrarToast('Produto importado com sucesso!', 'success');
