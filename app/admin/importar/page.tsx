@@ -225,9 +225,9 @@ function AdminImportarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...ajustes, fonte: resultado?.fonte }),
       });
-      if (res.status === 402) {
+      if (res.status === 402 || res.status === 403) {
         const data = await res.json();
-        mostrarToast(data.error || 'Créditos insuficientes. Vai a Admin → TradeFlow para fazer upgrade.', 'error');
+        mostrarToast(data.error || 'Sem acesso. Vai a Admin → TradeFlow para fazer upgrade.', 'error');
         return;
       }
       if (!res.ok) throw new Error(await res.text());
