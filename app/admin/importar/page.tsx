@@ -22,6 +22,7 @@ interface ScrapeResult {
   tags?: string[];
   categoria?: string;
   url: string;
+  fonte?: string;
 }
 
 type EstadoTF = 'verificando' | 'sem_conta' | 'inativo' | 'sem_limite' | 'ok';
