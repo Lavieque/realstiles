@@ -302,14 +302,14 @@ function extractTemuProduct() {
               const cdnImgs = Array.from(container.querySelectorAll('img')).filter(img =>
                 isCdnImg(img.getAttribute('src') || img.getAttribute('data-src') || '')
               );
-              if (cdnImgs.length >= 2 && cdnImgs.length <= 8) {
+              if (cdnImgs.length >= 2 && cdnImgs.length <= 15) {
                 imagens = unique(cdnImgs.flatMap(img => {
                   const c = [img.getAttribute('src'), img.getAttribute('data-src'), (img.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
                   return c.map(normalizeImg).filter(u => u && isCdnImg(u));
-                })).slice(0, 8);
+                })).slice(0, 12);
                 break;
               }
-              if (cdnImgs.length > 8) break;
+              if (cdnImgs.length > 15) break;
               container = container.parentElement;
             }
             // Se o climbing não encontrou container, usar pelo menos a imagem principal
