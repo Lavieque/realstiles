@@ -284,49 +284,55 @@ function extractTemuProduct() {
         }
       } catch {}
     }
-    // Imagens: usar top_gallery_url do URL para encontrar o container da galeria exacto
+    // Imagens: usar top_gallery_url para ancorar no branch DOM da galeria e subir até container com 2-8 imgs
+    // Não usa isBeforeRec — no Temu PT todas as imagens estão depois do heading de recomendações no DOM
     let imagens = [];
     try {
       const topUrl = new URL(location.href).searchParams.get('top_gallery_url');
       if (topUrl) {
-        // Encontra o filename UUID da primeira imagem da galeria
         const fname = decodeURIComponent(topUrl).split('/').pop()?.split('?')[0];
         if (fname) {
           const topImg = Array.from(document.querySelectorAll('img')).find(img =>
             (img.getAttribute('src') || img.getAttribute('data-src') || '').includes(fname)
           );
           if (topImg) {
-            // Sobe no DOM até encontrar container com várias imagens CDN (a galeria)
+            // Subir no DOM — parar no primeiro container com 2-8 CDN imgs (o branch da galeria)
             let container = topImg.parentElement;
-            for (let i = 0; i < 8 && container; i++) {
+            for (let i = 0; i < 6 && container; i++) {
               const cdnImgs = Array.from(container.querySelectorAll('img')).filter(img =>
                 isCdnImg(img.getAttribute('src') || img.getAttribute('data-src') || '')
               );
-              if (cdnImgs.length >= 2 && cdnImgs.length <= 10) {
-                const beforeRecImgs = cdnImgs.filter(img => isBeforeRec(img));
-                const pool = beforeRecImgs.length >= 2 ? beforeRecImgs : cdnImgs;
-                imagens = unique(pool.flatMap(img => {
+              if (cdnImgs.length >= 2 && cdnImgs.length <= 8) {
+                imagens = unique(cdnImgs.flatMap(img => {
                   const c = [img.getAttribute('src'), img.getAttribute('data-src'), (img.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
                   return c.map(normalizeImg).filter(u => u && isCdnImg(u));
-                })).slice(0, 10);
+                })).slice(0, 8);
                 break;
               }
-              if (cdnImgs.length > 10) break;
+              if (cdnImgs.length > 8) break;
               container = container.parentElement;
+            }
+            // Se o climbing não encontrou container, usar pelo menos a imagem principal
+            if (!imagens.length) {
+              const n = normalizeImg(topImg.getAttribute('src') || topImg.getAttribute('data-src') || '');
+              if (n && isCdnImg(n)) imagens = [n];
             }
           }
         }
       }
     } catch {}
-    // Fallback se top_gallery_url não encontrado
+    // Fallback: galeria sem top_gallery_url — pegar imgs /product/fancy/ que não sejam swatches
     if (!imagens.length) {
-      const swatchEls = new Set(Array.from(document.querySelectorAll('[role="radio"] img,[role="option"] img,[aria-checked] img')));
+      const swatchSrcs = new Set(Array.from(document.querySelectorAll('[role="radio"] img,[role="option"] img,[aria-checked] img'))
+        .map(img => img.getAttribute('src') || img.getAttribute('data-src') || ''));
       imagens = unique(Array.from(document.querySelectorAll('img'))
-        .filter(el => isBeforeRec(el) && !swatchEls.has(el))
-        .flatMap(el => {
-          const c = [el.getAttribute('src'), el.getAttribute('data-src'), (el.getAttribute('srcset') || '').split(',')[0]?.trim().split(' ')[0]];
-          return c.map(normalizeImg).filter(u => u && isCdnImg(u));
-        })).slice(0, 10);
+        .filter(img => {
+          const src = img.getAttribute('src') || img.getAttribute('data-src') || '';
+          return src.includes('kwcdn.com/product/fancy/') && !swatchSrcs.has(src);
+        })
+        .map(img => normalizeImg(img.getAttribute('src') || img.getAttribute('data-src') || ''))
+        .filter(u => u && isCdnImg(u))
+      ).slice(0, 8);
     }
 
     // Descrição: specs + avisos do #goodsDetail
