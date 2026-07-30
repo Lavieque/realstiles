@@ -6,8 +6,9 @@ const KEY = process.env.NOTIFY_API_KEY || '';
 
 export async function POST(req: Request) {
   try {
-    const { telefone, codigo } = await req.json();
+    const { telefone, codigo, nome } = await req.json();
     if (!telefone || !codigo) return NextResponse.json({ erro: 'Telefone e código obrigatórios' }, { status: 400 });
+    const isRegistar = typeof nome === 'string' && nome.trim().length > 0;
 
     // Verifica OTP no website-notify
     const res = await fetch(`${API}/otp/verify`, {
@@ -20,14 +21,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ erro: 'Código inválido ou expirado' }, { status: 401 });
     }
 
-    // Encontra ou cria utilizador Firebase pelo telefone
     const uid = `wa_${telefone.replace(/\D/g, '')}`;
+    const { adminDb } = await import('@/lib/firebase-admin');
+    const perfilSnap = await adminDb.collection('clientes').doc(uid).get();
+
+    if (isRegistar) {
+      // Registo: bloqueia se já existe
+      if (perfilSnap.exists) {
+        return NextResponse.json({ erro: 'Este número já tem conta. Faz login.' }, { status: 409 });
+      }
+      // Cria perfil em Firestore
+      await adminDb.collection('clientes').doc(uid).set({
+        nome: nome.trim(),
+        email: '',
+        telefone,
+        morada: '',
+        admin: false,
+        criado_em: new Date(),
+      });
+    } else {
+      // Login: bloqueia se não existe
+      if (!perfilSnap.exists) {
+        return NextResponse.json({ erro: 'Número não registado. Cria uma conta primeiro.' }, { status: 403 });
+      }
+    }
+
+    // Garante que o utilizador existe no Firebase Auth
     try {
       await adminAuth.getUser(uid);
     } catch {
       await adminAuth.createUser({
         uid,
-        displayName: telefone,
+        displayName: isRegistar ? nome.trim() : (perfilSnap.data()?.nome || telefone),
         phoneNumber: `+${telefone.replace(/\D/g, '')}`,
       });
     }

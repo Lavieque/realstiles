@@ -149,10 +149,16 @@ function ContaInner() {
     e.preventDefault();
     setLoading(true);
     try {
+      const payload: Record<string, string> = {
+        telefone: form.telefone.replace(/\D/g, ''),
+        codigo: form.codigo,
+      };
+      // Registo: passa o nome para criar o perfil no servidor
+      if (tab === 'registar') payload.nome = form.nome;
       const res = await fetch('/api/notify/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone: form.telefone.replace(/\D/g, ''), codigo: form.codigo }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.token) {
