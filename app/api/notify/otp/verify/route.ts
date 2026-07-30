@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({ telefone, codigo }),
     });
     const data = await res.json();
-    if (!res.ok || !data.valido) {
+    if (!res.ok || !data.ok) {
       return NextResponse.json({ erro: 'Código inválido ou expirado' }, { status: 401 });
     }
 
