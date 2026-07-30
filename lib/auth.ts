@@ -21,7 +21,17 @@ export interface Perfil {
   telefone: string;
   morada: string;
   admin: boolean;
+  notif_canal?: 'email' | 'whatsapp';
   criado_em?: unknown;
+}
+
+export async function actualizarPerfil(
+  uid: string,
+  dados: Partial<Pick<Perfil, 'nome' | 'telefone' | 'morada'>>,
+): Promise<void> {
+  await import('firebase/firestore').then(({ updateDoc, doc: fsDoc }) =>
+    updateDoc(fsDoc(db, 'clientes', uid), dados as Record<string, unknown>)
+  );
 }
 
 export async function registar(
@@ -30,7 +40,7 @@ export async function registar(
 ): Promise<User> {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await setDoc(doc(db, 'clientes', cred.user.uid), {
-    nome, email, telefone, morada, admin: false, criado_em: serverTimestamp(),
+    nome, email, telefone, morada, admin: false, notif_canal: 'email', criado_em: serverTimestamp(),
   });
   await sendEmailVerification(cred.user);
   return cred.user;
@@ -49,7 +59,7 @@ export async function loginGoogle(): Promise<User> {
     await setDoc(ref, {
       nome: cred.user.displayName || '',
       email: cred.user.email,
-      telefone: '', morada: '', admin: false, criado_em: serverTimestamp(),
+      telefone: '', morada: '', admin: false, notif_canal: 'email', criado_em: serverTimestamp(),
     });
   }
   return cred.user;

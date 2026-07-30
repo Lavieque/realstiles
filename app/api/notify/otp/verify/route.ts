@@ -37,6 +37,7 @@ export async function POST(req: Request) {
         telefone,
         morada: '',
         admin: false,
+        notif_canal: 'whatsapp',
         criado_em: new Date(),
       });
     } else {

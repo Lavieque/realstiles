@@ -69,19 +69,42 @@ export async function criarEncomenda({
     criado_em: serverTimestamp(),
   });
 
-  try {
-    await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tipo: 'confirmacao_encomenda',
-        encomenda_id: ref.id,
-        cliente_email: emailFinal,
-        itens, total, morada,
-      }),
-    });
-  } catch (e) {
-    console.warn('Email não enviado:', e);
+  // Determina canal de notificação do utilizador
+  let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
+  if (user) {
+    try {
+      const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
+      const canal = perfilSnap.data()?.notif_canal;
+      if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
+    } catch { /* mantém o default */ }
+  }
+
+  if (notifCanal === 'whatsapp') {
+    try {
+      const telLimpo = telefone.replace(/\D/g, '');
+      if (telLimpo) {
+        const ref8 = ref.id.substring(0, 8).toUpperCase();
+        const mensagem = `✅ *Encomenda #${ref8} recebida!*\n\nTotal: *${total.toFixed(2)} MZN*\nEntrega: ${morada}\n\nAcompanha o estado em realstiles.co.mz/encomendas`;
+        await fetch('/api/notify/messages/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telefone: telLimpo, mensagem }),
+        });
+      }
+    } catch (e) { console.warn('WhatsApp não enviado:', e); }
+  } else {
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'confirmacao_encomenda',
+          encomenda_id: ref.id,
+          cliente_email: emailFinal,
+          itens, total, morada,
+        }),
+      });
+    } catch (e) { console.warn('Email não enviado:', e); }
   }
 
   return ref.id;

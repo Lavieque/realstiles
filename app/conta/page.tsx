@@ -3,7 +3,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout } from '@/lib/auth';
+import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout, actualizarPerfil } from '@/lib/auth';
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
@@ -12,7 +12,7 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
-import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil } from 'lucide-react';
 
 type Tab = 'entrar' | 'registar' | 'recuperar';
 type Metodo = 'email' | 'whatsapp';
@@ -41,6 +41,9 @@ function ContaInner() {
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ nome: '', email: '', password: '', telefone: '', codigo: '' });
+  const [editando, setEditando] = useState(false);
+  const [editForm, setEditForm] = useState({ nome: '', telefone: '', morada: '' });
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -131,7 +134,7 @@ function ContaInner() {
       const res = await fetch('/api/notify/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone: form.telefone.replace(/\D/g, '') }),
+        body: JSON.stringify({ telefone: form.telefone.replace(/\D/g, ''), modo: tab === 'entrar' ? 'login' : 'registar' }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -183,6 +186,25 @@ function ContaInner() {
     } finally { setLoading(false); }
   };
 
+  const handleEditarPerfil = () => {
+    setEditForm({ nome: perfil?.nome || '', telefone: perfil?.telefone || '', morada: perfil?.morada || '' });
+    setEditando(true);
+  };
+
+  const handleSalvarPerfil = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setSalvandoPerfil(true);
+    try {
+      await actualizarPerfil(user.uid, editForm);
+      setPerfil(p => p ? { ...p, ...editForm } : p);
+      setEditando(false);
+      mostrarToast('Dados actualizados!', 'success');
+    } catch {
+      mostrarToast('Erro ao guardar. Tenta novamente.', 'error');
+    } finally { setSalvandoPerfil(false); }
+  };
+
   const reenviarVerificacao = async () => {
     if (!user) return;
     setLoading(true);
@@ -228,17 +250,45 @@ function ContaInner() {
               </div>
 
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-400)', marginBottom: 16 }}>Dados de contacto</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div>
-                    <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 2 }}>Telefone</p>
-                    <p style={{ fontSize: 14, fontWeight: 500 }}>{perfil.telefone || '—'}</p>
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14 }}>
-                    <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 2 }}>Morada</p>
-                    <p style={{ fontSize: 14, fontWeight: 500 }}>{perfil.morada || '—'}</p>
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-400)', margin: 0 }}>Dados de contacto</p>
+                  {!editando && (
+                    <button onClick={handleEditarPerfil} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '2px 6px', borderRadius: 6 }}>
+                      <Pencil size={12} strokeWidth={1.5} /> Editar
+                    </button>
+                  )}
                 </div>
+                {editando ? (
+                  <form onSubmit={handleSalvarPerfil} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: 11 }}>Nome</label>
+                      <input value={editForm.nome} onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))} placeholder="O teu nome" required />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: 11 }}>Telefone</label>
+                      <input value={editForm.telefone} onChange={e => setEditForm(f => ({ ...f, telefone: e.target.value }))} placeholder="+258 8X XXX XXXX" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: 11 }}>Morada</label>
+                      <input value={editForm.morada} onChange={e => setEditForm(f => ({ ...f, morada: e.target.value }))} placeholder="Rua, bairro, cidade" />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      <button className="btn btn-primary btn-sm" type="submit" disabled={salvandoPerfil} style={{ flex: 1 }}>{salvandoPerfil ? 'A guardar...' : 'Guardar'}</button>
+                      <button className="btn btn-outline btn-sm" type="button" onClick={() => setEditando(false)} style={{ flex: 1 }}>Cancelar</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 2 }}>Telefone</p>
+                      <p style={{ fontSize: 14, fontWeight: 500 }}>{perfil.telefone || '—'}</p>
+                    </div>
+                    <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14 }}>
+                      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 2 }}>Morada</p>
+                      <p style={{ fontSize: 14, fontWeight: 500 }}>{perfil.morada || '—'}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
