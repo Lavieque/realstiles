@@ -34,6 +34,7 @@ export interface Encomenda {
   notas: string;
   notas_admin: string;
   estado: EstadoEncomenda;
+  notif_canal?: 'email' | 'whatsapp';
   historico_estados?: HistoricoEstado[];
   criado_em?: unknown;
   actualizado_em?: unknown;
@@ -56,6 +57,24 @@ export async function criarEncomenda({
 
   const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
+  // Determina canal de notificação e telefone do perfil do utilizador
+  let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
+  let telefoneNotif = telefone; // fallback: telefone de entrega
+  if (user) {
+    try {
+      const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
+      const perfil = perfilSnap.data();
+      const canal = perfil?.notif_canal;
+      if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
+      // Para utilizadores WhatsApp, o telefone de notificação é o do registo (parte do uid)
+      if (notifCanal === 'whatsapp' && user.uid.startsWith('wa_')) {
+        telefoneNotif = user.uid.replace('wa_', '');
+      } else if (perfil?.telefone) {
+        telefoneNotif = perfil.telefone;
+      }
+    } catch { /* mantém o default */ }
+  }
+
   const ref = await addDoc(collection(db, 'encomendas'), {
     cliente_id: user?.uid || 'guest',
     cliente_email: emailFinal,
@@ -66,22 +85,13 @@ export async function criarEncomenda({
     telefone_contacto: telefone,
     notas, notas_admin: '',
     estado: 'pendente',
+    notif_canal: notifCanal,
     criado_em: serverTimestamp(),
   });
 
-  // Determina canal de notificação do utilizador
-  let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
-  if (user) {
-    try {
-      const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
-      const canal = perfilSnap.data()?.notif_canal;
-      if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
-    } catch { /* mantém o default */ }
-  }
-
   if (notifCanal === 'whatsapp') {
     try {
-      const telLimpo = telefone.replace(/\D/g, '');
+      const telLimpo = telefoneNotif.replace(/\D/g, '');
       if (telLimpo) {
         const ref8 = ref.id.substring(0, 8).toUpperCase();
         const mensagem = `✅ *Encomenda #${ref8} recebida!*\n\nTotal: *${total.toFixed(2)} MZN*\nEntrega: ${morada}\n\nAcompanha o estado em realstiles.co.mz/encomendas`;

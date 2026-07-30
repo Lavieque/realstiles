@@ -147,7 +147,7 @@ export default function CarrinhoPage() {
                 )}
                 {user && !user.email && (
                   <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
-                    Sessão iniciada via WhatsApp. Podes adicionar um email para receber confirmação da encomenda.
+                    Sessão iniciada via WhatsApp. A confirmação da encomenda será enviada pelo WhatsApp.
                   </p>
                 )}
                 <button className="btn btn-primary btn-full" type="submit" disabled={loading}>

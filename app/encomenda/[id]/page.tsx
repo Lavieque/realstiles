@@ -122,7 +122,11 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
             <CheckCircle2 size={24} strokeWidth={1.5} />
             <div>
               <p style={{ fontWeight: 700 }}>Encomenda confirmada!</p>
-              <p style={{ fontSize: 14, opacity: 0.9 }}>Receberás um email com os detalhes. Entraremos em contacto em breve.</p>
+              <p style={{ fontSize: 14, opacity: 0.9 }}>
+                {encomenda?.notif_canal === 'whatsapp'
+                  ? 'Receberás uma confirmação pelo WhatsApp. Entraremos em contacto em breve.'
+                  : 'Receberás um email com os detalhes. Entraremos em contacto em breve.'}
+              </p>
             </div>
           </div>
         )}
