@@ -118,10 +118,10 @@ export default function CarrinhoPage() {
               </button>
             ) : (
               <form onSubmit={handleCheckout}>
-                {!user && (
+                {(!user || !user.email) && (
                   <div className="form-group">
-                    <label>Email de contacto *</label>
-                    <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="o-teu@email.com" />
+                    <label>Email de contacto {!user ? '*' : '(opcional)'}</label>
+                    <input type="email" required={!user} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="o-teu@email.com" />
                   </div>
                 )}
                 <div className="form-group">
@@ -143,6 +143,11 @@ export default function CarrinhoPage() {
                 {!user && (
                   <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
                     <Link href="/conta?redirect=/carrinho" style={{ color: 'var(--black)' }}>Entra na tua conta</Link> para guardar o histórico de encomendas.
+                  </p>
+                )}
+                {user && !user.email && (
+                  <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
+                    Sessão iniciada via WhatsApp. Podes adicionar um email para receber confirmação da encomenda.
                   </p>
                 )}
                 <button className="btn btn-primary btn-full" type="submit" disabled={loading}>

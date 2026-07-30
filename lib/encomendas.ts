@@ -50,8 +50,9 @@ export async function criarEncomenda({
   guestEmail?: string;
 }): Promise<string> {
   const user = auth.currentUser;
-  const emailFinal = user?.email || guestEmail;
-  if (!emailFinal) throw new Error('Email necessário');
+  const emailFinal = user?.email || guestEmail || '';
+  // Guests sem email não podem encomendar; utilizadores autenticados (incluindo WhatsApp) podem
+  if (!user && !emailFinal) throw new Error('Email necessário');
 
   const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
