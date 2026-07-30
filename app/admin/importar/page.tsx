@@ -21,6 +21,7 @@ interface ScrapeResult {
   cores?: string[];
   tags?: string[];
   categoria?: string;
+  colorImagesMap?: Record<string, string[]> | null;
   url: string;
   fonte?: string;
 }
@@ -50,6 +51,7 @@ function AdminImportarPage() {
   const [infoTF, setInfoTF] = useState<{ usados: number; limite: number; plano: string } | null>(null);
   const [catTree, setCatTree] = useState<CatTree[]>([]);
   const [imagemAtiva, setImagemAtiva] = useState(0);
+  const [corAtiva, setCorAtiva] = useState<string | null>(null);
 
   // Modo Temu via extensão
   const [temuPopup, setTemuPopup] = useState<'url' | 'manual' | null>(null);
@@ -472,6 +474,26 @@ function AdminImportarPage() {
           <>
             <div className="form-card">
               <h2>Pré-visualização</h2>
+              {resultado.colorImagesMap && Object.keys(resultado.colorImagesMap).length > 1 && (
+                <div style={{ marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Imagens por cor</p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {Object.entries(resultado.colorImagesMap).map(([cor, imgs]) => (
+                      <button
+                        key={cor}
+                        onClick={() => {
+                          setCorAtiva(cor);
+                          setAjustes(a => ({ ...a, imagens: imgs }));
+                          setImagemAtiva(0);
+                        }}
+                        style={{ padding: '5px 12px', borderRadius: 20, border: `2px solid ${corAtiva === cor ? 'var(--black)' : 'var(--gray-200)'}`, background: corAtiva === cor ? 'var(--black)' : 'transparent', color: corAtiva === cor ? 'white' : 'var(--gray-700)', fontSize: 13, cursor: 'pointer', fontWeight: corAtiva === cor ? 600 : 400 }}
+                      >
+                        {cor}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {resultado.imagens?.length > 0 && (() => {
                 const imagens = (ajustes.imagens as string[] | undefined) ?? resultado.imagens;
                 if (!imagens.length) return <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 12 }}>Todas as imagens foram removidas.</p>;

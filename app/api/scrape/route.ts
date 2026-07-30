@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
           cores: r.cores ?? [],
           tags: r.tags ?? [],
           categoria: r.categoria,
+          colorImagesMap: r.colorImagesMap ?? null,
           url: cleanUrl,
           tier: 'tradeflow',
           custo: pollData.custo,
