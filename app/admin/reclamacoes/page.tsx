@@ -10,6 +10,7 @@ interface Reclamacao {
   id: string;
   nome: string;
   email: string;
+  telefone?: string;
   assunto: string;
   descricao: string;
   criado_em?: unknown;
@@ -41,16 +42,28 @@ export default function AdminReclamacoesPage() {
     if (!sel || !resposta.trim()) return;
     setEnviando(true);
     try {
-      await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'resposta_reclamacao',
-          cliente_email: sel.email,
-          assunto: sel.assunto,
-          resposta: resposta.trim(),
-        }),
-      });
+      const telLimpo = sel.telefone?.replace(/\D/g, '') || '';
+      if (sel.email) {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'resposta_reclamacao',
+            cliente_email: sel.email,
+            assunto: sel.assunto,
+            resposta: resposta.trim(),
+          }),
+        });
+      } else if (telLimpo) {
+        await fetch('/api/notify/messages/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telefone: telLimpo,
+            mensagem: `✉️ *Resposta à sua reclamação*\n\n*Assunto:* ${sel.assunto}\n\n${resposta.trim()}\n\n— Real Stiles`,
+          }),
+        });
+      }
       await updateDoc(doc(db, 'reclamacoes', sel.id), { respondida: true });
       setReclamacoes(r => r.map(x => x.id === sel.id ? { ...x, respondida: true } : x));
       setSel(s => s ? { ...s, respondida: true } : s);

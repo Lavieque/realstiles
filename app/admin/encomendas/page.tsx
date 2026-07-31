@@ -39,7 +39,27 @@ export default function AdminEncomendasPage() {
       setEncomendas(enc => enc.map(e => e.id === id ? { ...e, estado } : e));
       setSeleccionada(s => s ? { ...s, estado } : s);
       mostrarToast('Estado actualizado', 'success');
-      if (seleccionada?.cliente_email) {
+      if (seleccionada?.notif_canal === 'whatsapp') {
+        const tel = seleccionada.cliente_id?.startsWith('wa_')
+          ? seleccionada.cliente_id.replace('wa_', '')
+          : (seleccionada.telefone_contacto || '').replace(/\D/g, '');
+        if (tel) {
+          const icones: Record<string, string> = { confirmada: '✅', enviada: '🚚', entregue: '📦', cancelada: '❌' };
+          const msgs: Record<string, string> = {
+            confirmada: 'foi confirmada e está a ser preparada',
+            enviada: 'foi enviada e está a caminho!',
+            entregue: 'foi entregue. Obrigado pela tua compra!',
+            cancelada: 'foi cancelada. Contacta-nos se precisares de ajuda.',
+          };
+          const ref8 = id.substring(0, 8).toUpperCase();
+          const mensagem = `${icones[estado] || '📦'} *Encomenda #${ref8}*\n\nA tua encomenda ${msgs[estado] || `foi actualizada para ${estado}`}.\n\nVer detalhes: realstiles.co.mz/encomenda/${id}`;
+          fetch('/api/notify/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telefone: tel, mensagem }),
+          }).catch(() => {});
+        }
+      } else if (seleccionada?.cliente_email) {
         fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

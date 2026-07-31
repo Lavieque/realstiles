@@ -1,11 +1,26 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mostrarToast } from '@/components/Toast';
+import { onAuthChange } from '@/lib/auth';
+import type { User } from 'firebase/auth';
 
 export default function ReclamacaoPage() {
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: '', descricao: '' });
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
+
+  useEffect(() => {
+    return onAuthChange(u => {
+      setUser(u);
+      if (u && !u.email && u.uid.startsWith('wa_')) {
+        const tel = u.uid.replace('wa_', '');
+        setForm(f => ({ ...f, telefone: tel }));
+      }
+    });
+  }, []);
+
+  const isWa = !!(user && !user.email && user.uid.startsWith('wa_'));
 
   const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -14,11 +29,38 @@ export default function ReclamacaoPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Guarda em Firestore para o painel admin
+      const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      await addDoc(collection(db, 'reclamacoes'), {
+        ...form,
+        cliente_id: user?.uid || null,
+        respondida: false,
+        criado_em: serverTimestamp(),
+      });
+
+      // Notifica admin por email
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tipo: 'reclamacao', ...form }),
       });
+
+      // Acuse de recepção ao cliente
+      if (isWa && form.telefone) {
+        const tel = form.telefone.replace(/\D/g, '');
+        if (tel) {
+          fetch('/api/notify/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telefone: tel,
+              mensagem: `✅ *Reclamação recebida*\n\nRecebemos a sua reclamação sobre "${form.assunto}".\nA nossa equipa responderá no prazo de 3 dias úteis.`,
+            }),
+          }).catch(() => {});
+        }
+      }
+
       setEnviado(true);
       mostrarToast('Reclamação enviada com sucesso!', 'success');
     } catch {
@@ -47,9 +89,12 @@ export default function ReclamacaoPage() {
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group"><label>Nome *</label><input required value={form.nome} onChange={f('nome')} /></div>
-                <div className="form-group"><label>Email *</label><input type="email" required value={form.email} onChange={f('email')} /></div>
+                <div className="form-group">
+                  <label>Email {isWa ? '' : '*'}</label>
+                  <input type="email" required={!isWa} value={form.email} onChange={f('email')} placeholder="o-teu@email.com" />
+                </div>
               </div>
-              <div className="form-group"><label>Telefone</label><input value={form.telefone} onChange={f('telefone')} /></div>
+              <div className="form-group"><label>Telefone{isWa ? ' *' : ''}</label><input required={isWa} value={form.telefone} onChange={f('telefone')} /></div>
               <div className="form-group">
                 <label>Assunto *</label>
                 <select required value={form.assunto} onChange={f('assunto')}>
@@ -65,6 +110,11 @@ export default function ReclamacaoPage() {
                 <label>Descrição *</label>
                 <textarea required value={form.descricao} onChange={f('descricao')} placeholder="Descreve o problema em detalhe..." style={{ minHeight: 140 }} />
               </div>
+              {isWa && (
+                <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
+                  A resposta será enviada pelo WhatsApp para o número registado.
+                </p>
+              )}
               <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
                 {loading ? 'A enviar...' : 'Submeter reclamação'}
               </button>
