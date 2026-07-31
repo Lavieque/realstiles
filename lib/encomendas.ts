@@ -89,6 +89,7 @@ export async function criarEncomenda({
     criado_em: serverTimestamp(),
   });
 
+  // Notificação ao cliente pelo canal registado
   if (notifCanal === 'whatsapp') {
     try {
       const telLimpo = telefoneNotif.replace(/\D/g, '');
@@ -102,7 +103,7 @@ export async function criarEncomenda({
         });
       }
     } catch (e) { console.warn('WhatsApp não enviado:', e); }
-  } else {
+  } else if (emailFinal) {
     try {
       await fetch('/api/send-email', {
         method: 'POST',
@@ -115,6 +116,22 @@ export async function criarEncomenda({
         }),
       });
     } catch (e) { console.warn('Email não enviado:', e); }
+  }
+
+  // Admin recebe sempre email, independentemente do canal do cliente
+  if (notifCanal === 'whatsapp') {
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'confirmacao_encomenda',
+          encomenda_id: ref.id,
+          cliente_email: '',
+          itens, total, morada,
+        }),
+      });
+    } catch (e) { console.warn('Email admin não enviado:', e); }
   }
 
   return ref.id;
