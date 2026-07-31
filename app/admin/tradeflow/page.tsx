@@ -555,7 +555,7 @@ export default function TradeflowPage() {
                       )}
                       {p.tipo === 'wa' && (
                         <p style={{ fontSize: 13, color: activo ? 'rgba(255,255,255,0.65)' : 'var(--gray-500)', marginBottom: 12 }}>
-                          Notificações WhatsApp · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                          Notificações WhatsApp · {p.whatsapp_numeros_max === -1 ? 'números ilimitados' : `${p.whatsapp_numeros_max ?? 1} número${(p.whatsapp_numeros_max ?? 1) !== 1 ? 's' : ''}`}
                         </p>
                       )}
                       {/* Fontes e badges — empurrados para o fundo */}
@@ -675,7 +675,7 @@ export default function TradeflowPage() {
                     </>}
                     {p.tipo === 'wa' && (
                       <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>
-                        Notificações WhatsApp · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                        Notificações WhatsApp · {p.whatsapp_numeros_max === -1 ? 'números ilimitados' : `${p.whatsapp_numeros_max ?? 1} número${(p.whatsapp_numeros_max ?? 1) !== 1 ? 's' : ''}`}
                       </p>
                     )}
                     {p.tipo !== 'wa' && p.whatsapp_incluido && (
