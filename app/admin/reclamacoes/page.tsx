@@ -13,6 +13,7 @@ interface Reclamacao {
   telefone?: string;
   assunto: string;
   descricao: string;
+  notif_canal?: 'email' | 'whatsapp';
   criado_em?: unknown;
   respondida?: boolean;
 }
@@ -42,8 +43,19 @@ export default function AdminReclamacoesPage() {
     if (!sel || !resposta.trim()) return;
     setEnviando(true);
     try {
-      const telLimpo = sel.telefone?.replace(/\D/g, '') || '';
-      if (sel.email) {
+      if (sel.notif_canal === 'whatsapp') {
+        const telLimpo = sel.telefone?.replace(/\D/g, '') || '';
+        if (telLimpo) {
+          await fetch('/api/notify/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telefone: telLimpo,
+              mensagem: `✉️ *Resposta à sua reclamação*\n\n*Assunto:* ${sel.assunto}\n\n${resposta.trim()}\n\n— Real Stiles`,
+            }),
+          });
+        }
+      } else if (sel.email) {
         await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,15 +64,6 @@ export default function AdminReclamacoesPage() {
             cliente_email: sel.email,
             assunto: sel.assunto,
             resposta: resposta.trim(),
-          }),
-        });
-      } else if (telLimpo) {
-        await fetch('/api/notify/messages/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telefone: telLimpo,
-            mensagem: `✉️ *Resposta à sua reclamação*\n\n*Assunto:* ${sel.assunto}\n\n${resposta.trim()}\n\n— Real Stiles`,
           }),
         });
       }

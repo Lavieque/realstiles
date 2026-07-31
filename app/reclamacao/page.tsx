@@ -1,26 +1,34 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { mostrarToast } from '@/components/Toast';
-import { onAuthChange } from '@/lib/auth';
+import { onAuthChange, getPerfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
 
 export default function ReclamacaoPage() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [notifCanal, setNotifCanal] = useState<'email' | 'whatsapp'>('email');
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: '', descricao: '' });
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
-    return onAuthChange(u => {
+    return onAuthChange(async u => {
       setUser(u);
-      if (u && !u.email && u.uid.startsWith('wa_')) {
-        const tel = u.uid.replace('wa_', '');
-        setForm(f => ({ ...f, telefone: tel }));
+      if (!u) return;
+      const perfil = await getPerfil(u.uid);
+      const canal = perfil?.notif_canal ?? 'email';
+      setNotifCanal(canal);
+      if (canal === 'whatsapp') {
+        // pré-preenche telefone do perfil ou do uid
+        const tel = perfil?.telefone || (u.uid.startsWith('wa_') ? u.uid.replace('wa_', '') : '');
+        setForm(f => ({ ...f, nome: perfil?.nome || f.nome, telefone: tel }));
+      } else {
+        setForm(f => ({ ...f, nome: perfil?.nome || f.nome, email: u.email || f.email }));
       }
     });
   }, []);
 
-  const isWa = !!(user && !user.email && user.uid.startsWith('wa_'));
+  const isWa = notifCanal === 'whatsapp';
 
   const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -29,25 +37,26 @@ export default function ReclamacaoPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Guarda em Firestore para o painel admin
+      // Guarda em Firestore com o canal do utilizador para o admin poder responder pelo canal certo
       const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
       const { db } = await import('@/lib/firebase');
       await addDoc(collection(db, 'reclamacoes'), {
         ...form,
         cliente_id: user?.uid || null,
+        notif_canal: isWa ? 'whatsapp' : 'email',
         respondida: false,
         criado_em: serverTimestamp(),
       });
 
-      // Notifica admin por email
-      await fetch('/api/send-email', {
+      // Notifica admin por email sempre (o admin usa email)
+      fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tipo: 'reclamacao', ...form }),
-      });
+      }).catch(() => {});
 
-      // Acuse de recepção ao cliente
-      if (isWa && form.telefone) {
+      // Acuse de recepção ao cliente pelo canal correto
+      if (isWa) {
         const tel = form.telefone.replace(/\D/g, '');
         if (tel) {
           fetch('/api/notify/messages/send', {
@@ -89,12 +98,17 @@ export default function ReclamacaoPage() {
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group"><label>Nome *</label><input required value={form.nome} onChange={f('nome')} /></div>
-                <div className="form-group">
-                  <label>Email {isWa ? '' : '*'}</label>
-                  <input type="email" required={!isWa} value={form.email} onChange={f('email')} placeholder="o-teu@email.com" />
-                </div>
+                {!isWa && (
+                  <div className="form-group">
+                    <label>Email *</label>
+                    <input type="email" required value={form.email} onChange={f('email')} placeholder="o-teu@email.com" />
+                  </div>
+                )}
               </div>
-              <div className="form-group"><label>Telefone{isWa ? ' *' : ''}</label><input required={isWa} value={form.telefone} onChange={f('telefone')} /></div>
+              <div className="form-group">
+                <label>Telefone{isWa ? ' *' : ''}</label>
+                <input required={isWa} value={form.telefone} onChange={f('telefone')} />
+              </div>
               <div className="form-group">
                 <label>Assunto *</label>
                 <select required value={form.assunto} onChange={f('assunto')}>
@@ -112,7 +126,7 @@ export default function ReclamacaoPage() {
               </div>
               {isWa && (
                 <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
-                  A resposta será enviada pelo WhatsApp para o número registado.
+                  A resposta será enviada pelo WhatsApp.
                 </p>
               )}
               <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
