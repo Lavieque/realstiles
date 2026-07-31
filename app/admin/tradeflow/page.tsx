@@ -171,7 +171,7 @@ export default function TradeflowPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            account_id: data.conta?.id,
+            account_id: data.id,
             plano_id: subForm.plano_id,
             success_url: `${window.location.origin}/admin/tradeflow?sucesso=1`,
             cancel_url: `${window.location.origin}/admin/tradeflow`,
