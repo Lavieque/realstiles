@@ -680,7 +680,7 @@ export default function TradeflowPage() {
                     )}
                     {p.tipo !== 'wa' && p.whatsapp_incluido && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, fontSize: 10, fontWeight: 700, background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: 100 }}>
-                        <Check size={10} strokeWidth={1.5} /> WhatsApp incluído · {p.whatsapp_numeros_max ?? 1} número{(p.whatsapp_numeros_max ?? 1) > 1 ? 's' : ''}
+                        <Check size={10} strokeWidth={1.5} /> WhatsApp incluído · {p.whatsapp_numeros_max === -1 ? 'números ilimitados' : `${p.whatsapp_numeros_max ?? 1} número${(p.whatsapp_numeros_max ?? 1) !== 1 ? 's' : ''}`}
                       </span>
                     )}
                     <button className="btn btn-primary btn-full btn-sm" style={{ pointerEvents: 'none' }}>
