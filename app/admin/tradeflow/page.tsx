@@ -430,9 +430,9 @@ export default function TradeflowPage() {
                   </div>
                 </div>
                 <div className="stat-card-sub">
-                  {conta.billing_status === 'trial'
-                    ? (pct < 100 ? `${restantes} restantes de ${conta.creditos_limite}` : 'Limite atingido')
-                    : `${conta.creditos_usados} importados · Sem limite`}
+                  {pct < 100
+                    ? `${restantes} restantes de ${conta.creditos_limite}`
+                    : '⚠ Limite atingido'}
                 </div>
               </div>
               <div className={`stat-card ${dias !== null && dias <= 7 ? 'red' : ''}`}>
