@@ -597,9 +597,7 @@ export default function TradeflowPage() {
                 <button className="btn btn-outline btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
                   {acaoLoading === 'renovar' ? 'A renovar...' : <><RefreshCw size={14} strokeWidth={1.5} /> Renovar +1 mês</>}
                 </button>
-                <button className="btn btn-outline btn-sm" onClick={resetCreditos} disabled={acaoLoading === 'reset'}>
-                  {acaoLoading === 'reset' ? 'A repor...' : <><RefreshCw size={14} strokeWidth={1.5} /> Repor importações</>}
-                </button>
+
                 {conta.billing_status === 'active' && (
                   <button
                     className="btn btn-outline btn-sm"
