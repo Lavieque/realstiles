@@ -186,7 +186,7 @@ export default function AdminDashboard() {
                     ) : recentes.map(e => (
                       <tr key={e.id}>
                         <td><code style={{ fontSize: 12 }}>#{e.id.substring(0, 8).toUpperCase()}</code></td>
-                        <td>{e.cliente_email || '—'}</td>
+                        <td>{e.cliente_nome || e.cliente_email || (e.cliente_id?.startsWith('wa_') ? e.cliente_id.replace('wa_', '') : '—')}</td>
                         <td><strong>{e.total?.toFixed(2)} MZN</strong></td>
                         <td><span className={`badge-estado ${badgeEstadoClass(e.estado as EstadoEncomenda)}`}>{badgeEstadoLabel(e.estado as EstadoEncomenda)}</span></td>
                         <td>{formatarData(e.criado_em)}</td>

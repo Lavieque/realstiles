@@ -145,7 +145,7 @@ export default function AdminEncomendasPage() {
                   <code style={{ fontSize: 12, fontWeight: 700 }}>#{enc.id.substring(0, 8).toUpperCase()}</code>
                   <span className={`badge-estado ${badgeEstadoClass(enc.estado as EstadoEncomenda)}`} style={{ fontSize: 11 }}>{badgeEstadoLabel(enc.estado as EstadoEncomenda)}</span>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 2 }}>{enc.cliente_email}</p>
+                <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 2 }}>{enc.cliente_nome || enc.cliente_email || (enc.cliente_id?.startsWith('wa_') ? enc.cliente_id.replace('wa_', '') : '—')}</p>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>{formatarData(enc.criado_em)}</span>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{enc.total?.toFixed(2)} MZN</span>

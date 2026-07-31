@@ -403,17 +403,17 @@ function ContaInner() {
                 <div className="auth-metodo-tabs">
                   <button
                     type="button"
+                    data-metodo="email"
                     className={`auth-metodo-tab${metodo === 'email' ? ' active' : ''}`}
                     onClick={() => setMetodo('email')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   >
                     <Mail size={14} strokeWidth={1.5} /> Email
                   </button>
                   <button
                     type="button"
+                    data-metodo="whatsapp"
                     className={`auth-metodo-tab${metodo === 'whatsapp' ? ' active' : ''}`}
                     onClick={() => { setMetodo('whatsapp'); setOtpStep('telefone'); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   >
                     <Smartphone size={14} strokeWidth={1.5} /> WhatsApp
                   </button>

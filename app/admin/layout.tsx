@@ -75,7 +75,7 @@ function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boole
               <div className="sidebar-user-role">Administrador</div>
             </div>
           </div>
-          <button onClick={() => logout().then(() => window.location.href = '/')} className="btn btn-outline btn-sm btn-full" style={{ marginTop: 8 }}>Sair</button>
+          <button onClick={() => logout().then(() => window.location.href = '/')} className="btn btn-sm btn-full" style={{ marginTop: 8, background: 'transparent', color: 'rgba(255,255,255,0.7)', border: '1.5px solid rgba(255,255,255,0.2)' }}>Sair</button>
         </div>
       </aside>
     </>

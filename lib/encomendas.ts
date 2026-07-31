@@ -25,6 +25,7 @@ export interface HistoricoEstado {
 export interface Encomenda {
   id: string;
   cliente_id: string;
+  cliente_nome?: string;
   cliente_email: string;
   itens: ItemEncomenda[];
   total: number;
@@ -59,24 +60,26 @@ export async function criarEncomenda({
 
   // Determina canal de notificação e telefone do perfil do utilizador
   let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
-  let telefoneNotif = telefone; // fallback: telefone de entrega
+  let telefoneNotif = telefone;
+  let clienteNome = user?.displayName || '';
   if (user) {
     try {
       const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
       const perfil = perfilSnap.data();
       const canal = perfil?.notif_canal;
       if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
-      // Para utilizadores WhatsApp, o telefone de notificação é o do registo (parte do uid)
       if (notifCanal === 'whatsapp' && user.uid.startsWith('wa_')) {
         telefoneNotif = user.uid.replace('wa_', '');
       } else if (perfil?.telefone) {
         telefoneNotif = perfil.telefone;
       }
+      clienteNome = perfil?.nome || user.displayName || '';
     } catch { /* mantém o default */ }
   }
 
   const ref = await addDoc(collection(db, 'encomendas'), {
     cliente_id: user?.uid || 'guest',
+    cliente_nome: clienteNome || undefined,
     cliente_email: emailFinal,
     guest: !user,
     itens, total,
@@ -189,11 +192,11 @@ export function badgeEstadoClass(estado: EstadoEncomenda): string {
 
 export function badgeEstadoLabel(estado: EstadoEncomenda): string {
   const map: Record<EstadoEncomenda, string> = {
-    pendente: '⏳ Pendente',
-    confirmada: '✅ Confirmada',
-    enviada: '🚚 Enviada',
-    entregue: '📦 Entregue',
-    cancelada: '❌ Cancelada',
+    pendente: 'Pendente',
+    confirmada: 'Confirmada',
+    enviada: 'Enviada',
+    entregue: 'Entregue',
+    cancelada: 'Cancelada',
   };
   return map[estado] || estado;
 }

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
@@ -89,7 +90,7 @@ export default function ReclamacaoPage() {
 
         {enviado ? (
           <div style={{ background: 'var(--green)', color: 'white', borderRadius: 16, padding: 40, textAlign: 'center' }}>
-            <p style={{ fontSize: 40, marginBottom: 16 }}>✅</p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}><CheckCircle2 size={56} strokeWidth={1.5} /></div>
             <h2 style={{ fontWeight: 700, marginBottom: 8 }}>Reclamação recebida</h2>
             <p style={{ opacity: 0.9 }}>Analisaremos o seu caso e responderemos em breve.</p>
           </div>

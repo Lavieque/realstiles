@@ -9,15 +9,15 @@ import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft } from 'lucide-react';
+import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package } from 'lucide-react';
 
 const WHATSAPP_NUM = '258878753754';
 
 const TIMELINE_ESTADOS = [
-  { key: 'pendente',   icon: '⏳', label: 'Encomenda recebida',  sub: 'A aguardar confirmação da loja' },
-  { key: 'confirmada', icon: '✅', label: 'Encomenda confirmada', sub: 'A loja confirmou a tua encomenda' },
-  { key: 'enviada',    icon: '🚚', label: 'Encomenda enviada',    sub: 'A encomenda está a caminho' },
-  { key: 'entregue',   icon: '📦', label: 'Encomenda entregue',   sub: 'Entregue com sucesso' },
+  { key: 'pendente',   icon: <Clock size={18} strokeWidth={1.5} />,        label: 'Encomenda recebida',  sub: 'A aguardar confirmação da loja' },
+  { key: 'confirmada', icon: <CheckCircle2 size={18} strokeWidth={1.5} />, label: 'Encomenda confirmada', sub: 'A loja confirmou a tua encomenda' },
+  { key: 'enviada',    icon: <Truck size={18} strokeWidth={1.5} />,        label: 'Encomenda enviada',    sub: 'A encomenda está a caminho' },
+  { key: 'entregue',   icon: <Package size={18} strokeWidth={1.5} />,      label: 'Encomenda entregue',   sub: 'Entregue com sucesso' },
 ];
 
 export default function EncomendaPage({ params }: { params: { id: string } }) {

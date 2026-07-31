@@ -1155,28 +1155,33 @@ body:has(.auth-split) { padding-top: 0 !important; }
 
 .auth-lado-form {
   display: flex; align-items: center; justify-content: center;
-  background: #fafafa; padding: 48px 32px;
+  background: #f4f4f6; padding: 48px 32px;
   overflow-y: auto;
 }
-.auth-form-wrap { width: 100%; max-width: 400px; }
+.auth-form-wrap {
+  width: 100%; max-width: 420px;
+  background: white; border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+}
 .auth-form-titulo {
   font-family: var(--font-playfair,'Playfair Display'),serif;
-  font-size: 1.9rem; color: var(--black); margin-bottom: 6px;
+  font-size: 1.75rem; color: var(--black); margin-bottom: 4px;
 }
-.auth-form-sub { font-size: 14px; color: var(--gray-400); margin-bottom: 28px; }
+.auth-form-sub { font-size: 13px; color: var(--gray-400); margin-bottom: 24px; }
 .auth-tabs {
-  display: flex; gap: 0; margin-bottom: 28px;
-  border-radius: 10px; overflow: hidden;
-  border: 1.5px solid var(--gray-200);
+  display: flex; gap: 4px; margin-bottom: 24px;
+  background: var(--gray-100); padding: 4px;
+  border-radius: 12px;
 }
 .auth-tab {
-  flex: 1; padding: 10px 0; font-size: 14px; font-weight: 600;
+  flex: 1; padding: 9px 0; font-size: 14px; font-weight: 600;
   border: none; cursor: pointer;
-  background: white; color: var(--gray-600);
+  background: transparent; color: var(--gray-500);
   font-family: var(--font-inter,'Inter'),sans-serif;
-  transition: all 0.15s;
+  border-radius: 9px; transition: all 0.2s;
 }
-.auth-tab.active { background: var(--black); color: white; }
+.auth-tab.active { background: white; color: var(--black); box-shadow: 0 1px 6px rgba(0,0,0,0.10); }
 .auth-form { display: flex; flex-direction: column; gap: 0; }
 .auth-divider {
   text-align: center; position: relative;
@@ -1188,24 +1193,26 @@ body:has(.auth-split) { padding-top: 0 !important; }
   background: var(--gray-200);
 }
 .auth-divider span {
-  position: relative; background: #fafafa;
+  position: relative; background: white;
   padding: 0 14px; font-size: 13px; color: var(--gray-400);
 }
 
 /* método selector (email / whatsapp) */
 .auth-metodo-tabs {
-  display: flex; gap: 0; margin-bottom: 24px;
-  border-radius: 10px; overflow: hidden;
-  border: 1.5px solid var(--gray-200);
+  display: flex; gap: 4px; margin-bottom: 20px;
+  background: var(--gray-100); padding: 4px;
+  border-radius: 12px;
 }
 .auth-metodo-tab {
   flex: 1; padding: 9px 0; font-size: 13px; font-weight: 600;
   border: none; cursor: pointer;
-  background: white; color: var(--gray-600);
+  background: transparent; color: var(--gray-500);
   font-family: var(--font-inter,'Inter'),sans-serif;
-  transition: all 0.15s;
+  border-radius: 9px; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.auth-metodo-tab.active { background: #25D366; color: white; }
+.auth-metodo-tab.active { background: white; color: var(--black); box-shadow: 0 1px 6px rgba(0,0,0,0.10); }
+.auth-metodo-tab[data-metodo="whatsapp"].active { background: #25D366; color: white; }
 
 /* WhatsApp info block (lado marca) */
 .auth-wa-info {
