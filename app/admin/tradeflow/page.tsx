@@ -154,25 +154,19 @@ export default function TradeflowPage() {
     if (!subForm.email || !subForm.plano_id) return;
     setSubLoading(true);
     try {
-      // 1. Criar conta trial
-      const res = await fetch('/api/tradeflow/conta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subForm),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao criar conta');
-
       const planoSeleccionado = planos.find(p => p.id === subForm.plano_id);
 
-      // 2. Plano pago → ir para checkout Stripe
       if (planoSeleccionado && planoSeleccionado.preco > 0) {
+        // Plano pago → checkout Stripe sem criar conta primeiro
+        // A conta é criada/activada pelo webhook após pagamento
         const checkoutRes = await fetch('/api/tradeflow/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            account_id: data.id,
             plano_id: subForm.plano_id,
+            email: subForm.email,
+            nome: subForm.nome,
+            store_url: subForm.store_url,
             success_url: `${window.location.origin}/admin/tradeflow?sucesso=1`,
             cancel_url: `${window.location.origin}/admin/tradeflow`,
           }),
@@ -183,7 +177,15 @@ export default function TradeflowPage() {
         return;
       }
 
-      // Plano gratuito (trial) → continua normalmente
+      // Plano gratuito (trial) → criar conta imediatamente
+      const res = await fetch('/api/tradeflow/conta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subForm),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao criar conta');
+
       mostrarToast('Conta criada com sucesso!', 'success');
       setSubOpen(false);
       carregar();
