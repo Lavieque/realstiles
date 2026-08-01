@@ -5,8 +5,11 @@ const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
 
 export async function POST(req: NextRequest) {
   try {
-    const { account_id, plano_id, success_url, cancel_url } = await req.json();
+    const body = await req.json();
+    console.log('[checkout] body recebido:', JSON.stringify(body));
+    const { account_id, plano_id, success_url, cancel_url } = body;
     if (!account_id || !plano_id) {
+      console.log('[checkout] ERRO — account_id:', account_id, 'plano_id:', plano_id);
       return NextResponse.json({ error: 'account_id e plano_id obrigatórios' }, { status: 400 });
     }
 
