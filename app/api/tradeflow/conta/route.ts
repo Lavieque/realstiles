@@ -46,8 +46,7 @@ export async function GET() {
     // Tenta buscar dados frescos do TradeFlow; usa fallback se offline
     let conta: Record<string, unknown> | null = null;
     try {
-      const accounts: { id: string }[] = await tfFetch('/admin/accounts');
-      conta = (accounts.find(a => a.id === stored.account_id) as Record<string, unknown>) ?? null;
+      conta = await tfFetch(`/admin/accounts/${stored.account_id}`);
     } catch {
       // TradeFlow offline — devolve dados mínimos com license_key do Firestore
       conta = { id: stored.account_id, plano_id: stored.plano_id, offline: true };
@@ -67,12 +66,13 @@ export async function GET() {
 
 async function ensureStore(accountId: string, storeUrl: string) {
   try {
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/tradeflow/confirm`;
     const stores: { id: string; site_url: string }[] = await tfFetch(`/admin/accounts/${accountId}/stores`);
     const exists = stores.some(s => s.site_url === storeUrl);
     if (!exists) {
       await tfFetch(`/admin/accounts/${accountId}/stores`, {
         method: 'POST',
-        body: JSON.stringify({ site_url: storeUrl, site_nome: 'Real Stiles' }),
+        body: JSON.stringify({ site_url: storeUrl, site_nome: 'Real Stiles', callback_url: callbackUrl }),
       });
     }
   } catch {

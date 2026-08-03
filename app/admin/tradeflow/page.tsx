@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { mostrarToast } from '@/components/Toast';
-import { Zap, AlertTriangle, Package, Key, Eye, EyeOff, Check, CreditCard, RefreshCw, Clock } from 'lucide-react';
+import { Zap, AlertTriangle, Package, Key, Eye, EyeOff, Check, CreditCard, Clock } from 'lucide-react';
 
 interface Plano {
   id: string;
@@ -219,19 +219,6 @@ export default function TradeflowPage() {
     }
   }
 
-  async function renovar() {
-    setAcaoLoading('renovar');
-    try {
-      const res = await fetch('/api/tradeflow/renovar', { method: 'POST' });
-      if (!res.ok) throw new Error((await res.json()).error || 'Erro');
-      mostrarToast('Subscrição renovada +1 mês!', 'success');
-      carregar();
-    } catch (err: unknown) {
-      mostrarToast(err instanceof Error ? err.message : 'Erro', 'error');
-    } finally {
-      setAcaoLoading('');
-    }
-  }
 
   async function resetCreditos() {
     setAcaoLoading('reset');
@@ -600,11 +587,6 @@ export default function TradeflowPage() {
                 {conta.billing_status === 'active' && (
                   <button className="btn btn-primary btn-sm" onClick={irParaPortal} disabled={portalLoading}>
                     {portalLoading ? 'A abrir...' : <><CreditCard size={14} strokeWidth={1.5} /> Gerir subscrição</>}
-                  </button>
-                )}
-                {conta.billing_status === 'active' && (
-                  <button className="btn btn-outline btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
-                    {acaoLoading === 'renovar' ? 'A renovar...' : <><RefreshCw size={14} strokeWidth={1.5} /> Renovar +1 mês</>}
                   </button>
                 )}
 

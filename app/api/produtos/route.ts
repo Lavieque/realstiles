@@ -16,15 +16,13 @@ async function getTemuAccountInfo(): Promise<AccountResult> {
   const accountId = snap.data()?.account_id;
   if (!accountId) return { ok: false, error: 'Nenhuma conta TradeFlow ligada. Vai a Admin → TradeFlow para subscrever.' };
 
-  const [accountsRes, plansRes] = await Promise.all([
-    fetch(`${tfUrl}/admin/accounts`, { headers: { 'x-admin-token': tfToken } }),
+  const [accountRes, plansRes] = await Promise.all([
+    fetch(`${tfUrl}/admin/accounts/${accountId}`, { headers: { 'x-admin-token': tfToken } }),
     fetch(`${tfUrl}/admin/plans`, { headers: { 'x-admin-token': tfToken } }),
   ]);
-  if (!accountsRes.ok) return { ok: false, error: 'Não foi possível verificar a subscrição TradeFlow. O serviço pode estar em baixo.' };
+  if (!accountRes.ok) return { ok: false, error: 'Não foi possível verificar a subscrição TradeFlow. O serviço pode estar em baixo.' };
 
-  const accounts: { id: string; creditos_usados: number; creditos_limite: number; creditos_extra: number; plano_id: string }[] = await accountsRes.json();
-  const account = accounts.find(a => a.id === accountId);
-  if (!account) return { ok: false, error: 'Conta TradeFlow não encontrada. Verifica a ligação em Admin → TradeFlow.' };
+  const account: { id: string; creditos_usados: number; creditos_limite: number; creditos_extra: number; plano_id: string } = await accountRes.json();
 
   let fontes: string[] = [];
   if (plansRes.ok) {
@@ -76,9 +74,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const creditosDisponiveis = (info.creditos_extra ?? 0) > 0
-        ? info.creditos_extra
-        : info.creditos_limite;
+      const creditosDisponiveis = info.creditos_limite + (info.creditos_extra ?? 0);
       if (info.creditos_usados >= creditosDisponiveis) {
         return NextResponse.json(
           { error: 'Créditos insuficientes. Vai a Admin → TradeFlow para fazer upgrade do plano.' },
