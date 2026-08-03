@@ -67,7 +67,7 @@ export default function HeroSlider({ destaques: initial }: { destaques: Produto[
                 <Image src={p.imagens[0]} alt={p.nome} fill style={{ objectFit: 'cover' }} sizes="33vw" />
               </div>
               <div className="hero-slide-preco">
-                {p.preco?.toFixed(2)} MZN
+                {Number(p.preco || 0).toFixed(2)} MZN
               </div>
             </Link>
           ))}
