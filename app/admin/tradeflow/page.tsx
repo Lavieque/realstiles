@@ -354,9 +354,12 @@ export default function TradeflowPage() {
   }
 
   const planoActual = planos.find(p => p.id === conta?.plano_id);
-  const pct = conta ? Math.min(Math.round((conta.creditos_usados / conta.creditos_limite) * 100), 100) : 0;
+  const isPack = planoActual?.tipo === 'avulso';
+  const creditosDisponiveis = isPack ? (conta?.creditos_extra ?? 0) : (conta?.creditos_limite ?? 0);
+  const creditosUsados = isPack ? 0 : (conta?.creditos_usados ?? 0);
+  const pct = creditosDisponiveis > 0 ? Math.min(Math.round((creditosUsados / creditosDisponiveis) * 100), 100) : 0;
   const dias = conta ? diasAte(conta.renovacao_em) : null;
-  const restantes = conta ? conta.creditos_limite - conta.creditos_usados : 0;
+  const restantes = creditosDisponiveis - creditosUsados;
 
   return (
     <>
@@ -424,17 +427,19 @@ export default function TradeflowPage() {
                 </div>
               </div>
               <div className={`stat-card ${pct > 80 ? 'red' : ''}`}>
-                <div className="stat-card-label">Produtos importados</div>
-                <div className="stat-card-value" style={{ fontSize: 26 }}>{conta.creditos_usados}</div>
+                <div className="stat-card-label">{isPack ? 'Créditos disponíveis' : 'Produtos importados'}</div>
+                <div className="stat-card-value" style={{ fontSize: 26 }}>{isPack ? creditosDisponiveis : conta.creditos_usados}</div>
                 <div style={{ margin: '8px 0 4px' }}>
                   <div style={{ background: 'rgba(0,0,0,0.08)', borderRadius: 100, height: 6 }}>
                     <div style={{ height: 6, borderRadius: 100, background: pct > 80 ? '#e53e3e' : 'currentColor', width: `${pct}%`, opacity: 0.7 }} />
                   </div>
                 </div>
                 <div className="stat-card-sub">
-                  {pct < 100
-                    ? `${restantes} restantes de ${conta.creditos_limite}`
-                    : '⚠ Limite atingido'}
+                  {isPack
+                    ? `${creditosDisponiveis} créditos restantes`
+                    : pct < 100
+                      ? `${restantes} restantes de ${conta.creditos_limite}`
+                      : '⚠ Limite atingido'}
                 </div>
               </div>
               <div className={`stat-card ${dias !== null && dias <= 7 ? 'red' : ''}`}>

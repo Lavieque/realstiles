@@ -4,42 +4,36 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export const dynamic = 'force-dynamic';
 
-async function getTemuAccountInfo(): Promise<{
-  accountId: string;
-  creditos_usados: number;
-  creditos_limite: number;
-  fontes: string[];
-} | null> {
-  try {
-    const tfUrl = process.env.TRADEFLOW_API_URL;
-    const tfToken = process.env.TRADEFLOW_ADMIN_TOKEN;
-    if (!tfUrl || !tfToken) return null;
+type AccountInfo = { accountId: string; creditos_usados: number; creditos_limite: number; creditos_extra: number; fontes: string[] };
+type AccountResult = { ok: true; info: AccountInfo } | { ok: false; error: string };
 
-    const snap = await adminDb.collection('configuracoes').doc('tradeflow').get();
-    const accountId = snap.data()?.account_id;
-    if (!accountId) return null;
+async function getTemuAccountInfo(): Promise<AccountResult> {
+  const tfUrl = process.env.TRADEFLOW_API_URL;
+  const tfToken = process.env.TRADEFLOW_ADMIN_TOKEN;
+  if (!tfUrl || !tfToken) return { ok: false, error: 'TradeFlow não configurado neste ambiente.' };
 
-    const [accountsRes, plansRes] = await Promise.all([
-      fetch(`${tfUrl}/admin/accounts`, { headers: { 'x-admin-token': tfToken } }),
-      fetch(`${tfUrl}/admin/plans`, { headers: { 'x-admin-token': tfToken } }),
-    ]);
-    if (!accountsRes.ok) return null;
+  const snap = await adminDb.collection('configuracoes').doc('tradeflow').get();
+  const accountId = snap.data()?.account_id;
+  if (!accountId) return { ok: false, error: 'Nenhuma conta TradeFlow ligada. Vai a Admin → TradeFlow para subscrever.' };
 
-    const accounts: { id: string; creditos_usados: number; creditos_limite: number; plano_id: string }[] = await accountsRes.json();
-    const account = accounts.find(a => a.id === accountId);
-    if (!account) return null;
+  const [accountsRes, plansRes] = await Promise.all([
+    fetch(`${tfUrl}/admin/accounts`, { headers: { 'x-admin-token': tfToken } }),
+    fetch(`${tfUrl}/admin/plans`, { headers: { 'x-admin-token': tfToken } }),
+  ]);
+  if (!accountsRes.ok) return { ok: false, error: 'Não foi possível verificar a subscrição TradeFlow. O serviço pode estar em baixo.' };
 
-    let fontes: string[] = [];
-    if (plansRes.ok) {
-      const plans: { id: string; fontes: string[] }[] = await plansRes.json();
-      const plan = plans.find(p => p.id === account.plano_id);
-      fontes = plan?.fontes ?? [];
-    }
+  const accounts: { id: string; creditos_usados: number; creditos_limite: number; creditos_extra: number; plano_id: string }[] = await accountsRes.json();
+  const account = accounts.find(a => a.id === accountId);
+  if (!account) return { ok: false, error: 'Conta TradeFlow não encontrada. Verifica a ligação em Admin → TradeFlow.' };
 
-    return { accountId, creditos_usados: account.creditos_usados, creditos_limite: account.creditos_limite, fontes };
-  } catch {
-    return null;
+  let fontes: string[] = [];
+  if (plansRes.ok) {
+    const plans: { id: string; fontes: string[] }[] = await plansRes.json();
+    const plan = plans.find(p => p.id === account.plano_id);
+    fontes = plan?.fontes ?? [];
   }
+
+  return { ok: true, info: { accountId, creditos_usados: account.creditos_usados, creditos_limite: account.creditos_limite, creditos_extra: account.creditos_extra ?? 0, fontes } };
 }
 
 async function deduzirCreditoTemu(accountId: string) {
@@ -64,20 +58,35 @@ export async function POST(req: NextRequest) {
 
     let temuAccountId: string | null = null;
     if (dados.fonte === 'temu') {
-      const info = await getTemuAccountInfo();
-      if (info && info.fontes.length > 0 && !info.fontes.includes('temu')) {
+      const result = await getTemuAccountInfo().catch(err => ({
+        ok: false as const,
+        error: `Erro ao verificar TradeFlow: ${err instanceof Error ? err.message : String(err)}`,
+      }));
+
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 503 });
+      }
+
+      const { info } = result;
+
+      if (info.fontes.length > 0 && !info.fontes.includes('temu')) {
         return NextResponse.json(
           { error: 'O teu plano TradeFlow não inclui a Temu. Vai a Admin → TradeFlow para fazer upgrade.' },
           { status: 403 },
         );
       }
-      if (info && info.creditos_usados >= info.creditos_limite) {
+
+      const creditosDisponiveis = (info.creditos_extra ?? 0) > 0
+        ? info.creditos_extra
+        : info.creditos_limite;
+      if (info.creditos_usados >= creditosDisponiveis) {
         return NextResponse.json(
           { error: 'Créditos insuficientes. Vai a Admin → TradeFlow para fazer upgrade do plano.' },
           { status: 402 },
         );
       }
-      temuAccountId = info?.accountId ?? null;
+
+      temuAccountId = info.accountId;
     }
 
     const ref = await adminDb.collection('produtos').add({
