@@ -48,7 +48,7 @@ function AdminImportarPage() {
   const [ajustes, setAjustes] = useState<Partial<Produto>>({});
   const [salvando, setSalvando] = useState(false);
   const [estadoTF, setEstadoTF] = useState<EstadoTF>('verificando');
-  const [infoTF, setInfoTF] = useState<{ usados: number; limite: number; plano: string } | null>(null);
+  const [infoTF, setInfoTF] = useState<{ usados: number; limite: number; plano: string; fontes: string[] } | null>(null);
   const [catTree, setCatTree] = useState<CatTree[]>([]);
   const [imagemAtiva, setImagemAtiva] = useState(0);
   const [corAtiva, setCorAtiva] = useState<string | null>(null);
@@ -156,7 +156,10 @@ function AdminImportarPage() {
         if (conta.billing_status === 'suspended' || conta.billing_status === 'cancelled') { setEstadoTF('inativo'); return; }
         const restantes = conta.creditos_limite - conta.creditos_usados;
         if (restantes <= 0) { setEstadoTF('sem_limite'); return; }
-        setInfoTF({ usados: conta.creditos_usados, limite: conta.creditos_limite, plano: conta.plano_id });
+        const planos: { id: string; fontes?: string[] }[] = data.planos ?? [];
+        const plano = planos.find(p => p.id === conta.plano_id);
+        const fontes = plano?.fontes ?? [];
+        setInfoTF({ usados: conta.creditos_usados, limite: conta.creditos_limite, plano: conta.plano_id, fontes });
         setEstadoTF('ok');
       })
       .catch(() => setEstadoTF('sem_conta'));
@@ -436,6 +439,34 @@ function AdminImportarPage() {
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gray-700)', whiteSpace: 'nowrap' }}>
               {infoTF.limite - infoTF.usados} restantes
             </span>
+          </div>
+        )}
+
+        {/* Instruções por fonte — só aparece quando ok e há fontes */}
+        {estadoTF === 'ok' && infoTF && infoTF.fontes.length > 0 && (
+          <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>Como importar</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {infoTF.fontes.map(fonte => {
+                const info: Record<string, { label: string; instrucao: string }> = {
+                  temu: { label: 'Temu', instrucao: 'Cola o link do produto no campo abaixo — ou clica em "Importar da Temu via extensão" — e segue as instruções (requer a extensão TradeFlow Importer instalada no Chrome).' },
+                  shein: { label: 'Shein', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                  aliexpress: { label: 'AliExpress', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                  zara: { label: 'Zara', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                  hm: { label: 'H&M', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                  mango: { label: 'Mango', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                  pull: { label: 'Pull&Bear', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                  bershka: { label: 'Bershka', instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' },
+                };
+                const f = info[fonte] ?? { label: fonte, instrucao: 'Cola o link do produto no campo abaixo e clica Importar.' };
+                return (
+                  <div key={fonte} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--black)', background: 'var(--gray-200)', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', marginTop: 1 }}>{f.label}</span>
+                    <span style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.5 }}>{f.instrucao}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
