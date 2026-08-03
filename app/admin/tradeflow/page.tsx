@@ -601,9 +601,11 @@ export default function TradeflowPage() {
                     {portalLoading ? 'A abrir...' : <><CreditCard size={14} strokeWidth={1.5} /> Gerir subscrição</>}
                   </button>
                 )}
-                <button className="btn btn-outline btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
-                  {acaoLoading === 'renovar' ? 'A renovar...' : <><RefreshCw size={14} strokeWidth={1.5} /> Renovar +1 mês</>}
-                </button>
+                {conta.billing_status === 'active' && (
+                  <button className="btn btn-outline btn-sm" onClick={renovar} disabled={acaoLoading === 'renovar'}>
+                    {acaoLoading === 'renovar' ? 'A renovar...' : <><RefreshCw size={14} strokeWidth={1.5} /> Renovar +1 mês</>}
+                  </button>
+                )}
 
                 {conta.billing_status === 'active' && (
                   <button
