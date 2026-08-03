@@ -28,6 +28,7 @@ interface Conta {
   billing_status: 'trial' | 'active' | 'suspended' | 'cancelled';
   creditos_usados: number;
   creditos_limite: number;
+  creditos_extra?: number;
   license_key: string;
   offline?: boolean;
   renovacao_em?: { seconds?: number; _seconds?: number } | null;
