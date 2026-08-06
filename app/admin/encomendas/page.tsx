@@ -17,6 +17,7 @@ export default function AdminEncomendasPage() {
   const [seleccionada, setSeleccionada] = useState<Encomenda | null>(null);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState<EstadoEncomenda | ''>('');
   const [notas, setNotas] = useState('');
   const [salvando, setSalvando] = useState(false);
 
@@ -90,9 +91,11 @@ export default function AdminEncomendasPage() {
     }
   };
 
-  const filtradas = encomendas.filter(e =>
-    !filtro || e.id.includes(filtro) || e.cliente_email?.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const filtradas = encomendas.filter(e => {
+    if (filtroEstado && e.estado !== filtroEstado) return false;
+    if (filtro && !e.id.includes(filtro) && !e.cliente_email?.toLowerCase().includes(filtro.toLowerCase())) return false;
+    return true;
+  });
 
   const exportarCSV = () => {
     const linhas = [
@@ -126,12 +129,34 @@ export default function AdminEncomendasPage() {
           <h1>Encomendas</h1>
           <button className="btn btn-outline btn-sm" onClick={exportarCSV} title="Exportar CSV" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Download size={14} strokeWidth={1.5} /> CSV</button>
         </div>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-200)' }}>
+        <div style={{ padding: '12px 20px 0', borderBottom: '1px solid var(--gray-200)' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            <button
+              onClick={() => setFiltroEstado('')}
+              className={`filtro-btn${filtroEstado === '' ? ' active' : ''}`}
+              style={{ fontSize: 11 }}
+            >
+              Todas {filtroEstado === '' && <span style={{ opacity: 0.6 }}>({encomendas.length})</span>}
+            </button>
+            {ESTADOS.map(est => {
+              const count = encomendas.filter(e => e.estado === est).length;
+              return (
+                <button
+                  key={est}
+                  onClick={() => setFiltroEstado(est)}
+                  className={`filtro-btn${filtroEstado === est ? ' active' : ''}`}
+                  style={{ fontSize: 11 }}
+                >
+                  {badgeEstadoLabel(est)} {count > 0 && <span style={{ opacity: 0.6 }}>({count})</span>}
+                </button>
+              );
+            })}
+          </div>
           <input
             placeholder="Pesquisar por ID ou email..."
             value={filtro}
             onChange={e => setFiltro(e.target.value)}
-            style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none' }}
+            style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: 12 }}
           />
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
