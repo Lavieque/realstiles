@@ -154,12 +154,14 @@ function AdminImportarPage() {
         const conta = data.conta;
         if (!conta) { setEstadoTF('sem_conta'); return; }
         if (conta.billing_status === 'suspended' || conta.billing_status === 'cancelled') { setEstadoTF('inativo'); return; }
-        const restantes = conta.creditos_limite - conta.creditos_usados;
-        if (restantes <= 0) { setEstadoTF('sem_limite'); return; }
-        const planos: { id: string; fontes?: string[] }[] = data.planos ?? [];
+        const planos: { id: string; fontes?: string[]; tipo?: string }[] = data.planos ?? [];
         const plano = planos.find(p => p.id === conta.plano_id);
+        const isPack = plano?.tipo === 'avulso';
+        const limite = isPack ? (conta.creditos_extra ?? 0) : (conta.creditos_limite + (conta.creditos_extra ?? 0));
+        const restantes = limite - (isPack ? 0 : conta.creditos_usados);
+        if (restantes <= 0) { setEstadoTF('sem_limite'); return; }
         const fontes = plano?.fontes ?? [];
-        setInfoTF({ usados: conta.creditos_usados, limite: conta.creditos_limite, plano: conta.plano_id, fontes });
+        setInfoTF({ usados: isPack ? 0 : conta.creditos_usados, limite, plano: conta.plano_id, fontes });
         setEstadoTF('ok');
       })
       .catch(() => setEstadoTF('sem_conta'));

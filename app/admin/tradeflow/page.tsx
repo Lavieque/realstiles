@@ -109,7 +109,7 @@ export default function TradeflowPage() {
       if (data.error) { setErro(data.error); return; }
       setConta(data.conta);
       setLicenseKeyLocal(data.license_key_local ?? null);
-      setPlanos((data.planos as Plano[]).filter(p => p.activo));
+      setPlanos((data.planos as Plano[]).filter(p => p.activo !== false));
     } catch {
       setErro('Não foi possível ligar ao TradeFlow. Verifica TRADEFLOW_API_URL e TRADEFLOW_ADMIN_TOKEN no .env.local.');
     } finally {
