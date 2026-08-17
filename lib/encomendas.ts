@@ -41,6 +41,55 @@ export interface Encomenda {
   actualizado_em?: unknown;
 }
 
+export async function criarEncomendaPendente({
+  itens, morada, cidade, telefone, notas = '', guestEmail = '', pagamento_metodo,
+}: {
+  itens: ItemEncomenda[];
+  morada: string;
+  cidade: string;
+  telefone: string;
+  notas?: string;
+  guestEmail?: string;
+  pagamento_metodo: 'mpesa' | 'emola' | 'cartao';
+}): Promise<string> {
+  const user = auth.currentUser;
+  const emailFinal = user?.email || guestEmail || '';
+  if (!user && !emailFinal) throw new Error('Email necessário');
+
+  const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
+
+  let clienteNome = user?.displayName || '';
+  let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
+  if (user) {
+    try {
+      const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
+      const perfil = perfilSnap.data();
+      const canal = perfil?.notif_canal;
+      if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
+      clienteNome = perfil?.nome || user.displayName || '';
+    } catch { /* mantém default */ }
+  }
+
+  const ref = await addDoc(collection(db, 'encomendas'), {
+    cliente_id: user?.uid || 'guest',
+    cliente_nome: clienteNome || undefined,
+    cliente_email: emailFinal,
+    guest: !user,
+    itens, total,
+    morada_entrega: morada,
+    cidade_entrega: cidade,
+    telefone_contacto: telefone,
+    notas, notas_admin: '',
+    estado: 'pendente',
+    pagamento_metodo,
+    pagamento_estado: 'pendente',
+    notif_canal: notifCanal,
+    criado_em: serverTimestamp(),
+  });
+
+  return ref.id;
+}
+
 export async function criarEncomenda({
   itens, morada, cidade, telefone, notas = '', guestEmail = '',
 }: {
