@@ -1306,11 +1306,46 @@ body:has(.admin-layout) {
 .stock-badge { background: #c05621; color: white; border-radius: 100px; font-size: 11px; font-weight: 700; padding: 2px 8px; }
 @media (max-width: 900px) { .analytics-grid { grid-template-columns: 1fr; } }
 
+/* ── FATURA PRINT (oculta no ecrã) ── */
+.fatura-print { display: none; }
+
 /* ── IMPRESSÃO ── */
 @media print {
   nav, footer, .whatsapp-float, .enc-acoes, .enc-back-link,
-  .btn, .enc-modal-overlay, .cart-drawer, .cart-overlay { display: none !important; }
-  .page-wrapper { padding-top: 0 !important; }
-  .detalhe-card { border: 1px solid #ccc; border-radius: 0; box-shadow: none; break-inside: avoid; }
-  body { font-size: 13px; color: #000; }
+  .btn, .enc-modal-overlay, .cart-drawer, .cart-overlay,
+  .enc-detalhe-container, .enc-confirmada-banner,
+  .page-header, .detalhe-card, [style*="display: flex"][style*="gap: 12"] { display: none !important; }
+  .page-wrapper { padding: 0 !important; margin: 0 !important; }
+  body { font-size: 12px; color: #000; margin: 0; }
+  .fatura-print { display: block !important; padding: 20mm 18mm; font-family: Arial, sans-serif; color: #000; }
+
+  /* Cabeçalho */
+  .fp-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 14px; margin-bottom: 18px; }
+  .fp-empresa { display: flex; align-items: flex-start; gap: 14px; }
+  .fp-logo { height: 48px; width: auto; }
+  .fp-empresa-info { display: flex; flex-direction: column; font-size: 11px; line-height: 1.6; }
+  .fp-empresa-info strong { font-size: 13px; margin-bottom: 2px; }
+  .fp-doc-info { text-align: right; }
+  .fp-doc-titulo { font-size: 18px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+  .fp-meta td { padding: 1px 6px; font-size: 12px; }
+  .fp-meta td:first-child { color: #555; text-align: right; }
+
+  /* Cliente */
+  .fp-cliente { background: #f5f5f5; padding: 10px 14px; margin-bottom: 18px; font-size: 12px; line-height: 1.7; border-left: 3px solid #000; }
+
+  /* Tabela de artigos */
+  .fp-tabela { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12px; }
+  .fp-tabela th { background: #1a1a1a; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; letter-spacing: 0.5px; }
+  .fp-th-qty { width: 60px; }
+  .fp-th-num { width: 110px; text-align: right !important; }
+  .fp-tabela td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+  .fp-td-center { text-align: center; }
+  .fp-td-right { text-align: right; }
+  .fp-variante { color: #666; font-size: 11px; }
+  .fp-total-row td { border-top: 2px solid #000; border-bottom: none; padding-top: 10px; font-size: 14px; }
+
+  /* Rodapé */
+  .fp-rodape { font-size: 12px; line-height: 1.8; border-top: 1px solid #ccc; padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .fp-obs { margin-top: 8px; }
+  .fp-obs strong { display: block; }
 }

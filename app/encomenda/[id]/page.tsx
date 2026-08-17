@@ -4,6 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { onAuthChange } from '@/lib/auth';
+import { getConfig } from '@/lib/config-site';
+import type { SiteConfig } from '@/lib/config-site';
 import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
@@ -56,6 +58,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [encomenda, setEncomenda] = useState<Encomenda | null>(null);
   const [loading, setLoading] = useState(true);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [confirmarCancel, setConfirmarCancel] = useState(false);
   const [retryMetodo, setRetryMetodo] = useState<Metodo>('mpesa');
@@ -69,8 +72,9 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     const unsub = onAuthChange(async (u) => {
       setUser(u);
       if (!u) { setLoading(false); return; }
-      const enc = await getEncomenda(params.id);
+      const [enc, cfg] = await Promise.all([getEncomenda(params.id), getConfig()]);
       setEncomenda(enc);
+      setSiteConfig(cfg);
       if (enc?.telefone_contacto) setRetryTelefone(enc.telefone_contacto);
       setLoading(false);
     });
@@ -430,6 +434,98 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           <Link href="/" className="btn btn-primary">Continuar a comprar</Link>
         </div>
       </div>
+
+      {/* Layout só visível na impressão */}
+      {siteConfig && (
+        <div className="fatura-print">
+          <div className="fp-header">
+            <div className="fp-empresa">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/logo.png" alt="Logo" className="fp-logo" />
+              <div className="fp-empresa-info">
+                <strong>{siteConfig.empresa_nome}</strong>
+                {siteConfig.empresa_morada && <span>{siteConfig.empresa_morada}</span>}
+                {siteConfig.empresa_cidade && <span>{siteConfig.empresa_cidade}</span>}
+                {siteConfig.empresa_nif && <span>NIF: {siteConfig.empresa_nif}</span>}
+                {(siteConfig.tel1 || siteConfig.tel2) && (
+                  <span>Tel: {[siteConfig.tel1, siteConfig.tel2].filter(Boolean).join(' / ')}</span>
+                )}
+                {siteConfig.empresa_email && <span>Email: {siteConfig.empresa_email}</span>}
+              </div>
+            </div>
+            <div className="fp-doc-info">
+              <div className="fp-doc-titulo">RECIBO DE ENCOMENDA</div>
+              <table className="fp-meta">
+                <tbody>
+                  <tr><td>Nº:</td><td><strong>#{codCurto}</strong></td></tr>
+                  <tr><td>Data:</td><td>{formatarData(encomenda.criado_em)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="fp-cliente">
+            <div><strong>CLIENTE:</strong> {encomenda.cliente_nome || encomenda.cliente_email}</div>
+            {encomenda.cliente_email && encomenda.cliente_nome && <div>Email: {encomenda.cliente_email}</div>}
+            <div>Tel: {encomenda.telefone_contacto}</div>
+            <div>Morada: {encomenda.morada_entrega}{encomenda.cidade_entrega ? `, ${encomenda.cidade_entrega}` : ''}</div>
+          </div>
+
+          <table className="fp-tabela">
+            <thead>
+              <tr>
+                <th className="fp-th-qty">QUANT.</th>
+                <th>DESCRIÇÃO DO ARTIGO</th>
+                <th className="fp-th-num">P. UNIT.</th>
+                <th className="fp-th-num">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {encomenda.itens?.map((item, i) => (
+                <tr key={i}>
+                  <td className="fp-td-center">{item.quantidade}</td>
+                  <td>
+                    {item.nome}
+                    {(item.tamanho || item.cor) && (
+                      <span className="fp-variante"> — {[item.tamanho && `Tam: ${item.tamanho}`, item.cor && `Cor: ${item.cor}`].filter(Boolean).join(' · ')}</span>
+                    )}
+                  </td>
+                  <td className="fp-td-right">{item.preco.toFixed(2)} MZN</td>
+                  <td className="fp-td-right">{(item.preco * item.quantidade).toFixed(2)} MZN</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="fp-total-row">
+                <td colSpan={3} className="fp-td-right"><strong>TOTAL</strong></td>
+                <td className="fp-td-right"><strong>{encomenda.total?.toFixed(2)} MZN</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div className="fp-rodape">
+            {encomenda.pagamento_metodo && (
+              <div><strong>MÉTODO DE PAGAMENTO:</strong> {
+                encomenda.pagamento_metodo === 'mpesa' ? 'M-Pesa' :
+                encomenda.pagamento_metodo === 'emola' ? 'e-Mola' : 'Cartão'
+              }</div>
+            )}
+            {siteConfig.fatura_condicoes && (
+              <div><strong>CONDIÇÕES DE ENTREGA:</strong> {siteConfig.fatura_condicoes}</div>
+            )}
+            <div><strong>MORADA DE ENTREGA:</strong><br />{encomenda.morada_entrega}<br />{encomenda.cidade_entrega}</div>
+            {(encomenda.notas || siteConfig.fatura_obs) && (
+              <div className="fp-obs">
+                <strong>OBSERVAÇÕES:</strong>
+                {encomenda.notas && <div>{encomenda.notas}</div>}
+                {siteConfig.fatura_obs && <div>{siteConfig.fatura_obs}</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

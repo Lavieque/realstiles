@@ -54,6 +54,19 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Dados de Fatura / Recibo</h2>
+          <div className="form-group"><label>Nome da empresa</label><input value={config.empresa_nome} onChange={f('empresa_nome')} /></div>
+          <div className="form-grid-2">
+            <div className="form-group"><label>NIF</label><input value={config.empresa_nif} onChange={f('empresa_nif')} placeholder="Ex: 400123456" /></div>
+            <div className="form-group"><label>Email de faturação</label><input value={config.empresa_email} onChange={f('empresa_email')} placeholder="faturacao@..." /></div>
+          </div>
+          <div className="form-group"><label>Morada</label><input value={config.empresa_morada} onChange={f('empresa_morada')} /></div>
+          <div className="form-group"><label>Cidade / País</label><input value={config.empresa_cidade} onChange={f('empresa_cidade')} /></div>
+          <div className="form-group"><label>Condições de entrega (aparece no recibo)</label><input value={config.fatura_condicoes} onChange={f('fatura_condicoes')} /></div>
+          <div className="form-group"><label>Observações (aparece no recibo)</label><textarea value={config.fatura_obs} onChange={f('fatura_obs')} /></div>
+        </div>
+
+        <div className="form-card">
           <h2>Contactos e Rodapé</h2>
           <div className="form-grid-2">
             <div className="form-group"><label>Telefone 1</label><input value={config.tel1} onChange={f('tel1')} /></div>
