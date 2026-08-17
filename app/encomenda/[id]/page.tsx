@@ -490,8 +490,8 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                       <span className="fp-variante"> — {[item.tamanho && `Tam: ${item.tamanho}`, item.cor && `Cor: ${item.cor}`].filter(Boolean).join(' · ')}</span>
                     )}
                   </td>
-                  <td className="fp-td-right">{item.preco.toFixed(2)} MZN</td>
-                  <td className="fp-td-right">{(item.preco * item.quantidade).toFixed(2)} MZN</td>
+                  <td className="fp-td-right">{Number(item.preco).toFixed(2)} MZN</td>
+                  <td className="fp-td-right">{(Number(item.preco) * item.quantidade).toFixed(2)} MZN</td>
                 </tr>
               ))}
             </tbody>
