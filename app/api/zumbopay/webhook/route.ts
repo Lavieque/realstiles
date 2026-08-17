@@ -27,10 +27,28 @@ export async function POST(req: NextRequest) {
   }
 
   const data = payload.data ?? {};
-  // source_id é o encomenda_id que enviámos em /charges
-  // reference é o que enviámos em /payments (título ou referência)
-  const encomendaId = (data.source_id ?? data.reference) as string | undefined;
+  const sourceId = data.source_id as string | undefined;
   const referencia = (data.reference ?? data.id) as string | undefined;
+
+  // Tenta encontrar o encomenda_id: primeiro pelo source_uuid guardado no pagamento,
+  // depois pelo reference, e por último trata o source_id directamente como encomenda_id
+  let encomendaId: string | undefined;
+
+  if (sourceId) {
+    const q = await adminDb.collection('pagamentos')
+      .where('source_uuid', '==', sourceId)
+      .limit(1)
+      .get();
+    if (!q.empty) encomendaId = q.docs[0].data().encomenda_id;
+  }
+  if (!encomendaId && referencia) {
+    const q = await adminDb.collection('pagamentos')
+      .where('referencia_zumbopay', '==', referencia)
+      .limit(1)
+      .get();
+    if (!q.empty) encomendaId = q.docs[0].data().encomenda_id;
+  }
+  if (!encomendaId) encomendaId = sourceId;
 
   if (!encomendaId) return NextResponse.json({ ok: true });
 
@@ -40,13 +58,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Encontrar o registo de pagamento pela referência ZumboPay
+  // Encontrar o registo de pagamento pelo source_uuid ou referência
   let pagamentoId: string | null = null;
-  if (referencia) {
-    const q = await adminDb.collection('pagamentos')
-      .where('referencia_zumbopay', '==', referencia)
-      .limit(1)
-      .get();
+  if (sourceId) {
+    const q = await adminDb.collection('pagamentos').where('source_uuid', '==', sourceId).limit(1).get();
+    if (!q.empty) pagamentoId = q.docs[0].id;
+  }
+  if (!pagamentoId && referencia) {
+    const q = await adminDb.collection('pagamentos').where('referencia_zumbopay', '==', referencia).limit(1).get();
     if (!q.empty) pagamentoId = q.docs[0].id;
   }
 

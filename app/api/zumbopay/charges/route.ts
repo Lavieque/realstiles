@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { randomUUID } from 'crypto';
 
 const ZP_BASE = 'https://zumbopay.com/api/public/v1';
 
@@ -30,16 +31,20 @@ export async function POST(req: NextRequest) {
     const msisdnClean = msisdn.replace(/\D/g, '');
     const msisdnFull = msisdnClean.startsWith('258') ? msisdnClean : '258' + msisdnClean;
 
+    // ZumboPay exige UUID válido em source_id; guardamos o mapeamento no pagamento
+    const sourceUuid = randomUUID();
+
     const payloadEnviado = {
       wallet_id: walletId,
       amount,
       msisdn: msisdnFull,
       customer_name: customer_name || 'Cliente',
-      source_id: encomenda_id,
+      source_id: sourceUuid,
     };
 
     const pagRef = await adminDb.collection('pagamentos').add({
       encomenda_id,
+      source_uuid: sourceUuid,
       metodo,
       montante: amount,
       estado: 'pendente',
