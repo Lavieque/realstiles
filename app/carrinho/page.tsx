@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingBag, Loader2, XCircle } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
-import { criarEncomendaPendente } from '@/lib/encomendas';
+import { criarEncomendaPendente, criarEncomenda } from '@/lib/encomendas';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
@@ -13,6 +13,8 @@ import type { User } from 'firebase/auth';
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
+
+const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
 
 const METODOS: { id: Metodo; label: string; sub: string }[] = [
   { id: 'mpesa',  label: 'M-Pesa',  sub: '84 / 85' },
@@ -32,6 +34,7 @@ export default function CarrinhoPage() {
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
   const unsubRef = useRef<(() => void) | null>(null);
+  const canUseZumboPay = user?.email === ZUMBOPAY_TEST_EMAIL;
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -79,6 +82,27 @@ export default function CarrinhoPage() {
         setPagErro('Pagamento cancelado. Tenta novamente.');
       }
     });
+  };
+
+  const handleCheckoutSimples = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const encId = await criarEncomenda({
+        itens: items,
+        morada: form.morada,
+        cidade: form.cidade,
+        telefone: form.telefone,
+        notas: form.notas,
+        guestEmail: form.email,
+      });
+      limpar();
+      window.location.href = `/encomenda/${encId}`;
+    } catch (err) {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao processar encomenda.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -240,7 +264,7 @@ export default function CarrinhoPage() {
             )}
 
             {pagStatus === 'idle' && checkoutOpen && (
-              <form onSubmit={handleCheckout}>
+              <form onSubmit={canUseZumboPay ? handleCheckout : handleCheckoutSimples}>
                 {(!user || !user.email) && (
                   <div className="form-group">
                     <label>Email de contacto {!user ? '*' : '(opcional)'}</label>
@@ -264,42 +288,43 @@ export default function CarrinhoPage() {
                   <textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Instruções especiais..." style={{ minHeight: 80 }} />
                 </div>
 
-                {/* Método de pagamento */}
-                <div className="form-group" style={{ marginBottom: 20 }}>
-                  <label style={{ marginBottom: 10, display: 'block' }}>Método de pagamento *</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {METODOS.map(m => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setMetodo(m.id)}
-                        style={{
-                          padding: '10px 8px',
-                          borderRadius: 10,
-                          border: `2px solid ${metodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
-                          background: metodo === m.id ? 'var(--black)' : 'white',
-                          color: metodo === m.id ? 'white' : 'var(--black)',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>{m.label}</div>
-                        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{m.sub}</div>
-                      </button>
-                    ))}
+                {canUseZumboPay && (
+                  <div className="form-group" style={{ marginBottom: 20 }}>
+                    <label style={{ marginBottom: 10, display: 'block' }}>Método de pagamento *</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      {METODOS.map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setMetodo(m.id)}
+                          style={{
+                            padding: '10px 8px',
+                            borderRadius: 10,
+                            border: `2px solid ${metodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
+                            background: metodo === m.id ? 'var(--black)' : 'white',
+                            color: metodo === m.id ? 'white' : 'var(--black)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{m.label}</div>
+                          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{m.sub}</div>
+                        </button>
+                      ))}
+                    </div>
+                    {metodo !== 'cartao' && (
+                      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
+                        O prompt de pagamento será enviado para o número indicado acima.
+                      </p>
+                    )}
+                    {metodo === 'cartao' && (
+                      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
+                        Serás redirecionado para a página de pagamento segura.
+                      </p>
+                    )}
                   </div>
-                  {metodo !== 'cartao' && (
-                    <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
-                      O prompt de pagamento será enviado para o número indicado acima.
-                    </p>
-                  )}
-                  {metodo === 'cartao' && (
-                    <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
-                      Serás redirecionado para a página de pagamento segura.
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {!user && (
                   <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
@@ -310,9 +335,11 @@ export default function CarrinhoPage() {
                 <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
                   {loading
                     ? 'A processar...'
-                    : metodo === 'cartao'
-                      ? 'Pagar com Cartão →'
-                      : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`}
+                    : canUseZumboPay
+                      ? metodo === 'cartao'
+                        ? 'Pagar com Cartão →'
+                        : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`
+                      : 'Finalizar encomenda →'}
                 </button>
                 <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setCheckoutOpen(false)}>
                   Cancelar
