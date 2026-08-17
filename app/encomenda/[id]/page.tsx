@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -7,9 +7,39 @@ import { onAuthChange } from '@/lib/auth';
 import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package } from 'lucide-react';
+import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
+
+const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
+
+type Metodo = 'mpesa' | 'emola' | 'cartao';
+
+const LogoMpesa = () => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src="/img/mpesa.png" alt="M-Pesa" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
+);
+const LogoEmola = () => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src="/img/emola.png" alt="e-Mola" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
+);
+const LogoCartao = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 58" style={{ height: 28, width: 'auto' }}>
+    <rect width="180" height="58" rx="10" fill="#ffffff"/>
+    <text x="18" y="37" fontFamily="Arial,sans-serif" fontSize="24" fontWeight="700" fontStyle="italic" fill="#1a1f71">VISA</text>
+    <circle cx="120" cy="29" r="17" fill="#eb001b"/>
+    <circle cx="141" cy="29" r="17" fill="#f79e1b" fillOpacity="0.92"/>
+    <path d="M130.5 15.8a17 17 0 0 1 0 26.4 17 17 0 0 1 0-26.4Z" fill="#ff5f00"/>
+  </svg>
+);
+
+const METODOS_RETRY: { id: Metodo; Logo: () => JSX.Element }[] = [
+  { id: 'mpesa',  Logo: LogoMpesa },
+  { id: 'emola',  Logo: LogoEmola },
+  { id: 'cartao', Logo: LogoCartao },
+];
 
 const WHATSAPP_NUM = '258878753754';
 
@@ -28,6 +58,11 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [cancelando, setCancelando] = useState(false);
   const [confirmarCancel, setConfirmarCancel] = useState(false);
+  const [retryMetodo, setRetryMetodo] = useState<Metodo>('mpesa');
+  const [retryTelefone, setRetryTelefone] = useState('');
+  const [retryLoading, setRetryLoading] = useState(false);
+  const [retryStatus, setRetryStatus] = useState<'idle' | 'aguardar'>('idle');
+  const unsubRef = useRef<(() => void) | null>(null);
   const { adicionarItem, abrirDrawer } = useCarrinho();
 
   useEffect(() => {
@@ -36,10 +71,70 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
       if (!u) { setLoading(false); return; }
       const enc = await getEncomenda(params.id);
       setEncomenda(enc);
+      if (enc?.telefone_contacto) setRetryTelefone(enc.telefone_contacto);
       setLoading(false);
     });
     return unsub;
   }, [params.id]);
+
+  useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
+
+  const handleRetry = async () => {
+    if (!encomenda) return;
+    setRetryLoading(true);
+    try {
+      if (retryMetodo === 'cartao') {
+        const res = await fetch('/api/zumbopay/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ encomenda_id: encomenda.id, amount: encomenda.total }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
+        window.location.href = data.checkout_url;
+        return;
+      }
+
+      const res = await fetch('/api/zumbopay/charges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          encomenda_id: encomenda.id,
+          amount: encomenda.total,
+          msisdn: retryTelefone,
+          metodo: retryMetodo,
+          customer_name: user?.displayName || encomenda.cliente_email || 'Cliente',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento');
+
+      if (data.status === 'succeeded') {
+        window.location.href = `/encomenda/${encomenda.id}?confirmada=1`;
+        return;
+      }
+
+      setRetryStatus('aguardar');
+      const timeout = setTimeout(() => {
+        if (unsubRef.current) unsubRef.current();
+        setRetryStatus('idle');
+        mostrarToast('Tempo esgotado. Verifica se o pagamento foi concluído.', 'error');
+      }, 3 * 60 * 1000);
+
+      unsubRef.current = onSnapshot(doc(db, 'encomendas', encomenda.id), (snap) => {
+        const estado = snap.data()?.estado;
+        if (estado === 'confirmada') {
+          clearTimeout(timeout);
+          if (unsubRef.current) unsubRef.current();
+          window.location.href = `/encomenda/${encomenda.id}?confirmada=1`;
+        }
+      });
+    } catch (err) {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao processar pagamento.', 'error');
+    } finally {
+      setRetryLoading(false);
+    }
+  };
 
   const handleCancelar = async () => {
     if (!encomenda) return;
@@ -182,6 +277,63 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Retry pagamento ZumboPay */}
+        {user?.email === ZUMBOPAY_TEST_EMAIL &&
+          encomenda.estado === 'pendente' &&
+          encomenda.pagamento_metodo &&
+          encomenda.pagamento_estado !== 'pago' && (
+          <div className="detalhe-card" style={{ border: '1.5px solid #f7b731', background: '#fffdf0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <CreditCard size={18} strokeWidth={1.5} />
+              <h3 style={{ margin: 0 }}>Pagamento pendente</h3>
+            </div>
+
+            {retryStatus === 'aguardar' ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <Loader2 size={32} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite', marginBottom: 8 }} />
+                <p style={{ fontWeight: 600 }}>Aguarda confirmação no telemóvel</p>
+                <p style={{ fontSize: 13, color: 'var(--gray-400)', marginTop: 4 }}>
+                  Confirma o pagamento de <strong>{encomenda.total?.toFixed(2)} MZN</strong> no {retryMetodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}.
+                </p>
+                <button style={{ marginTop: 12, fontSize: 12, color: 'var(--gray-400)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setRetryStatus('idle'); }}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                  {METODOS_RETRY.map(m => (
+                    <button key={m.id} type="button" onClick={() => setRetryMetodo(m.id)} style={{
+                      padding: '10px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+                      border: `2px solid ${retryMetodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
+                      background: retryMetodo === m.id ? '#f5f5f5' : 'white',
+                      boxShadow: retryMetodo === m.id ? '0 0 0 2px var(--black)' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <m.Logo />
+                    </button>
+                  ))}
+                </div>
+                {retryMetodo !== 'cartao' && (
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 13, marginBottom: 6, display: 'block' }}>Número de telemóvel</label>
+                    <input
+                      value={retryTelefone}
+                      onChange={e => setRetryTelefone(e.target.value)}
+                      placeholder="Ex: 84 000 0000"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                )}
+                <button className="btn btn-primary btn-full" onClick={handleRetry} disabled={retryLoading}>
+                  {retryLoading ? 'A processar...' : retryMetodo === 'cartao' ? 'Pagar com Cartão →' : `Pagar ${encomenda.total?.toFixed(2)} MZN`}
+                </button>
+              </>
+            )}
           </div>
         )}
 
