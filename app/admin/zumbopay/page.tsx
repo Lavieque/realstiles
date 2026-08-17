@@ -5,10 +5,14 @@ import { Wallet, RefreshCw, AlertCircle } from 'lucide-react';
 interface ZumboWallet {
   id: string;
   name?: string;
+  label?: string;
+  description?: string;
+  wallet_name?: string;
   type?: string;
   currency?: string;
   balance?: number;
   available_balance?: number;
+  pending_balance?: number;
   status?: string;
   [key: string]: unknown;
 }
@@ -69,7 +73,7 @@ export default function ZumboPayPage() {
                 <Wallet size={18} strokeWidth={1.5} />
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{w.name || w.id}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{w.name || w.label || w.wallet_name || w.description || w.id}</div>
                 {w.type && <div style={{ fontSize: 12, color: 'var(--gray-400)', textTransform: 'capitalize' }}>{w.type}</div>}
               </div>
               {w.status && (
@@ -95,7 +99,13 @@ export default function ZumboPayPage() {
             </div>
 
             <div style={{ marginTop: 14, borderTop: '1px solid var(--gray-100)', paddingTop: 10 }}>
-              <div style={{ fontSize: 11, color: 'var(--gray-400)', wordBreak: 'break-all' }}>ID: {w.id}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray-400)', wordBreak: 'break-all', marginBottom: 6 }}>ID: {w.id}</div>
+              <details style={{ fontSize: 11 }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--gray-400)' }}>Ver campos completos</summary>
+                <pre style={{ marginTop: 6, padding: 8, background: 'var(--gray-50, #f9f9f9)', borderRadius: 6, overflow: 'auto', fontSize: 10, lineHeight: 1.4 }}>
+                  {JSON.stringify(w, null, 2)}
+                </pre>
+              </details>
             </div>
           </div>
         ))}
