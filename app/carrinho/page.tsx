@@ -333,7 +333,6 @@ export default function CarrinhoPage() {
                           }}
                         >
                           <m.Logo />
-                          <div style={{ fontSize: 11, color: 'var(--gray-400)', lineHeight: 1.2 }}>{m.sub}</div>
                         </button>
                       ))}
                     </div>
