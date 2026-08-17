@@ -35,6 +35,8 @@ export interface Encomenda {
   notas: string;
   notas_admin: string;
   estado: EstadoEncomenda;
+  pagamento_metodo?: 'mpesa' | 'emola' | 'cartao';
+  pagamento_estado?: string;
   notif_canal?: 'email' | 'whatsapp';
   historico_estados?: HistoricoEstado[];
   criado_em?: unknown;
