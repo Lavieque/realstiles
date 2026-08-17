@@ -16,10 +16,34 @@ type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
 
 const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
 
-const METODOS: { id: Metodo; label: string; sub: string }[] = [
-  { id: 'mpesa',  label: 'M-Pesa',  sub: '84 / 85' },
-  { id: 'emola',  label: 'e-Mola',  sub: '86 / 87' },
-  { id: 'cartao', label: 'Cartão',  sub: 'Visa / Mastercard' },
+const LogoMpesa = () => (
+  <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 64, height: 26 }}>
+    <rect width="80" height="32" rx="4" fill="#e30613"/>
+    <text x="6" y="24" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="22" fill="white">M</text>
+    <text x="26" y="23" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="14" fill="white">-Pesa</text>
+  </svg>
+);
+
+const LogoEmola = () => (
+  <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 64, height: 26 }}>
+    <rect width="80" height="32" rx="4" fill="#0072bc"/>
+    <text x="8" y="23" fontFamily="Arial,sans-serif" fontWeight="800" fontSize="16" fill="white">e-Mola</text>
+  </svg>
+);
+
+const LogoCartao = () => (
+  <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 64, height: 26 }}>
+    <rect width="80" height="32" rx="4" fill="#1a1f36"/>
+    <rect x="6" y="8" width="20" height="14" rx="2" fill="#f7b731"/>
+    <rect x="13" y="8" width="7" height="14" rx="0" fill="#e17055" opacity=".8"/>
+    <text x="34" y="22" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="11" fill="white">CARD</text>
+  </svg>
+);
+
+const METODOS: { id: Metodo; label: string; sub: string; Logo: () => JSX.Element }[] = [
+  { id: 'mpesa',  label: 'M-Pesa',  sub: '84 / 85', Logo: LogoMpesa },
+  { id: 'emola',  label: 'e-Mola',  sub: '86 / 87', Logo: LogoEmola },
+  { id: 'cartao', label: 'Cartão',  sub: 'Visa / MC', Logo: LogoCartao },
 ];
 
 export default function CarrinhoPage() {
@@ -298,18 +322,22 @@ export default function CarrinhoPage() {
                           type="button"
                           onClick={() => setMetodo(m.id)}
                           style={{
-                            padding: '10px 8px',
-                            borderRadius: 10,
+                            padding: '12px 8px 10px',
+                            borderRadius: 12,
                             border: `2px solid ${metodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
-                            background: metodo === m.id ? 'var(--black)' : 'white',
-                            color: metodo === m.id ? 'white' : 'var(--black)',
+                            background: metodo === m.id ? '#f5f5f5' : 'white',
                             cursor: 'pointer',
                             textAlign: 'center',
                             transition: 'all 0.15s',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 6,
+                            boxShadow: metodo === m.id ? '0 0 0 2px var(--black)' : 'none',
                           }}
                         >
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>{m.label}</div>
-                          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{m.sub}</div>
+                          <m.Logo />
+                          <div style={{ fontSize: 11, color: 'var(--gray-400)', lineHeight: 1.2 }}>{m.sub}</div>
                         </button>
                       ))}
                     </div>
