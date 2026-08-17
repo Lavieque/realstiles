@@ -14,47 +14,40 @@ interface ZumboWallet {
   [key: string]: unknown;
 }
 
-const METHOD_META: Record<string, { label: string; cor: string; fundo: string; logo: string }> = {
-  mpesa: {
-    label: 'M-Pesa',
-    cor: '#e30613',
-    fundo: '#fff0f0',
-    logo: `<svg viewBox="0 0 60 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-      <text x="0" y="19" font-family="Arial Black,Arial" font-weight="900" font-size="20" fill="#e30613">M</text>
-      <text x="18" y="19" font-family="Arial,sans-serif" font-weight="700" font-size="14" fill="#333">-Pesa</text>
-    </svg>`,
-  },
-  emola: {
-    label: 'e-Mola',
-    cor: '#0072bc',
-    fundo: '#f0f6ff',
-    logo: `<svg viewBox="0 0 60 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-      <text x="0" y="19" font-family="Arial,sans-serif" font-weight="700" font-size="16" fill="#0072bc">e-Mola</text>
-    </svg>`,
-  },
-  card: {
-    label: 'Cartão',
-    cor: '#6c47ff',
-    fundo: '#f4f1ff',
-    logo: `<svg viewBox="0 0 60 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-      <rect x="0" y="3" width="26" height="18" rx="3" fill="#6c47ff"/>
-      <rect x="0" y="8" width="26" height="5" fill="#fff" opacity=".3"/>
-      <text x="30" y="19" font-family="Arial,sans-serif" font-weight="700" font-size="13" fill="#6c47ff">Visa</text>
-    </svg>`,
-  },
+const METHOD_META: Record<string, { label: string; cor: string; fundo: string }> = {
+  mpesa: { label: 'M-Pesa',  cor: '#e30613', fundo: '#fff5f5' },
+  emola: { label: 'e-Mola',  cor: '#0072bc', fundo: '#f0f6ff' },
+  card:  { label: 'Cartão',  cor: '#1a1f71', fundo: '#f4f5ff' },
 };
 
 function WalletLogo({ method }: { method?: string }) {
-  const m = METHOD_META[method ?? ''];
-  if (!m) return (
-    <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-      💳
+  const fundo = METHOD_META[method ?? '']?.fundo ?? 'var(--gray-100)';
+  const style: React.CSSProperties = { width: 48, height: 48, borderRadius: 12, background: fundo, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 };
+  if (method === 'mpesa') return (
+    <div style={style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="https://zumbopay.com/assets/mpesa.png" alt="M-Pesa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+    </div>
+  );
+  if (method === 'emola') return (
+    <div style={style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="https://zumbopay.com/assets/emola.png" alt="e-Mola" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+    </div>
+  );
+  if (method === 'card') return (
+    <div style={style}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 58" style={{ width: '100%', height: '100%' }}>
+        <rect width="180" height="58" rx="10" fill="#ffffff"/>
+        <text x="18" y="37" fontFamily="Arial,sans-serif" fontSize="24" fontWeight="700" fontStyle="italic" fill="#1a1f71">VISA</text>
+        <circle cx="120" cy="29" r="17" fill="#eb001b"/>
+        <circle cx="141" cy="29" r="17" fill="#f79e1b" fillOpacity="0.92"/>
+        <path d="M130.5 15.8a17 17 0 0 1 0 26.4 17 17 0 0 1 0-26.4Z" fill="#ff5f00"/>
+      </svg>
     </div>
   );
   return (
-    <div style={{ width: 48, height: 48, borderRadius: 12, background: m.fundo, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-      <div dangerouslySetInnerHTML={{ __html: m.logo }} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }} />
-    </div>
+    <div style={{ ...style, background: 'var(--gray-100)', fontSize: 22 }}>💳</div>
   );
 }
 

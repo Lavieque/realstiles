@@ -17,26 +17,22 @@ type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
 const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
 
 const LogoMpesa = () => (
-  <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 64, height: 26 }}>
-    <rect width="80" height="32" rx="4" fill="#e30613"/>
-    <text x="6" y="24" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="22" fill="white">M</text>
-    <text x="26" y="23" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="14" fill="white">-Pesa</text>
-  </svg>
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src="https://zumbopay.com/assets/mpesa.png" alt="M-Pesa" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
 );
 
 const LogoEmola = () => (
-  <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 64, height: 26 }}>
-    <rect width="80" height="32" rx="4" fill="#0072bc"/>
-    <text x="8" y="23" fontFamily="Arial,sans-serif" fontWeight="800" fontSize="16" fill="white">e-Mola</text>
-  </svg>
+  // eslint-disable-next-line @next/next/no-img-element
+  <img src="https://zumbopay.com/assets/emola.png" alt="e-Mola" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
 );
 
 const LogoCartao = () => (
-  <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" style={{ width: 64, height: 26 }}>
-    <rect width="80" height="32" rx="4" fill="#1a1f36"/>
-    <rect x="6" y="8" width="20" height="14" rx="2" fill="#f7b731"/>
-    <rect x="13" y="8" width="7" height="14" rx="0" fill="#e17055" opacity=".8"/>
-    <text x="34" y="22" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="11" fill="white">CARD</text>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 58" style={{ height: 32, width: 'auto' }} aria-label="Visa e Mastercard">
+    <rect width="180" height="58" rx="10" fill="#ffffff"/>
+    <text x="18" y="37" fontFamily="Arial, Helvetica, sans-serif" fontSize="24" fontWeight="700" fontStyle="italic" fill="#1a1f71">VISA</text>
+    <circle cx="120" cy="29" r="17" fill="#eb001b"/>
+    <circle cx="141" cy="29" r="17" fill="#f79e1b" fillOpacity="0.92"/>
+    <path d="M130.5 15.8a17 17 0 0 1 0 26.4 17 17 0 0 1 0-26.4Z" fill="#ff5f00"/>
   </svg>
 );
 
