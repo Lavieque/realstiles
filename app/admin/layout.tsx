@@ -9,8 +9,10 @@ import type { Perfil } from '@/lib/auth';
 import type { ReactNode } from 'react';
 import {
   BarChart2, Package, Tag, Layers, Users, Pencil, Bell,
-  ClipboardList, Zap, MessageCircle, Link as LinkIcon,
+  ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet,
 } from 'lucide-react';
+
+const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
 
 interface NavItem {
   href: string;
@@ -22,7 +24,7 @@ interface NavItem {
 function AdminTopBar() {
   const path = usePathname();
   if (path === '/admin') return null;
-  const item = NAV.find(n => n.href === path);
+  const item = [...NAV, NAV_ZUMBOPAY].find(n => n.href === path);
   const titulo = item?.label ?? 'Admin';
   return (
     <div className="admin-topbar">
@@ -31,6 +33,8 @@ function AdminTopBar() {
     </div>
   );
 }
+
+const NAV_ZUMBOPAY: NavItem = { href: '/admin/zumbopay', label: 'ZumboPay', icon: <Wallet size={18} strokeWidth={1.5} /> };
 
 const NAV: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: <BarChart2 size={18} strokeWidth={1.5} />, section: 'Principal' },
@@ -66,6 +70,14 @@ function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boole
               </Link>
             </div>
           ))}
+          {perfil?.email === ZUMBOPAY_TEST_EMAIL && (
+            <div>
+              <div className="sidebar-section">Pagamentos</div>
+              <Link href="/admin/zumbopay" className={path === '/admin/zumbopay' ? 'active' : ''} onClick={onClose}>
+                <span className="icon"><Wallet size={18} strokeWidth={1.5} /></span> ZumboPay
+              </Link>
+            </div>
+          )}
         </div>
         <div className="sidebar-footer">
           <div className="sidebar-user">
