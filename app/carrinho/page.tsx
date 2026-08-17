@@ -210,7 +210,7 @@ export default function CarrinhoPage() {
                 <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>Confirma o pagamento de <strong>{total.toFixed(2)} MZN</strong> no {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}.</p>
                 <button
                   style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-400)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                  onClick={() => { if (pollRef.current) clearInterval(pollRef.current); setPagStatus('idle'); }}
+                  onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setPagStatus('idle'); }}
                 >
                   Cancelar
                 </button>
