@@ -14,7 +14,7 @@ function zpHeaders() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { encomenda_id, amount, msisdn, metodo } = await req.json();
+    const { encomenda_id, amount, msisdn, metodo, customer_name } = await req.json();
     if (!encomenda_id || !amount || !msisdn || !metodo) {
       return NextResponse.json({ error: 'Campos obrigatórios em falta' }, { status: 400 });
     }
@@ -33,13 +33,11 @@ export async function POST(req: NextRequest) {
     const payloadEnviado = {
       wallet_id: walletId,
       amount,
-      currency: 'MZN',
       msisdn: msisdnFull,
+      customer_name: customer_name || 'Cliente',
       source_id: encomenda_id,
-      description: `Encomenda #${encomenda_id.substring(0, 8).toUpperCase()} — Real Stiles`,
     };
 
-    // Cria registo de pagamento antes de chamar a API
     const pagRef = await adminDb.collection('pagamentos').add({
       encomenda_id,
       metodo,
@@ -59,33 +57,34 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payloadEnviado),
     });
 
-    const data = await res.json();
+    const body = await res.json();
+    // Resposta vem dentro de body.data
+    const zpData = body.data ?? body;
 
     if (!res.ok) {
-      // Regista falha imediata
       await pagRef.update({
         estado: 'falhado',
-        resposta_inicial: data,
+        resposta_inicial: body,
         actualizado_em: FieldValue.serverTimestamp(),
       });
       return NextResponse.json(
-        { error: data.error?.message || 'Erro ao iniciar pagamento' },
+        { error: body.error?.message || 'Erro ao iniciar pagamento' },
         { status: res.status },
       );
     }
 
-    const referencia = data.data?.reference ?? data.reference ?? data.id ?? '';
-    const zpStatus: string = data.data?.status ?? data.status ?? '';
-    const succeeded = res.status === 200 && (zpStatus === 'success' || zpStatus === 'succeeded');
+    const referencia: string = zpData.reference ?? '';
+    const zpStatus: string = zpData.status ?? '';
+    const succeeded = res.status === 200 && zpStatus === 'success';
 
     await pagRef.update({
       referencia_zumbopay: referencia,
-      resposta_inicial: data,
+      resposta_inicial: body,
       ...(succeeded ? { estado: 'pago' } : {}),
       actualizado_em: FieldValue.serverTimestamp(),
     });
 
-    // 200 síncrono — confirma encomenda imediatamente sem polling
+    // 200 síncrono — confirma encomenda imediatamente
     if (succeeded) {
       await adminDb.collection('encomendas').doc(encomenda_id).update({
         estado: 'confirmada',
@@ -96,7 +95,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ pagamento_id: pagRef.id, reference: referencia, status: 'succeeded' });
     }
 
-    // 202 — STK push enviado, aguardar confirmação via polling/webhook
+    // 202 — STK push enviado, aguardar webhook que atualiza o Firestore
     return NextResponse.json({ pagamento_id: pagRef.id, reference: referencia, status: 'pending' });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });

@@ -16,16 +16,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Wallet cartão não configurada' }, { status: 503 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-
+    const codCurto = encomenda_id.substring(0, 8).toUpperCase();
     const payloadEnviado = {
-      wallet_id: walletId,
+      title: `Encomenda #${codCurto}`,
       amount,
       currency: 'MZN',
-      reference: encomenda_id,
-      description: `Encomenda #${encomenda_id.substring(0, 8).toUpperCase()} — Real Stiles`,
-      return_url: `${appUrl}/encomenda/${encomenda_id}?confirmada=1`,
-      cancel_url: `${appUrl}/carrinho`,
+      channels: ['card'],
+      wallet_id: walletId,
+      max_uses: 1,
     };
 
     const pagRef = await adminDb.collection('pagamentos').add({
@@ -33,7 +31,7 @@ export async function POST(req: NextRequest) {
       metodo: 'cartao',
       montante: amount,
       estado: 'pendente',
-      referencia_zumbopay: encomenda_id,
+      referencia_zumbopay: null,
       payload_enviado: payloadEnviado,
       resposta_inicial: null,
       webhook_payload: null,
@@ -51,26 +49,31 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payloadEnviado),
     });
 
-    const data = await res.json();
+    const body = await res.json();
+    const zpData = body.data ?? body;
 
     if (!res.ok) {
       await pagRef.update({
         estado: 'falhado',
-        resposta_inicial: data,
+        resposta_inicial: body,
         actualizado_em: FieldValue.serverTimestamp(),
       });
       return NextResponse.json(
-        { error: data.error?.message || 'Erro ao criar checkout' },
+        { error: body.error?.message || 'Erro ao criar checkout' },
         { status: res.status },
       );
     }
 
     await pagRef.update({
-      resposta_inicial: data,
+      referencia_zumbopay: zpData.reference ?? null,
+      resposta_inicial: body,
       actualizado_em: FieldValue.serverTimestamp(),
     });
 
-    return NextResponse.json({ checkout_url: data.checkout_url, pagamento_id: pagRef.id });
+    return NextResponse.json({
+      checkout_url: zpData.checkout_url,
+      pagamento_id: pagRef.id,
+    });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }

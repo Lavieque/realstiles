@@ -2,11 +2,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingBag, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { ShoppingBag, Loader2, XCircle } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
 import { criarEncomendaPendente } from '@/lib/encomendas';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
@@ -29,7 +31,7 @@ export default function CarrinhoPage() {
   const [pagStatus, setPagStatus] = useState<PagamentoStatus>('idle');
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -49,36 +51,34 @@ export default function CarrinhoPage() {
     return unsub;
   }, []);
 
-  // Limpa intervalo ao desmontar
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+  // Limpa listener Firestore ao desmontar
+  useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
 
-  const iniciarPolling = (ref: string, encId: string, pagId: string) => {
+  const aguardarConfirmacao = (encId: string) => {
     setPagStatus('aguardar');
-    let tentativas = 0;
-    const MAX = 40; // ~2 min
 
-    pollRef.current = setInterval(async () => {
-      tentativas++;
-      if (tentativas > MAX) {
-        clearInterval(pollRef.current!);
+    // Timeout de segurança: 3 minutos
+    const timeout = setTimeout(() => {
+      if (unsubRef.current) unsubRef.current();
+      setPagStatus('erro');
+      setPagErro('Tempo de espera esgotado. Verifica se o pagamento foi concluído.');
+    }, 3 * 60 * 1000);
+
+    // Escuta em tempo real — atualizado pelo webhook quando o utilizador confirma no telemóvel
+    unsubRef.current = onSnapshot(doc(db, 'encomendas', encId), (snap) => {
+      const estado = snap.data()?.estado;
+      if (estado === 'confirmada') {
+        clearTimeout(timeout);
+        if (unsubRef.current) unsubRef.current();
+        limpar();
+        window.location.href = `/encomenda/${encId}?confirmada=1`;
+      } else if (estado === 'cancelada') {
+        clearTimeout(timeout);
+        if (unsubRef.current) unsubRef.current();
         setPagStatus('erro');
-        setPagErro('Tempo de espera esgotado. Verifica se o pagamento foi concluído.');
-        return;
+        setPagErro('Pagamento cancelado. Tenta novamente.');
       }
-      try {
-        const res = await fetch(`/api/zumbopay/confirm?ref=${ref}&encomenda_id=${encId}&pagamento_id=${pagId}`);
-        const data = await res.json();
-        if (data.status === 'succeeded' || data.status === 'completed') {
-          clearInterval(pollRef.current!);
-          limpar();
-          window.location.href = `/encomenda/${encId}?confirmada=1`;
-        } else if (data.status === 'failed' || data.status === 'cancelled' || data.status === 'expired') {
-          clearInterval(pollRef.current!);
-          setPagStatus('erro');
-          setPagErro('Pagamento recusado ou cancelado. Tenta novamente.');
-        }
-      } catch { /* ignorar erros de rede transitórios */ }
-    }, 3000);
+    });
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -118,20 +118,21 @@ export default function CarrinhoPage() {
           amount: total,
           msisdn: form.telefone,
           metodo,
+          customer_name: user?.displayName || form.email || 'Cliente',
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento');
 
       if (data.status === 'succeeded') {
-        // Confirmação síncrona (200) — redireciona imediatamente
+        // 200 síncrono — confirmado imediatamente
         limpar();
         window.location.href = `/encomenda/${encId}?confirmada=1`;
         return;
       }
 
-      // 202 — aguardar confirmação do utilizador no telemóvel
-      iniciarPolling(data.reference, encId, data.pagamento_id);
+      // 202 — STK enviado, aguardar confirmação no telemóvel via Firestore
+      aguardarConfirmacao(encId);
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao processar pagamento.', 'error');
     } finally {

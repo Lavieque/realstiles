@@ -10,7 +10,9 @@ export async function POST(req: NextRequest) {
   if (secret) {
     const sig = req.headers.get('x-zumbopay-signature') || '';
     const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    if (sig !== expected) {
+    const sigOk = sig.length === expected.length &&
+      crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'));
+    if (!sigOk) {
       return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 });
     }
   }
@@ -20,17 +22,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
-  // Apenas processar pagamentos confirmados
   if (payload.event !== 'payment.succeeded') {
     return NextResponse.json({ ok: true });
   }
 
   const data = payload.data ?? {};
-  // POST /charges usa source_id; POST /payments usa reference
+  // source_id é o encomenda_id que enviámos em /charges
+  // reference é o que enviámos em /payments (título ou referência)
   const encomendaId = (data.source_id ?? data.reference) as string | undefined;
-  const referencia = (data.id ?? data.reference) as string | undefined;
+  const referencia = (data.reference ?? data.id) as string | undefined;
 
   if (!encomendaId) return NextResponse.json({ ok: true });
+
+  const encRef = adminDb.collection('encomendas').doc(encomendaId);
+  const encSnap = await encRef.get();
+  if (!encSnap.exists || encSnap.data()?.estado === 'confirmada') {
+    return NextResponse.json({ ok: true });
+  }
 
   // Encontrar o registo de pagamento pela referência ZumboPay
   let pagamentoId: string | null = null;
@@ -42,15 +50,8 @@ export async function POST(req: NextRequest) {
     if (!q.empty) pagamentoId = q.docs[0].id;
   }
 
-  const encRef = adminDb.collection('encomendas').doc(encomendaId);
-  const encSnap = await encRef.get();
-
-  if (!encSnap.exists) return NextResponse.json({ ok: true });
-  if (encSnap.data()?.estado === 'confirmada') return NextResponse.json({ ok: true });
-
   const batch = adminDb.batch();
 
-  // Atualizar encomenda
   batch.update(encRef, {
     estado: 'confirmada',
     pagamento_estado: 'pago',
@@ -58,7 +59,6 @@ export async function POST(req: NextRequest) {
     actualizado_em: FieldValue.serverTimestamp(),
   });
 
-  // Atualizar registo de pagamento
   if (pagamentoId) {
     batch.update(adminDb.collection('pagamentos').doc(pagamentoId), {
       estado: 'pago',
@@ -68,6 +68,5 @@ export async function POST(req: NextRequest) {
   }
 
   await batch.commit();
-
   return NextResponse.json({ ok: true });
 }
