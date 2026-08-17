@@ -18,12 +18,12 @@ const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
 
 const LogoMpesa = () => (
   // eslint-disable-next-line @next/next/no-img-element
-  <img src="https://zumbopay.com/assets/mpesa.png" alt="M-Pesa" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
+  <img src="/img/mpesa.png" alt="M-Pesa" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
 );
 
 const LogoEmola = () => (
   // eslint-disable-next-line @next/next/no-img-element
-  <img src="https://zumbopay.com/assets/emola.png" alt="e-Mola" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
+  <img src="/img/emola.png" alt="e-Mola" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
 );
 
 const LogoCartao = () => (

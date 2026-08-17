@@ -26,13 +26,13 @@ function WalletLogo({ method }: { method?: string }) {
   if (method === 'mpesa') return (
     <div style={style}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="https://zumbopay.com/assets/mpesa.png" alt="M-Pesa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      <img src="/img/mpesa.png" alt="M-Pesa" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
     </div>
   );
   if (method === 'emola') return (
     <div style={style}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="https://zumbopay.com/assets/emola.png" alt="e-Mola" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      <img src="/img/emola.png" alt="e-Mola" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
     </div>
   );
   if (method === 'card') return (
