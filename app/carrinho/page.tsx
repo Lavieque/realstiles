@@ -14,7 +14,7 @@ import type { User } from 'firebase/auth';
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
 
-const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
+const ZUMBOPAY_TEST_EMAILS = ['virgilio.jose@inovadigital.eu', 'tavarestaimo@gmail.com'];
 
 const LogoMpesa = () => (
   // eslint-disable-next-line @next/next/no-img-element
@@ -54,7 +54,7 @@ export default function CarrinhoPage() {
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
   const unsubRef = useRef<(() => void) | null>(null);
-  const canUseZumboPay = user?.email === ZUMBOPAY_TEST_EMAIL;
+  const canUseZumboPay = !!user?.email && ZUMBOPAY_TEST_EMAILS.includes(user.email);
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {

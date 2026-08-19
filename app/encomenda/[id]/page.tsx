@@ -15,7 +15,7 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
 
-const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
+const ZUMBOPAY_TEST_EMAILS = ['virgilio.jose@inovadigital.eu', 'tavarestaimo@gmail.com'];
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 
@@ -285,7 +285,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         )}
 
         {/* Retry pagamento ZumboPay */}
-        {user?.email === ZUMBOPAY_TEST_EMAIL &&
+        {!!user?.email && ZUMBOPAY_TEST_EMAILS.includes(user.email) &&
           encomenda.estado === 'pendente' &&
           encomenda.pagamento_metodo &&
           encomenda.pagamento_estado !== 'pago' && (

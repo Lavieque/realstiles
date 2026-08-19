@@ -12,7 +12,7 @@ import {
   ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet,
 } from 'lucide-react';
 
-const ZUMBOPAY_TEST_EMAIL = 'virgilio.jose@inovadigital.eu';
+const ZUMBOPAY_TEST_EMAILS = ['virgilio.jose@inovadigital.eu', 'tavarestaimo@gmail.com'];
 
 interface NavItem {
   href: string;
@@ -70,7 +70,7 @@ function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boole
               </Link>
             </div>
           ))}
-          {perfil?.email === ZUMBOPAY_TEST_EMAIL && (
+          {perfil?.email && ZUMBOPAY_TEST_EMAILS.includes(perfil.email) && (
             <div>
               <div className="sidebar-section">Pagamentos</div>
               <Link href="/admin/zumbopay" className={path === '/admin/zumbopay' ? 'active' : ''} onClick={onClose}>
