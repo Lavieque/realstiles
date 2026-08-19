@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { onAuthChange } from '@/lib/auth';
+import { onAuthChange, getPerfil } from '@/lib/auth';
 import { getConfig } from '@/lib/config-site';
 import type { SiteConfig } from '@/lib/config-site';
 import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
@@ -15,7 +15,6 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
 
-const ZUMBOPAY_TEST_EMAILS = ['virgilio.jose@inovadigital.eu', 'tavarestaimo@gmail.com'];
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 
@@ -56,6 +55,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const confirmada = searchParams.get('confirmada') === '1';
   const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [encomenda, setEncomenda] = useState<Encomenda | null>(null);
   const [loading, setLoading] = useState(true);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
@@ -72,7 +72,8 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     const unsub = onAuthChange(async (u) => {
       setUser(u);
       if (!u) { setLoading(false); return; }
-      const [enc, cfg] = await Promise.all([getEncomenda(params.id), getConfig()]);
+      const [enc, cfg, perfil] = await Promise.all([getEncomenda(params.id), getConfig(), getPerfil(u.uid)]);
+      setIsAdmin(!!perfil?.admin);
       setEncomenda(enc);
       setSiteConfig(cfg);
       if (enc?.telefone_contacto) setRetryTelefone(enc.telefone_contacto);
@@ -290,7 +291,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         )}
 
         {/* Retry pagamento ZumboPay */}
-        {!!user?.email && ZUMBOPAY_TEST_EMAILS.includes(user.email) &&
+        {isAdmin &&
           encomenda.estado === 'pendente' &&
           encomenda.pagamento_metodo &&
           encomenda.pagamento_estado !== 'pago' && (

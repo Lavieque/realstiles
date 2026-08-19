@@ -14,7 +14,6 @@ import type { User } from 'firebase/auth';
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
 
-const ZUMBOPAY_TEST_EMAILS = ['virgilio.jose@inovadigital.eu', 'tavarestaimo@gmail.com'];
 
 const LogoMpesa = () => (
   // eslint-disable-next-line @next/next/no-img-element
@@ -46,6 +45,7 @@ export default function CarrinhoPage() {
   const { items, removerItem, actualizarQuantidade, limpar } = useCarrinho();
   const total = getTotalPreco(items);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', morada: '', cidade: '', telefone: '', notas: '' });
@@ -57,7 +57,7 @@ export default function CarrinhoPage() {
   const [aguardarSecs, setAguardarSecs] = useState(180);
   const unsubRef = useRef<(() => void) | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const canUseZumboPay = !!user?.email && ZUMBOPAY_TEST_EMAILS.includes(user.email);
+  const canUseZumboPay = isAdmin;
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -65,6 +65,7 @@ export default function CarrinhoPage() {
       if (u) {
         const p = await getPerfil(u.uid);
         if (p) {
+          setIsAdmin(!!p.admin);
           setForm(f => ({
             ...f,
             email: u.email || '',
