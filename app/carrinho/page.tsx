@@ -50,6 +50,7 @@ export default function CarrinhoPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', morada: '', cidade: '', telefone: '', notas: '' });
   const [metodo, setMetodo] = useState<Metodo>('mpesa');
+  const [pagTelefone, setPagTelefone] = useState('');
   const [pagStatus, setPagStatus] = useState<PagamentoStatus>('idle');
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
@@ -160,7 +161,7 @@ export default function CarrinhoPage() {
         body: JSON.stringify({
           encomenda_id: encId,
           amount: total,
-          msisdn: form.telefone,
+          msisdn: pagTelefone,
           metodo,
           customer_name: user?.displayName || form.email || 'Cliente',
         }),
@@ -253,11 +254,18 @@ export default function CarrinhoPage() {
             {/* Estado: aguardar pagamento */}
             {pagStatus === 'aguardar' && (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <Loader2 size={36} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite', color: 'var(--black)', marginBottom: 12 }} />
-                <p style={{ fontWeight: 600, marginBottom: 6 }}>Aguarda confirmação no telemóvel</p>
-                <p style={{ fontSize: 13, color: 'var(--gray-400)' }}>Confirma o pagamento de <strong>{total.toFixed(2)} MZN</strong> no {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}.</p>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📱</div>
+                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Notificação enviada!</p>
+                <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 6 }}>
+                  Abre o {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} no teu telemóvel e insere o teu PIN para confirmar o pagamento de <strong>{total.toFixed(2)} MZN</strong>.
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 16 }}>
+                  Número: <strong>{pagTelefone}</strong>
+                </p>
+                <Loader2 size={20} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite', color: 'var(--gray-400)', marginBottom: 12 }} />
+                <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>À espera da confirmação…</p>
                 <button
-                  style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-400)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  style={{ fontSize: 12, color: 'var(--gray-400)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
                   onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setPagStatus('idle'); }}
                 >
                   Cancelar
@@ -341,9 +349,21 @@ export default function CarrinhoPage() {
                       ))}
                     </div>
                     {metodo !== 'cartao' && (
-                      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
-                        O prompt de pagamento será enviado para o número indicado acima.
-                      </p>
+                      <div style={{ marginTop: 12 }}>
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                          Número {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} para pagamento
+                        </label>
+                        <input
+                          type="tel"
+                          value={pagTelefone}
+                          onChange={e => setPagTelefone(e.target.value)}
+                          placeholder="Ex: 84 000 0000"
+                          style={{ width: '100%' }}
+                        />
+                        <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 6 }}>
+                          Receberás uma notificação neste número para inserir o PIN e confirmar o pagamento.
+                        </p>
+                      </div>
                     )}
                     {metodo === 'cartao' && (
                       <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
