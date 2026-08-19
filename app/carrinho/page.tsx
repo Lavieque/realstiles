@@ -169,13 +169,17 @@ export default function CarrinhoPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento');
 
       if (data.status === 'succeeded') {
-        // 200 síncrono — confirmado imediatamente
         limpar();
         window.location.href = `/encomenda/${encId}?confirmada=1`;
         return;
       }
 
-      // 202 — STK enviado, aguardar confirmação no telemóvel via Firestore
+      if (data.status === 'redirect' && data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+
+      // STK enviado — aguardar confirmação via Firestore
       aguardarConfirmacao(encId);
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao processar pagamento.', 'error');

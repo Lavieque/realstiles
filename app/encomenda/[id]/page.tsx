@@ -118,6 +118,11 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         return;
       }
 
+      if (data.status === 'redirect' && data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+
       setRetryStatus('aguardar');
       const timeout = setTimeout(() => {
         if (unsubRef.current) unsubRef.current();

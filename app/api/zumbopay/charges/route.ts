@@ -80,16 +80,18 @@ export async function POST(req: NextRequest) {
 
     const referencia: string = zpData.reference ?? '';
     const zpStatus: string = zpData.status ?? '';
+    const checkoutUrl: string = zpData.checkout_url ?? '';
     const succeeded = res.status === 200 && zpStatus === 'success';
 
     await pagRef.update({
       referencia_zumbopay: referencia,
+      canal_zumbopay: zpData.channel ?? metodo,
       resposta_inicial: body,
       ...(succeeded ? { estado: 'pago' } : {}),
       actualizado_em: FieldValue.serverTimestamp(),
     });
 
-    // 200 síncrono — confirma encomenda imediatamente
+    // 200 síncrono — confirmação imediata
     if (succeeded) {
       await adminDb.collection('encomendas').doc(encomenda_id).update({
         estado: 'confirmada',
@@ -100,7 +102,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ pagamento_id: pagRef.id, reference: referencia, status: 'succeeded' });
     }
 
-    // 202 — STK push enviado, aguardar webhook que atualiza o Firestore
+    // ZumboPay devolveu checkout_url (e-Mola e outros que não fazem STK directo)
+    if (checkoutUrl) {
+      return NextResponse.json({ pagamento_id: pagRef.id, reference: referencia, status: 'redirect', checkout_url: checkoutUrl });
+    }
+
+    // STK push enviado — aguardar webhook via Firestore onSnapshot
     return NextResponse.json({ pagamento_id: pagRef.id, reference: referencia, status: 'pending' });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
