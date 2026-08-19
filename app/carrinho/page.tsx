@@ -54,7 +54,9 @@ export default function CarrinhoPage() {
   const [pagStatus, setPagStatus] = useState<PagamentoStatus>('idle');
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
+  const [aguardarSecs, setAguardarSecs] = useState(180);
   const unsubRef = useRef<(() => void) | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const canUseZumboPay = !!user?.email && ZUMBOPAY_TEST_EMAILS.includes(user.email);
 
   useEffect(() => {
@@ -80,6 +82,11 @@ export default function CarrinhoPage() {
 
   const aguardarConfirmacao = (encId: string) => {
     setPagStatus('aguardar');
+    setAguardarSecs(180);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setAguardarSecs(s => { if (s <= 1) { if (timerRef.current) clearInterval(timerRef.current!); } return Math.max(0, s - 1); });
+    }, 1000);
 
     // Timeout de segurança: 3 minutos
     const timeout = setTimeout(() => {
@@ -252,26 +259,37 @@ export default function CarrinhoPage() {
             </div>
 
             {/* Estado: aguardar pagamento */}
-            {pagStatus === 'aguardar' && (
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📱</div>
-                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Notificação enviada!</p>
-                <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 6 }}>
-                  Abre o {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} no teu telemóvel e insere o teu PIN para confirmar o pagamento de <strong>{total.toFixed(2)} MZN</strong>.
-                </p>
-                <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 16 }}>
-                  Número: <strong>{pagTelefone}</strong>
-                </p>
-                <Loader2 size={20} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite', color: 'var(--gray-400)', marginBottom: 12 }} />
-                <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>À espera da confirmação…</p>
-                <button
-                  style={{ fontSize: 12, color: 'var(--gray-400)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                  onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setPagStatus('idle'); }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            )}
+            {pagStatus === 'aguardar' && (() => {
+              const mins = Math.floor(aguardarSecs / 60);
+              const secs = aguardarSecs % 60;
+              const pct = (aguardarSecs / 180) * 100;
+              const metodoNome = metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola';
+              return (
+                <div style={{ padding: '4px 0 8px' }}>
+                  <div style={{ background: '#fff8f0', border: '1.5px solid #f7b731', borderRadius: 12, padding: '16px 18px', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: '#c67a00' }}>Aguardando confirmação…</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#c67a00', fontVariantNumeric: 'tabular-nums' }}>
+                        {mins}:{secs.toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 13, color: '#555', marginBottom: 10, lineHeight: 1.5 }}>
+                      Enviámos um pedido de confirmação para o número <strong>{pagTelefone}</strong>.<br />
+                      Por favor, confirma o pagamento de <strong>{total.toFixed(2)} MZN</strong> no {metodoNome}.
+                    </p>
+                    <div style={{ height: 6, background: '#ffe4a0', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: '#f7b731', borderRadius: 99, transition: 'width 1s linear' }} />
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-outline btn-full btn-sm"
+                    onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } if (timerRef.current) clearInterval(timerRef.current); setPagStatus('idle'); }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* Estado: erro */}
             {pagStatus === 'erro' && (
