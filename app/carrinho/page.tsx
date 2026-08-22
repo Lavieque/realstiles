@@ -11,7 +11,7 @@ import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 
-type Metodo = 'mpesa' | 'emola' | 'cartao';
+type Metodo = 'mpesa' | 'emola' | 'cartao' | 'paysuite';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
 
 
@@ -35,10 +35,17 @@ const LogoCartao = () => (
   </svg>
 );
 
+const LogoPaySuite = () => (
+  <div style={{ height: 32, display: 'flex', alignItems: 'center', fontWeight: 800, fontSize: 14, letterSpacing: '-0.02em', color: '#0d1347' }}>
+    PaySuite
+  </div>
+);
+
 const METODOS: { id: Metodo; label: string; sub: string; Logo: () => JSX.Element }[] = [
-  { id: 'mpesa',  label: 'M-Pesa',  sub: '84 / 85', Logo: LogoMpesa },
-  { id: 'emola',  label: 'e-Mola',  sub: '86 / 87', Logo: LogoEmola },
-  { id: 'cartao', label: 'Cartão',  sub: 'Visa / MC', Logo: LogoCartao },
+  { id: 'mpesa',    label: 'M-Pesa',   sub: '84 / 85',   Logo: LogoMpesa },
+  { id: 'emola',    label: 'e-Mola',   sub: '86 / 87',   Logo: LogoEmola },
+  { id: 'cartao',   label: 'Cartão',   sub: 'Visa / MC', Logo: LogoCartao },
+  { id: 'paysuite', label: 'PaySuite', sub: 'Mpesa/eMola/Cartão', Logo: LogoPaySuite },
 ];
 
 export default function CarrinhoPage() {
@@ -155,6 +162,24 @@ export default function CarrinhoPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ encomenda_id: encId, amount: total }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
+        window.location.href = data.checkout_url;
+        return;
+      }
+
+      if (metodo === 'paysuite') {
+        const res = await fetch('/api/paysuite/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            encomenda_id: encId,
+            amount: total,
+            customer_name: user?.displayName || form.email || 'Cliente',
+            customer_email: form.email,
+            customer_phone: form.telefone,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
@@ -367,7 +392,7 @@ export default function CarrinhoPage() {
                         </button>
                       ))}
                     </div>
-                    {metodo !== 'cartao' && (
+                    {metodo !== 'cartao' && metodo !== 'paysuite' && (
                       <div style={{ marginTop: 12 }}>
                         <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
                           Número {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} para pagamento
@@ -389,6 +414,11 @@ export default function CarrinhoPage() {
                         Serás redirecionado para a página de pagamento segura.
                       </p>
                     )}
+                    {metodo === 'paysuite' && (
+                      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
+                        Serás redirecionado para a página de pagamento PaySuite, onde escolhes o método (M-Pesa, e-Mola ou Cartão).
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -404,7 +434,9 @@ export default function CarrinhoPage() {
                     : canUseZumboPay
                       ? metodo === 'cartao'
                         ? 'Pagar com Cartão →'
-                        : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`
+                        : metodo === 'paysuite'
+                          ? 'Pagar com PaySuite →'
+                          : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`
                       : 'Finalizar encomenda →'}
                 </button>
                 <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setCheckoutOpen(false)}>

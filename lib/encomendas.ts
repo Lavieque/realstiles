@@ -35,8 +35,9 @@ export interface Encomenda {
   notas: string;
   notas_admin: string;
   estado: EstadoEncomenda;
-  pagamento_metodo?: 'mpesa' | 'emola' | 'cartao';
+  pagamento_metodo?: 'mpesa' | 'emola' | 'cartao' | 'paysuite';
   pagamento_estado?: string;
+  pagamento_ref?: string;
   notif_canal?: 'email' | 'whatsapp';
   historico_estados?: HistoricoEstado[];
   criado_em?: unknown;
@@ -52,7 +53,7 @@ export async function criarEncomendaPendente({
   telefone: string;
   notas?: string;
   guestEmail?: string;
-  pagamento_metodo: 'mpesa' | 'emola' | 'cartao';
+  pagamento_metodo: 'mpesa' | 'emola' | 'cartao' | 'paysuite';
 }): Promise<string> {
   const user = auth.currentUser;
   const emailFinal = user?.email || guestEmail || '';
