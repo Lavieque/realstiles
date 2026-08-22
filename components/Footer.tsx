@@ -1,13 +1,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { getConfigSSR } from '@/lib/config-site-ssr';
 
-export default function Footer() {
+export default async function Footer() {
+  const config = await getConfigSSR();
+  const tel1Href = `+258${config.tel1.replace(/\D/g, '')}`;
+  const tel2Href = `+258${config.tel2.replace(/\D/g, '')}`;
+
   return (
     <footer>
       <div className="footer-grid">
         <div className="footer-logo">
           <Image src="/img/logo.png" alt="Real Stiles" height={56} width={140} style={{ height: 56, width: 'auto', marginBottom: 12 }} />
-          <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>Encomendas diversas com segurança, transparência e agilidade.</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>{config.footer_descricao}</p>
         </div>
         <div>
           <h4>Loja</h4>
@@ -36,14 +41,14 @@ export default function Footer() {
         <div>
           <h4>Contacto</h4>
           <ul>
-            <li><a href="tel:+258878753754">878 753 754</a></li>
-            <li><a href="tel:+258852471608">852 471 608</a></li>
+            <li><a href={`tel:${tel1Href}`}>{config.tel1}</a></li>
+            <li><a href={`tel:${tel2Href}`}>{config.tel2}</a></li>
           </ul>
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© 2026 Real Stiles Multi Service. Todos os direitos reservados.</span>
-        <span>Excelência em Compras</span>
+        <span>{config.copyright}</span>
+        <span>{config.slogan}</span>
       </div>
     </footer>
   );

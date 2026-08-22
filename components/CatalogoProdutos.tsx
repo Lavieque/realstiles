@@ -33,7 +33,7 @@ const INTERVALOS_PRECO = [
   { label: '2 000+', min: 2000, max: Infinity },
 ];
 
-export default function CatalogoProdutos({ inicial, categoriasIniciais = [] }: { inicial: Produto[]; categoriasIniciais?: string[] }) {
+export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos' }: { inicial: Produto[]; categoriasIniciais?: string[]; tituloDefault?: string }) {
   const searchParams = useSearchParams();
   const catParam = searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
@@ -236,7 +236,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [] }: {
     <>
       {/* Header */}
       <div className="catalogo-header">
-        <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : 'Todos os produtos'}</h2>
+        <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>
       </div>
 
       {/* Categorias + Ordenação */}

@@ -45,6 +45,11 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Catálogo</h2>
+          <div className="form-group"><label>Título da secção (quando nenhuma categoria está seleccionada)</label><input value={config.catalogo_titulo} onChange={f('catalogo_titulo')} /></div>
+        </div>
+
+        <div className="form-card">
           <h2>Quem Somos</h2>
           <div className="form-group"><label>Título</label><input value={config.qs_sobre_titulo} onChange={f('qs_sobre_titulo')} /></div>
           <div className="form-group"><label>Parágrafo 1</label><textarea value={config.qs_sobre_texto1} onChange={f('qs_sobre_texto1')} /></div>
@@ -75,6 +80,22 @@ export default function AdminConteudoPage() {
           <div className="form-group"><label>Descrição no rodapé</label><input value={config.footer_descricao} onChange={f('footer_descricao')} /></div>
           <div className="form-group"><label>Copyright</label><input value={config.copyright} onChange={f('copyright')} /></div>
           <div className="form-group"><label>Slogan</label><input value={config.slogan} onChange={f('slogan')} /></div>
+        </div>
+
+        <div className="form-card">
+          <h2>Página de Políticas</h2>
+          <div className="form-group"><label>Título</label><input value={config.pol_titulo} onChange={f('pol_titulo')} /></div>
+          <div className="form-group"><label>Data de actualização</label><input value={config.pol_data} onChange={f('pol_data')} /></div>
+          <div className="form-group">
+            <label>Conteúdo (opcional — parágrafos separados por linha em branco; se vazio, usa o texto padrão)</label>
+            <textarea value={config.pol_conteudo} onChange={f('pol_conteudo')} style={{ minHeight: 160 }} />
+          </div>
+        </div>
+
+        <div className="form-card">
+          <h2>Livro de Reclamações</h2>
+          <div className="form-group"><label>Título</label><input value={config.rec_titulo} onChange={f('rec_titulo')} /></div>
+          <div className="form-group"><label>Introdução</label><textarea value={config.rec_intro} onChange={f('rec_intro')} /></div>
         </div>
 
         <div style={{ textAlign: 'right' }}>

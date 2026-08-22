@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';
 import { onAuthChange, getPerfil } from '@/lib/auth';
+import { getConfig, DEFAULTS } from '@/lib/config-site';
 import type { User } from 'firebase/auth';
 
 export default function ReclamacaoPage() {
@@ -11,6 +12,11 @@ export default function ReclamacaoPage() {
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: '', descricao: '' });
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [textos, setTextos] = useState({ titulo: DEFAULTS.rec_titulo, intro: DEFAULTS.rec_intro });
+
+  useEffect(() => {
+    getConfig().then(c => setTextos({ titulo: c.rec_titulo, intro: c.rec_intro }));
+  }, []);
 
   useEffect(() => {
     return onAuthChange(async u => {
@@ -84,8 +90,8 @@ export default function ReclamacaoPage() {
     <div className="page-wrapper">
       <div className="container" style={{ maxWidth: 640 }}>
         <div className="page-header">
-          <h1>Livro de Reclamações</h1>
-          <p>Prezamos pela sua satisfação. Responderemos no prazo de 3 dias úteis.</p>
+          <h1>{textos.titulo}</h1>
+          <p>{textos.intro}</p>
         </div>
 
         {enviado ? (

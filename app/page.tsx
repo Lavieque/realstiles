@@ -6,6 +6,7 @@ import { serializar } from '@/lib/serializar';
 import CatalogoProdutos from '@/components/CatalogoProdutos';
 import HeroSlider from '@/components/HeroSlider';
 import AnnouncementBar from '@/components/AnnouncementBar';
+import { getConfigSSR } from '@/lib/config-site-ssr';
 import type { Produto } from '@/lib/produtos';
 
 async function getProdutosSSR(opts: { destaque?: boolean; max?: number } = {}): Promise<Produto[]> {
@@ -34,10 +35,11 @@ async function getCategoriasSSR(): Promise<string[]> {
 }
 
 export default async function HomePage() {
-  const [destaques, produtosIniciais, categorias] = await Promise.all([
+  const [destaques, produtosIniciais, categorias, config] = await Promise.all([
     getProdutosSSR({ destaque: true, max: 12 }),
     getProdutosSSR({ max: 13 }),
     getCategoriasSSR(),
+    getConfigSSR(),
   ]);
 
   const comImagem = destaques.filter(p => p.imagens?.[0]);
@@ -48,10 +50,10 @@ export default async function HomePage() {
       <div className="hero-loja">
         <div className="hero-loja-inner">
           <div className="hero-loja-content">
-            <h1>Veste o teu<br/><span>estilo.</span></h1>
-            <p>As melhores peças de vestuário, cuidadosamente seleccionadas para ti. Moda acessível e de qualidade.</p>
+            <h1>{config.hero_titulo}</h1>
+            <p>{config.hero_subtitulo}</p>
             <div className="hero-loja-btns">
-              <a href="/promocoes" className="btn btn-accent">Ver promoções →</a>
+              <a href="/promocoes" className="btn btn-accent">{config.hero_btn} →</a>
               <a href="/?novo=true" className="btn btn-outline-white">Ver novidades</a>
             </div>
             <AnnouncementBar />
@@ -63,7 +65,7 @@ export default async function HomePage() {
       {/* CATÁLOGO */}
       <div className="catalogo-section" id="catalogo">
         <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
-          <CatalogoProdutos inicial={produtosIniciais.slice(0, 12)} categoriasIniciais={categorias} />
+          <CatalogoProdutos inicial={produtosIniciais.slice(0, 12)} categoriasIniciais={categorias} tituloDefault={config.catalogo_titulo} />
         </Suspense>
       </div>
     </>

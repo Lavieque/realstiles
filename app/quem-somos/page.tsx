@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getConfigSSR } from '@/lib/config-site-ssr';
 
 export const metadata: Metadata = {
   title: 'Quem Somos — Real Stiles',
   description: 'A Real Stiles Multi Service é uma empresa de intermediação de encomendas — com segurança, transparência e agilidade.',
 };
 
-export default function QuemSomosPage() {
+export default async function QuemSomosPage() {
+  const config = await getConfigSSR();
   return (
     <>
       {/* HERO */}
@@ -16,15 +18,15 @@ export default function QuemSomosPage() {
           A <strong style={{ color: 'white' }}>Real Stiles Multi Service</strong> é uma empresa de intermediação de encomendas.
           Fazemos as suas compras por si — com segurança, transparência e agilidade.
         </p>
-        <span className="qs-hero-badge">Excelência em Compras</span>
+        <span className="qs-hero-badge">{config.slogan}</span>
       </section>
 
       {/* SOBRE */}
       <section className="qs-sobre">
         <p className="secao-label">A nossa história</p>
-        <h2>O seu pedido, a nossa responsabilidade</h2>
-        <p>A Real Stiles Multi Service nasceu da vontade de simplificar o processo de compra para quem não tem tempo, acesso ou facilidade para adquirir produtos onde quer que estejam.</p>
-        <p>Seja um produto nacional ou internacional, você escolhe e nós compramos para você — com total compromisso desde o primeiro contacto até à entrega final.</p>
+        <h2>{config.qs_sobre_titulo}</h2>
+        <p>{config.qs_sobre_texto1}</p>
+        <p>{config.qs_sobre_texto2}</p>
       </section>
 
       {/* COMO FUNCIONA */}
@@ -85,11 +87,11 @@ export default function QuemSomosPage() {
 
       {/* CTA */}
       <section className="qs-cta">
-        <h2>Pronto para fazer o seu pedido?</h2>
-        <p>Fale connosco e diga-nos o que precisa. Tratamos de tudo com rapidez e segurança.</p>
+        <h2>{config.qs_cta_titulo}</h2>
+        <p>{config.qs_cta_subtitulo}</p>
         <div className="qs-contactos">
-          <a href="tel:878753754" className="qs-contacto"><span>📞</span> 878 753 754</a>
-          <a href="tel:852471608" className="qs-contacto"><span>📞</span> 852 471 608</a>
+          <a href={`tel:${config.tel1.replace(/\D/g, '')}`} className="qs-contacto"><span>📞</span> {config.tel1}</a>
+          <a href={`tel:${config.tel2.replace(/\D/g, '')}`} className="qs-contacto"><span>📞</span> {config.tel2}</a>
         </div>
         <Link href="/" className="btn btn-primary">Ver produtos disponíveis</Link>
       </section>
