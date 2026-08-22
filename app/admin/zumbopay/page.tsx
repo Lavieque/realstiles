@@ -55,6 +55,7 @@ export default function ZumboPayPage() {
   const [wallets, setWallets] = useState<ZumboWallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
+  const [idVisivel, setIdVisivel] = useState<string | null>(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -140,7 +141,18 @@ export default function ZumboPayPage() {
                 )}
               </div>
 
-              <div style={{ marginTop: 12, fontSize: 10, color: 'var(--gray-300)', wordBreak: 'break-all' }}>{w.id}</div>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 10, color: 'var(--gray-300)', wordBreak: 'break-all', flex: 1 }}>
+                  {idVisivel === w.id ? w.id : '••••••••••••••••••••••••••••••••'}
+                </span>
+                <button
+                  onClick={() => setIdVisivel(idVisivel === w.id ? null : w.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: 'var(--gray-400)', fontSize: 11, flexShrink: 0 }}
+                  title={idVisivel === w.id ? 'Ocultar' : 'Mostrar ID'}
+                >
+                  {idVisivel === w.id ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
           );
         })}
