@@ -1319,33 +1319,36 @@ body:has(.admin-layout) {
   body { font-size: 12px; color: #000; margin: 0; }
   .fatura-print { display: block !important; padding: 20mm 18mm; font-family: Arial, sans-serif; color: #000; }
 
-  /* Cabeçalho */
-  .fp-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 14px; margin-bottom: 18px; }
-  .fp-empresa { display: flex; align-items: flex-start; gap: 14px; }
-  .fp-logo { height: 48px; width: auto; }
-  .fp-empresa-info { display: flex; flex-direction: column; font-size: 11px; line-height: 1.6; }
-  .fp-empresa-info strong { font-size: 13px; margin-bottom: 2px; }
-  .fp-doc-info { text-align: right; }
-  .fp-doc-titulo { font-size: 18px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
-  .fp-meta td { padding: 1px 6px; font-size: 12px; }
-  .fp-meta td:first-child { color: #555; text-align: right; }
+  /* Cabeçalho — N.º do documento / Data / Estado */
+  .fp-header { margin-bottom: 18px; }
+  .fp-meta-topo { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .fp-meta-topo th { text-align: left; font-size: 10px; letter-spacing: 0.5px; color: #555; padding-bottom: 4px; border-bottom: 2px solid #000; }
+  .fp-meta-topo td { padding-top: 6px; font-weight: 700; }
 
-  /* Cliente */
-  .fp-cliente { background: #f5f5f5; padding: 10px 14px; margin-bottom: 18px; font-size: 12px; line-height: 1.7; border-left: 3px solid #000; }
+  /* Fornecedor / Cliente */
+  .fp-partes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .fp-parte { display: flex; flex-direction: column; font-size: 11px; line-height: 1.6; background: #f5f5f5; padding: 10px 14px; border-left: 3px solid #000; }
+  .fp-parte strong { font-size: 13px; margin: 2px 0 4px; }
+  .fp-parte-label { font-size: 10px; letter-spacing: 0.5px; color: #555; }
 
   /* Tabela de artigos */
-  .fp-tabela { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12px; }
+  .fp-tabela { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; }
   .fp-tabela th { background: #1a1a1a; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; letter-spacing: 0.5px; }
-  .fp-th-qty { width: 60px; }
-  .fp-th-num { width: 110px; text-align: right !important; }
+  .fp-th-qty { width: 50px; }
+  .fp-th-num { width: 90px; text-align: right !important; }
   .fp-tabela td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
   .fp-td-center { text-align: center; }
   .fp-td-right { text-align: right; }
   .fp-variante { color: #666; font-size: 11px; }
-  .fp-total-row td { border-top: 2px solid #000; border-bottom: none; padding-top: 10px; font-size: 14px; }
+
+  /* Totais */
+  .fp-totais { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-bottom: 18px; font-size: 12px; }
+  .fp-totais > div { display: flex; justify-content: space-between; width: 220px; }
+  .fp-total-final { border-top: 2px solid #000; margin-top: 4px; padding-top: 6px; font-size: 15px; font-weight: 700; }
 
   /* Rodapé */
   .fp-rodape { font-size: 12px; line-height: 1.8; border-top: 1px solid #ccc; padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
   .fp-obs { margin-top: 8px; }
   .fp-obs strong { display: block; }
+  .fp-nota-legal { font-size: 10px; color: #777; margin-top: 12px; line-height: 1.5; }
 }

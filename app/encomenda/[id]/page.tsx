@@ -16,7 +16,7 @@ import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
 
 
-type Metodo = 'mpesa' | 'emola' | 'cartao';
+type Metodo = 'mpesa' | 'emola' | 'cartao' | 'paysuite';
 
 const LogoMpesa = () => (
   // eslint-disable-next-line @next/next/no-img-element
@@ -36,10 +36,17 @@ const LogoCartao = () => (
   </svg>
 );
 
+const LogoPaySuite = () => (
+  <div style={{ height: 28, display: 'flex', alignItems: 'center', fontWeight: 800, fontSize: 13, letterSpacing: '-0.02em', color: '#0d1347' }}>
+    PaySuite
+  </div>
+);
+
 const METODOS_RETRY: { id: Metodo; Logo: () => JSX.Element }[] = [
-  { id: 'mpesa',  Logo: LogoMpesa },
-  { id: 'emola',  Logo: LogoEmola },
-  { id: 'cartao', Logo: LogoCartao },
+  { id: 'mpesa',    Logo: LogoMpesa },
+  { id: 'emola',    Logo: LogoEmola },
+  { id: 'cartao',   Logo: LogoCartao },
+  { id: 'paysuite', Logo: LogoPaySuite },
 ];
 
 const WHATSAPP_NUM = '258878753754';
@@ -93,6 +100,24 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ encomenda_id: encomenda.id, amount: encomenda.total }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
+        window.location.href = data.checkout_url;
+        return;
+      }
+
+      if (retryMetodo === 'paysuite') {
+        const res = await fetch('/api/paysuite/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            encomenda_id: encomenda.id,
+            amount: encomenda.total,
+            customer_name: user?.displayName || encomenda.cliente_email || 'Cliente',
+            customer_email: encomenda.cliente_email,
+            customer_phone: retryTelefone,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
@@ -315,7 +340,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
               </div>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
                   {METODOS_RETRY.map(m => (
                     <button key={m.id} type="button" onClick={() => setRetryMetodo(m.id)} style={{
                       padding: '10px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
@@ -328,7 +353,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                     </button>
                   ))}
                 </div>
-                {retryMetodo !== 'cartao' && (
+                {retryMetodo !== 'cartao' && retryMetodo !== 'paysuite' && (
                   <div className="form-group" style={{ marginBottom: 14 }}>
                     <label style={{ fontSize: 13, marginBottom: 6, display: 'block' }}>Número de telemóvel</label>
                     <input
@@ -340,7 +365,13 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                   </div>
                 )}
                 <button className="btn btn-primary btn-full" onClick={handleRetry} disabled={retryLoading}>
-                  {retryLoading ? 'A processar...' : retryMetodo === 'cartao' ? 'Pagar com Cartão →' : `Pagar ${encomenda.total?.toFixed(2)} MZN`}
+                  {retryLoading
+                    ? 'A processar...'
+                    : retryMetodo === 'cartao'
+                      ? 'Pagar com Cartão →'
+                      : retryMetodo === 'paysuite'
+                        ? 'Pagar com PaySuite →'
+                        : `Pagar ${encomenda.total?.toFixed(2)} MZN`}
                 </button>
               </>
             )}
@@ -441,95 +472,115 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Layout só visível na impressão */}
-      {siteConfig && (
-        <div className="fatura-print">
-          <div className="fp-header">
-            <div className="fp-empresa">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/logo.png" alt="Logo" className="fp-logo" />
-              <div className="fp-empresa-info">
-                <strong>{siteConfig.empresa_nome}</strong>
-                {siteConfig.empresa_morada && <span>{siteConfig.empresa_morada}</span>}
-                {siteConfig.empresa_cidade && <span>{siteConfig.empresa_cidade}</span>}
-                {siteConfig.empresa_nif && <span>NIF: {siteConfig.empresa_nif}</span>}
-                {(siteConfig.tel1 || siteConfig.tel2) && (
-                  <span>Tel: {[siteConfig.tel1, siteConfig.tel2].filter(Boolean).join(' / ')}</span>
-                )}
-                {siteConfig.empresa_email && <span>Email: {siteConfig.empresa_email}</span>}
-              </div>
-            </div>
-            <div className="fp-doc-info">
-              <div className="fp-doc-titulo">RECIBO DE ENCOMENDA</div>
-              <table className="fp-meta">
+      {/* Layout só visível na impressão — modelo Factura-Recibo */}
+      {siteConfig && (() => {
+        const IVA_TAXA = 0.16;
+        const pago = encomenda.pagamento_estado === 'pago';
+        const criadoEmDate = (encomenda.criado_em as { toDate?: () => Date } | undefined)?.toDate?.() ?? new Date();
+        const anoDoc = criadoEmDate.getFullYear();
+        const numeroDoc = `FR ${anoDoc}/${codCurto}`;
+        const totalComIva = encomenda.total || 0;
+        const baseTributavel = totalComIva / (1 + IVA_TAXA);
+        const valorIva = totalComIva - baseTributavel;
+        const metodoLabel = encomenda.pagamento_metodo === 'mpesa' ? 'M-Pesa'
+          : encomenda.pagamento_metodo === 'emola' ? 'e-Mola'
+          : encomenda.pagamento_metodo === 'paysuite' ? 'PaySuite'
+          : encomenda.pagamento_metodo === 'cartao' ? 'Cartão' : '—';
+
+        return (
+          <div className="fatura-print">
+            <div className="fp-header">
+              <table className="fp-meta-topo">
+                <thead>
+                  <tr><th>N.º DO DOCUMENTO</th><th>DATA</th><th>ESTADO</th></tr>
+                </thead>
                 <tbody>
-                  <tr><td>Nº:</td><td><strong>#{codCurto}</strong></td></tr>
-                  <tr><td>Data:</td><td>{formatarData(encomenda.criado_em)}</td></tr>
+                  <tr>
+                    <td>{numeroDoc}</td>
+                    <td>{formatarData(encomenda.criado_em)}</td>
+                    <td>{pago ? 'PAGO' : 'Pendente de pagamento'}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-          </div>
 
-          <div className="fp-cliente">
-            <div><strong>CLIENTE:</strong> {encomenda.cliente_nome || encomenda.cliente_email}</div>
-            {encomenda.cliente_email && encomenda.cliente_nome && <div>Email: {encomenda.cliente_email}</div>}
-            <div>Tel: {encomenda.telefone_contacto}</div>
-            <div>Morada: {encomenda.morada_entrega}{encomenda.cidade_entrega ? `, ${encomenda.cidade_entrega}` : ''}</div>
-          </div>
-
-          <table className="fp-tabela">
-            <thead>
-              <tr>
-                <th className="fp-th-qty">QUANT.</th>
-                <th>DESCRIÇÃO DO ARTIGO</th>
-                <th className="fp-th-num">P. UNIT.</th>
-                <th className="fp-th-num">TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {encomenda.itens?.map((item, i) => (
-                <tr key={i}>
-                  <td className="fp-td-center">{item.quantidade}</td>
-                  <td>
-                    {item.nome}
-                    {(item.tamanho || item.cor) && (
-                      <span className="fp-variante"> — {[item.tamanho && `Tam: ${item.tamanho}`, item.cor && `Cor: ${item.cor}`].filter(Boolean).join(' · ')}</span>
-                    )}
-                  </td>
-                  <td className="fp-td-right">{Number(item.preco).toFixed(2)} MZN</td>
-                  <td className="fp-td-right">{(Number(item.preco) * item.quantidade).toFixed(2)} MZN</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="fp-total-row">
-                <td colSpan={3} className="fp-td-right"><strong>TOTAL</strong></td>
-                <td className="fp-td-right"><strong>{encomenda.total?.toFixed(2)} MZN</strong></td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div className="fp-rodape">
-            {encomenda.pagamento_metodo && (
-              <div><strong>MÉTODO DE PAGAMENTO:</strong> {
-                encomenda.pagamento_metodo === 'mpesa' ? 'M-Pesa' :
-                encomenda.pagamento_metodo === 'emola' ? 'e-Mola' : 'Cartão'
-              }</div>
-            )}
-            {siteConfig.fatura_condicoes && (
-              <div><strong>CONDIÇÕES DE ENTREGA:</strong> {siteConfig.fatura_condicoes}</div>
-            )}
-            <div><strong>MORADA DE ENTREGA:</strong><br />{encomenda.morada_entrega}<br />{encomenda.cidade_entrega}</div>
-            {(encomenda.notas || siteConfig.fatura_obs) && (
-              <div className="fp-obs">
-                <strong>OBSERVAÇÕES:</strong>
-                {encomenda.notas && <div>{encomenda.notas}</div>}
-                {siteConfig.fatura_obs && <div>{siteConfig.fatura_obs}</div>}
+            <div className="fp-partes">
+              <div className="fp-parte">
+                <span className="fp-parte-label">FORNECEDOR</span>
+                <strong>{siteConfig.empresa_nome}</strong>
+                {siteConfig.empresa_nif && <span>NUIT: {siteConfig.empresa_nif}</span>}
+                {(siteConfig.empresa_cidade || siteConfig.empresa_morada) && (
+                  <span>{[siteConfig.empresa_morada, siteConfig.empresa_cidade].filter(Boolean).join(', ')}</span>
+                )}
+                {(siteConfig.tel1 || siteConfig.tel2) && (
+                  <span>Tel.: {[siteConfig.tel1, siteConfig.tel2].filter(Boolean).join(' / ')}</span>
+                )}
               </div>
-            )}
+              <div className="fp-parte">
+                <span className="fp-parte-label">CLIENTE</span>
+                <strong>{encomenda.cliente_nome || encomenda.cliente_email}</strong>
+                <span>NUIT: Consumidor final</span>
+                <span>{encomenda.morada_entrega}{encomenda.cidade_entrega ? `, ${encomenda.cidade_entrega}` : ''}</span>
+                {encomenda.telefone_contacto && <span>Tel.: {encomenda.telefone_contacto}</span>}
+              </div>
+            </div>
+
+            <table className="fp-tabela">
+              <thead>
+                <tr>
+                  <th className="fp-th-qty">QTD.</th>
+                  <th>DESCRIÇÃO</th>
+                  <th className="fp-th-num">P. UNIT.</th>
+                  <th className="fp-th-num">IVA</th>
+                  <th className="fp-th-num">TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {encomenda.itens?.map((item, i) => (
+                  <tr key={i}>
+                    <td className="fp-td-center">{item.quantidade}</td>
+                    <td>
+                      {item.nome}
+                      {(item.tamanho || item.cor) && (
+                        <span className="fp-variante"> — {[item.tamanho && `Tam: ${item.tamanho}`, item.cor && `Cor: ${item.cor}`].filter(Boolean).join(' · ')}</span>
+                      )}
+                    </td>
+                    <td className="fp-td-right">{(Number(item.preco) / (1 + IVA_TAXA)).toFixed(2)} MZN</td>
+                    <td className="fp-td-right">{(IVA_TAXA * 100).toFixed(0)}%</td>
+                    <td className="fp-td-right">{(Number(item.preco) * item.quantidade).toFixed(2)} MZN</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="fp-totais">
+              <div><span>Base tributável</span><span>{baseTributavel.toFixed(2)} MZN</span></div>
+              <div><span>IVA ({(IVA_TAXA * 100).toFixed(0)}%)</span><span>{valorIva.toFixed(2)} MZN</span></div>
+              <div className="fp-total-final"><span>TOTAL</span><span>{totalComIva.toFixed(2)} MZN</span></div>
+            </div>
+
+            <div className="fp-rodape">
+              <div>
+                <strong>Pagamento {pago ? 'recebido integralmente' : 'pendente'}:</strong> {totalComIva.toFixed(2)} MZN — {metodoLabel}
+                {encomenda.pagamento_ref && <> — Referência: {encomenda.pagamento_ref}</>}
+              </div>
+              {siteConfig.fatura_condicoes && (
+                <div><strong>CONDIÇÕES DE ENTREGA:</strong> {siteConfig.fatura_condicoes}</div>
+              )}
+              {(encomenda.notas || siteConfig.fatura_obs) && (
+                <div className="fp-obs">
+                  <strong>OBSERVAÇÕES:</strong>
+                  {encomenda.notas && <div>{encomenda.notas}</div>}
+                  {siteConfig.fatura_obs && <div>{siteConfig.fatura_obs}</div>}
+                </div>
+              )}
+              <p className="fp-nota-legal">
+                A utilização de um documento único de factura/recibo deve respeitar o enquadramento fiscal e as regras aplicáveis à emissão e numeração dos documentos.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

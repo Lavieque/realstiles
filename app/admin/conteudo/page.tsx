@@ -62,7 +62,7 @@ export default function AdminConteudoPage() {
           <h2>Dados de Fatura / Recibo</h2>
           <div className="form-group"><label>Nome da empresa</label><input value={config.empresa_nome} onChange={f('empresa_nome')} /></div>
           <div className="form-grid-2">
-            <div className="form-group"><label>NIF</label><input value={config.empresa_nif} onChange={f('empresa_nif')} placeholder="Ex: 400123456" /></div>
+            <div className="form-group"><label>NUIT</label><input value={config.empresa_nif} onChange={f('empresa_nif')} placeholder="Ex: 400123456" /></div>
             <div className="form-group"><label>Email de faturação</label><input value={config.empresa_email} onChange={f('empresa_email')} placeholder="faturacao@..." /></div>
           </div>
           <div className="form-group"><label>Morada</label><input value={config.empresa_morada} onChange={f('empresa_morada')} /></div>
