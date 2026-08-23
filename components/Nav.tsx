@@ -12,7 +12,15 @@ export default function Nav() {
   const count = getTotalItems(items);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [contaMenuOpen, setContaMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    if (!contaMenuOpen) return;
+    const fechar = () => setContaMenuOpen(false);
+    document.addEventListener('click', fechar);
+    return () => document.removeEventListener('click', fechar);
+  }, [contaMenuOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,11 +121,15 @@ export default function Nav() {
 
         {perfil ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="nav-dropdown">
-              <a href="#" style={{ fontSize: 14, fontWeight: 500, color: 'var(--gray-600)', textDecoration: 'none', padding: '8px 14px', borderRadius: 8 }}>
+            <div className={`nav-dropdown nav-dropdown-conta${contaMenuOpen ? ' open' : ''}`}>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setContaMenuOpen(o => !o); }}
+                style={{ fontSize: 14, fontWeight: 500, color: 'var(--gray-600)', textDecoration: 'none', padding: '8px 14px', borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+              >
                 {perfil.nome || perfil.email}
-              </a>
-              <ul className="nav-submenu">
+              </button>
+              <ul className="nav-submenu" onClick={() => setContaMenuOpen(false)}>
                 <li><Link href="/conta">A minha conta</Link></li>
                 <li><Link href="/favoritos" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Favoritos <Heart size={14} strokeWidth={1.5} /></Link></li>
                 <li><Link href="/encomendas">Encomendas</Link></li>

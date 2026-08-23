@@ -70,7 +70,7 @@ footer img { mix-blend-mode: screen; }
   border: 1px solid var(--gray-200); z-index: 300;
   padding: 6px 0; list-style: none;
 }
-.nav-dropdown:hover .nav-submenu { display: block; }
+.nav-dropdown:hover .nav-submenu, .nav-dropdown.open .nav-submenu { display: block; }
 .nav-submenu li a {
   display: block; padding: 9px 18px; font-size: 13px; font-weight: 500;
   color: var(--gray-600); text-decoration: none; border-radius: 0;
@@ -844,6 +844,15 @@ tr:hover td { background: var(--gray-100); }
   }
   .nav-dropdown.open .nav-submenu { display: block; }
   .nav-submenu li a { padding: 8px 14px; font-size: 13px; }
+  /* Menu da conta fica fora do painel de categorias colapsável — mantém-se flutuante
+     (position:absolute) mesmo em mobile, senão a barra de navegação de altura fixa
+     corta a primeira opção do submenu estático. */
+  .nav-dropdown-conta .nav-submenu {
+    position: absolute; top: calc(100% + 8px); left: auto; right: 0;
+    background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(13,19,71,0.13);
+    border: 1px solid var(--gray-200); margin: 0; padding: 6px 0;
+  }
+  .nav-dropdown-conta .nav-submenu li a { padding: 9px 18px; font-size: 13px; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .produtos-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
