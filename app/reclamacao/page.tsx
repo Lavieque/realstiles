@@ -52,6 +52,7 @@ export default function ReclamacaoPage() {
         cliente_id: user?.uid || null,
         notif_canal: isWa ? 'whatsapp' : 'email',
         respondida: false,
+        estado: 'nova',
         criado_em: serverTimestamp(),
       });
 
