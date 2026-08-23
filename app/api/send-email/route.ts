@@ -133,6 +133,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Reclamação marcada como resolvida → cliente ─────────────────────────
+    if (tipo === 'reclamacao_resolvida') {
+      const { cliente_email, assunto, estado, reclamacao_id } = body;
+      if (cliente_email) {
+        envios.push({
+          from: `${LOJA_NOME} <${FROM_RECLAMACOES}>`,
+          to: [cliente_email],
+          subject: `✅ Reclamação resolvida — ${LOJA_NOME}`,
+          html: gerarEmailReclamacaoResolvida(assunto, estado, reclamacao_id, LOJA_NOME, LOJA_URL),
+        });
+      }
+    }
+
     if (envios.length === 0) {
       return NextResponse.json({ ok: false, warn: `Tipo de email desconhecido: ${tipo}` });
     }
@@ -328,6 +341,20 @@ function gerarEmailBemVindo(nome: string, lojaNome: string, lojaUrl: string) {
     </div>
     <div style="text-align:center;margin-top:24px;">
       <a href="${lojaUrl}" style="display:inline-block;background:#0d1347;color:white;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Começar a comprar</a>
+    </div>`);
+}
+
+function gerarEmailReclamacaoResolvida(assunto: string, estado: string, reclamacaoId: string | undefined, lojaNome: string, lojaUrl: string) {
+  return wrap(lojaNome, lojaUrl, `
+    <h2 style="margin-top:0;">✅ Reclamação resolvida</h2>
+    <p style="font-size:14px;color:#555;line-height:1.7;">
+      A sua reclamação relativa a <strong>${assunto}</strong> foi marcada como <strong>${estado}</strong> pela nossa equipa.
+    </p>
+    <div style="background:#f0f7f0;border-left:4px solid #27ae60;border-radius:4px;padding:16px;margin:20px 0;">
+      <p style="margin:0;font-size:13px;color:#27ae60;font-weight:600;">Caso considere que o assunto não ficou resolvido, pode consultar a conversa completa na área do cliente.</p>
+    </div>
+    <div style="text-align:center;">
+      <a href="${lojaUrl}${reclamacaoId ? `/reclamacoes/${reclamacaoId}` : '/reclamacoes'}" style="display:inline-block;background:#0d1347;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Ver a minha reclamação</a>
     </div>`);
 }
 

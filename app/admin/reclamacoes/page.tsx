@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { formatarData } from '@/lib/encomendas';
 import { getConfig, saveConfig } from '@/lib/config-site';
-import { normalizarEstado, estadoCor, parseEstadosConfig } from '@/lib/reclamacoes';
+import { normalizarEstado, estadoCor, estadoEncerrado, parseEstadosConfig } from '@/lib/reclamacoes';
 import type { Reclamacao, MensagemReclamacao } from '@/lib/reclamacoes';
 import { mostrarToast } from '@/components/Toast';
 
@@ -86,6 +86,34 @@ export default function AdminReclamacoesPage() {
     if (!sel) return;
     await updateDoc(doc(db, 'reclamacoes', sel.id), { estado });
     actualizarEstadoLocal(sel.id, { estado });
+
+    if (estadoEncerrado(estado) && !estadoEncerrado(sel.estado)) {
+      if (sel.notif_canal === 'whatsapp') {
+        const telLimpo = sel.telefone?.replace(/\D/g, '') || '';
+        if (telLimpo) {
+          fetch('/api/notify/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telefone: telLimpo,
+              mensagem: `✅ *Reclamação resolvida*\n\nA sua reclamação sobre "${sel.assunto}" foi marcada como *${estado}*.\n\n— Real Stiles`,
+            }),
+          }).catch(() => {});
+        }
+      } else if (sel.email) {
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'reclamacao_resolvida',
+            cliente_email: sel.email,
+            assunto: sel.assunto,
+            estado,
+            reclamacao_id: sel.id,
+          }),
+        }).catch(() => {});
+      }
+    }
   };
 
   const guardarEstados = async () => {

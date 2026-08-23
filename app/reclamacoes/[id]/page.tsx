@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { onAuthChange } from '@/lib/auth';
 import { formatarData } from '@/lib/encomendas';
 import { getConfig } from '@/lib/config-site';
-import { normalizarEstado, estadoCor, parseEstadosConfig } from '@/lib/reclamacoes';
+import { normalizarEstado, estadoCor, estadoEncerrado, parseEstadosConfig } from '@/lib/reclamacoes';
 import type { Reclamacao, MensagemReclamacao } from '@/lib/reclamacoes';
 import type { User } from 'firebase/auth';
 import { Lock, ArrowLeft, Frown, Send } from 'lucide-react';
@@ -45,7 +45,7 @@ export default function ReclamacaoDetalhePage({ params }: { params: { id: string
   }, [reclamacao?.id]);
 
   const enviarMensagem = async () => {
-    if (!reclamacao || !texto.trim()) return;
+    if (!reclamacao || !texto.trim() || estadoEncerrado(reclamacao.estado)) return;
     setEnviando(true);
     const conteudo = texto.trim();
     try {
@@ -153,23 +153,32 @@ export default function ReclamacaoDetalhePage({ params }: { params: { id: string
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 20, background: 'white', border: '1px solid var(--gray-200)', borderRadius: 12, padding: 14 }}>
-          <textarea
-            value={texto}
-            onChange={e => setTexto(e.target.value)}
-            placeholder="Escreve uma mensagem..."
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } }}
-            style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', resize: 'vertical', minHeight: 44, maxHeight: 140, outline: 'none', boxSizing: 'border-box' }}
-          />
-          <button
-            className="btn btn-primary"
-            onClick={enviarMensagem}
-            disabled={enviando || !texto.trim()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-          >
-            {enviando ? 'A enviar...' : <><Send size={14} strokeWidth={1.5} /> Enviar</>}
-          </button>
-        </div>
+        {estadoEncerrado(reclamacao.estado) ? (
+          <div style={{ textAlign: 'center', marginTop: 20, background: '#f0f7f0', border: '1px solid #c3e6cb', borderRadius: 12, padding: 20 }}>
+            <p style={{ fontSize: 14, color: 'var(--green)', fontWeight: 600, marginBottom: 6 }}>Esta reclamação está {label.toLowerCase()}.</p>
+            <p style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+              Se precisares de mais ajuda sobre este assunto, <Link href="/reclamacao" style={{ color: 'var(--black)', fontWeight: 600 }}>abre uma nova reclamação</Link>.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 20, background: 'white', border: '1px solid var(--gray-200)', borderRadius: 12, padding: 14 }}>
+            <textarea
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              placeholder="Escreve uma mensagem..."
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } }}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', resize: 'vertical', minHeight: 44, maxHeight: 140, outline: 'none', boxSizing: 'border-box' }}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={enviarMensagem}
+              disabled={enviando || !texto.trim()}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+            >
+              {enviando ? 'A enviar...' : <><Send size={14} strokeWidth={1.5} /> Enviar</>}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

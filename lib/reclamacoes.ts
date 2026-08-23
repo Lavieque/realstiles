@@ -53,6 +53,13 @@ export function parseEstadosConfig(texto: string): string[] {
   return texto.split(',').map(s => s.trim()).filter(Boolean);
 }
 
+// Detecta estados de encerramento (Resolvida, Finalizada, Fechada, ...) por nome,
+// já que a lista de estados é livremente editável pelo admin e não tem uma chave fixa.
+export function estadoEncerrado(estado?: string): boolean {
+  const l = normalizarEstado(estado).toLowerCase();
+  return /resolv|final|fech/.test(l);
+}
+
 export async function getReclamacoesCliente(uid: string): Promise<Reclamacao[]> {
   const q = query(
     collection(db, 'reclamacoes'),
