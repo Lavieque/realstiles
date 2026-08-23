@@ -12,7 +12,7 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
-import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil } from 'lucide-react';
+import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText } from 'lucide-react';
 
 type Tab = 'entrar' | 'registar' | 'recuperar';
 type Metodo = 'email' | 'whatsapp';
@@ -293,6 +293,7 @@ function ContaInner() {
 
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <a href="/encomendas" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Package size={16} strokeWidth={1.5} /> Todas as encomendas</a>
+                <a href="/reclamacoes" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquareText size={16} strokeWidth={1.5} /> As minhas reclamações</a>
                 {perfil.admin && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Settings size={16} strokeWidth={1.5} /> Painel admin</a>}
                 {user.email && <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }} onClick={handlePasswordReset} disabled={loading}><Key size={16} strokeWidth={1.5} /> Alterar password</button>}
                 <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => { await logout(); setUser(null); setPerfil(null); setEncomendas([]); }}><LogOut size={16} strokeWidth={1.5} /> Sair da conta</button>

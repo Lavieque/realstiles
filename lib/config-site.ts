@@ -28,6 +28,7 @@ export const DEFAULTS = {
   pol_conteudo:  '',
   rec_titulo: 'Livro de Reclamações',
   rec_intro:  'Prezamos pela sua satisfação. Se tiver alguma reclamação, utilize o formulário abaixo.',
+  reclamacao_estados: 'Nova, Em andamento, Resolvida',
 };
 
 export type SiteConfig = typeof DEFAULTS;

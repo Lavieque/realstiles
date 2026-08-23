@@ -1,46 +1,21 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { Mail, User, Send } from 'lucide-react';
+import { Mail, User, Send, Settings2 } from 'lucide-react';
 import { getDocs, collection, doc, updateDoc, addDoc, orderBy, query, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { formatarData } from '@/lib/encomendas';
+import { getConfig, saveConfig } from '@/lib/config-site';
+import { normalizarEstado, estadoCor, parseEstadosConfig } from '@/lib/reclamacoes';
+import type { Reclamacao, MensagemReclamacao } from '@/lib/reclamacoes';
 import { mostrarToast } from '@/components/Toast';
 
-type Estado = 'nova' | 'em_andamento' | 'resolvida';
-
-const ESTADO_META: Record<Estado, { label: string; cor: string; fundo: string }> = {
-  nova:         { label: 'Nova',         cor: '#c0392b', fundo: '#fdecea' },
-  em_andamento: { label: 'Em andamento', cor: '#b8860b', fundo: '#fff8e1' },
-  resolvida:    { label: 'Resolvida',    cor: '#1a8c5a', fundo: '#e6f9f0' },
-};
-
-interface Reclamacao {
-  id: string;
-  nome: string;
-  email: string;
-  telefone?: string;
-  assunto: string;
-  descricao: string;
-  notif_canal?: 'email' | 'whatsapp';
-  criado_em?: unknown;
-  respondida?: boolean;
-  estado?: Estado;
-}
-
-interface Mensagem {
-  id: string;
-  autor: 'cliente' | 'admin';
-  autor_nome: string;
-  texto: string;
-  criado_em?: unknown;
-}
-
-function EstadoBadge({ estado }: { estado?: Estado }) {
-  const meta = ESTADO_META[estado ?? 'nova'];
+function EstadoBadge({ estado, lista }: { estado?: string; lista: string[] }) {
+  const label = normalizarEstado(estado);
+  const { cor, fundo } = estadoCor(label, lista);
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: meta.fundo, color: meta.cor }}>
-      {meta.label}
+    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: fundo, color: cor }}>
+      {label}
     </span>
   );
 }
@@ -49,10 +24,13 @@ export default function AdminReclamacoesPage() {
   const [reclamacoes, setReclamacoes] = useState<Reclamacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<Reclamacao | null>(null);
-  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [mensagens, setMensagens] = useState<MensagemReclamacao[]>([]);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [adminNome, setAdminNome] = useState('Admin');
+  const [estados, setEstados] = useState<string[]>(['Nova', 'Em andamento', 'Resolvida']);
+  const [editandoEstados, setEditandoEstados] = useState(false);
+  const [estadosTexto, setEstadosTexto] = useState('');
   const mensagensFimRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,6 +38,14 @@ export default function AdminReclamacoesPage() {
       if (!u) return;
       const perfil = await getPerfil(u.uid);
       setAdminNome(perfil?.nome || 'Admin');
+    });
+  }, []);
+
+  useEffect(() => {
+    getConfig().then(c => {
+      const lista = parseEstadosConfig(c.reclamacao_estados);
+      setEstados(lista.length ? lista : ['Nova', 'Em andamento', 'Resolvida']);
+      setEstadosTexto(c.reclamacao_estados);
     });
   }, []);
 
@@ -77,7 +63,7 @@ export default function AdminReclamacoesPage() {
     if (!sel) { setMensagens([]); return; }
     const unsub = onSnapshot(
       query(collection(db, 'reclamacoes', sel.id, 'mensagens'), orderBy('criado_em', 'asc')),
-      snap => setMensagens(snap.docs.map(d => ({ id: d.id, ...d.data() } as Mensagem)))
+      snap => setMensagens(snap.docs.map(d => ({ id: d.id, ...d.data() } as MensagemReclamacao)))
     );
     return unsub;
   }, [sel?.id]);
@@ -96,10 +82,19 @@ export default function AdminReclamacoesPage() {
     setSel(s => s && s.id === id ? { ...s, ...patch } : s);
   };
 
-  const mudarEstado = async (estado: Estado) => {
+  const mudarEstado = async (estado: string) => {
     if (!sel) return;
     await updateDoc(doc(db, 'reclamacoes', sel.id), { estado });
     actualizarEstadoLocal(sel.id, { estado });
+  };
+
+  const guardarEstados = async () => {
+    const lista = parseEstadosConfig(estadosTexto);
+    if (!lista.length) { mostrarToast('Indica pelo menos um estado', 'error'); return; }
+    await saveConfig({ reclamacao_estados: lista.join(', ') });
+    setEstados(lista);
+    setEditandoEstados(false);
+    mostrarToast('Estados actualizados!', 'success');
   };
 
   const enviarMensagem = async () => {
@@ -140,7 +135,10 @@ export default function AdminReclamacoesPage() {
         });
       }
 
-      const novoEstado: Estado = sel.estado === 'resolvida' ? 'em_andamento' : (sel.estado ?? 'em_andamento');
+      // Só avança automaticamente o estado inicial ("Nova" → o seguinte da lista);
+      // se o admin já tiver escolhido outro estado manualmente, respeita-o.
+      const estadoAtual = normalizarEstado(sel.estado);
+      const novoEstado = estadoAtual === (estados[0] ?? 'Nova') ? (estados[1] ?? estadoAtual) : estadoAtual;
       await updateDoc(doc(db, 'reclamacoes', sel.id), { respondida: true, estado: novoEstado });
       actualizarEstadoLocal(sel.id, { respondida: true, estado: novoEstado });
       setTexto('');
@@ -163,7 +161,7 @@ export default function AdminReclamacoesPage() {
               <div key={r.id} onClick={() => seleccionar(r)} style={{ padding: '14px 20px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer', background: sel?.id === r.id ? 'var(--gray-100)' : 'white' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{r.nome}</p>
-                  <EstadoBadge estado={r.estado} />
+                  <EstadoBadge estado={r.estado} lista={estados} />
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 2 }}>{r.assunto}</p>
                 <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{formatarData(r.criado_em)}</p>
@@ -190,17 +188,40 @@ export default function AdminReclamacoesPage() {
                     <User size={14} strokeWidth={1.5} /> {sel.nome} · {sel.email || sel.telefone}
                   </p>
                 </div>
-                <select
-                  value={sel.estado ?? 'nova'}
-                  onChange={e => mudarEstado(e.target.value as Estado)}
-                  style={{ fontSize: 12, fontWeight: 600, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--gray-200)', background: 'white', cursor: 'pointer' }}
-                >
-                  {(Object.keys(ESTADO_META) as Estado[]).map(e => (
-                    <option key={e} value={e}>{ESTADO_META[e].label}</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <select
+                    value={normalizarEstado(sel.estado)}
+                    onChange={e => mudarEstado(e.target.value)}
+                    style={{ fontSize: 12, fontWeight: 600, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--gray-200)', background: 'white', cursor: 'pointer' }}
+                  >
+                    {!estados.includes(normalizarEstado(sel.estado)) && (
+                      <option value={normalizarEstado(sel.estado)}>{normalizarEstado(sel.estado)}</option>
+                    )}
+                    {estados.map(e => <option key={e} value={e}>{e}</option>)}
+                  </select>
+                  <button
+                    onClick={() => setEditandoEstados(v => !v)}
+                    title="Editar estados disponíveis"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex' }}
+                  >
+                    <Settings2 size={16} strokeWidth={1.5} />
+                  </button>
+                </div>
               </div>
               <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{formatarData(sel.criado_em)}</p>
+
+              {editandoEstados && (
+                <div style={{ marginTop: 14, padding: 14, background: 'var(--gray-100)', borderRadius: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    value={estadosTexto}
+                    onChange={e => setEstadosTexto(e.target.value)}
+                    placeholder="Ex: Nova, Em andamento, Resolvida, Finalizada"
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 13 }}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={guardarEstados}>Guardar</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => setEditandoEstados(false)}>Cancelar</button>
+                </div>
+              )}
             </div>
 
             {/* Thread de mensagens */}
