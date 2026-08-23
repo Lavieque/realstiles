@@ -47,7 +47,7 @@ export default function ReclamacaoPage() {
       // Guarda em Firestore com o canal do utilizador para o admin poder responder pelo canal certo
       const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
       const { db } = await import('@/lib/firebase');
-      await addDoc(collection(db, 'reclamacoes'), {
+      const docRef = await addDoc(collection(db, 'reclamacoes'), {
         ...form,
         cliente_id: user?.uid || null,
         notif_canal: isWa ? 'whatsapp' : 'email',
@@ -60,7 +60,7 @@ export default function ReclamacaoPage() {
       fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'reclamacao', ...form }),
+        body: JSON.stringify({ tipo: 'reclamacao', ...form, reclamacao_id: docRef.id }),
       }).catch(() => {});
 
       // Acuse de recepção ao cliente pelo canal correto

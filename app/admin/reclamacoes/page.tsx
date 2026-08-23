@@ -131,6 +131,7 @@ export default function AdminReclamacoesPage() {
             cliente_email: sel.email,
             assunto: sel.assunto,
             resposta: conteudo,
+            reclamacao_id: sel.id,
           }),
         });
       }

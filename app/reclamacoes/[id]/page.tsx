@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { doc, getDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { onAuthChange } from '@/lib/auth';
 import { formatarData } from '@/lib/encomendas';
@@ -9,13 +9,16 @@ import { getConfig } from '@/lib/config-site';
 import { normalizarEstado, estadoCor, parseEstadosConfig } from '@/lib/reclamacoes';
 import type { Reclamacao, MensagemReclamacao } from '@/lib/reclamacoes';
 import type { User } from 'firebase/auth';
-import { Lock, ArrowLeft, Frown } from 'lucide-react';
+import { Lock, ArrowLeft, Frown, Send } from 'lucide-react';
+import { mostrarToast } from '@/components/Toast';
 
 export default function ReclamacaoDetalhePage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [reclamacao, setReclamacao] = useState<Reclamacao | null | undefined>(undefined);
   const [mensagens, setMensagens] = useState<MensagemReclamacao[]>([]);
   const [estados, setEstados] = useState<string[]>(['Nova', 'Em andamento', 'Resolvida']);
+  const [texto, setTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     getConfig().then(c => setEstados(parseEstadosConfig(c.reclamacao_estados)));
@@ -40,6 +43,35 @@ export default function ReclamacaoDetalhePage({ params }: { params: { id: string
     );
     return unsub;
   }, [reclamacao?.id]);
+
+  const enviarMensagem = async () => {
+    if (!reclamacao || !texto.trim()) return;
+    setEnviando(true);
+    const conteudo = texto.trim();
+    try {
+      await addDoc(collection(db, 'reclamacoes', reclamacao.id, 'mensagens'), {
+        autor: 'cliente',
+        autor_nome: reclamacao.nome,
+        texto: conteudo,
+        criado_em: serverTimestamp(),
+      });
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'mensagem_reclamacao_cliente',
+          nome: reclamacao.nome,
+          assunto: reclamacao.assunto,
+          mensagem: conteudo,
+        }),
+      }).catch(() => {});
+      setTexto('');
+    } catch {
+      mostrarToast('Erro ao enviar mensagem', 'error');
+    } finally {
+      setEnviando(false);
+    }
+  };
 
   if (user === undefined || reclamacao === undefined) {
     return <div className="page-wrapper"><div className="container"><div className="loading"><div className="spinner" /> A carregar...</div></div></div>;
@@ -121,9 +153,23 @@ export default function ReclamacaoDetalhePage({ params }: { params: { id: string
           ))}
         </div>
 
-        <p style={{ fontSize: 12, color: 'var(--gray-400)', textAlign: 'center', marginTop: 24 }}>
-          Para responderes, usa o {reclamacao.notif_canal === 'whatsapp' ? 'WhatsApp' : 'email'} onde recebeste a notificação.
-        </p>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 20, background: 'white', border: '1px solid var(--gray-200)', borderRadius: 12, padding: 14 }}>
+          <textarea
+            value={texto}
+            onChange={e => setTexto(e.target.value)}
+            placeholder="Escreve uma mensagem..."
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } }}
+            style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', resize: 'vertical', minHeight: 44, maxHeight: 140, outline: 'none', boxSizing: 'border-box' }}
+          />
+          <button
+            className="btn btn-primary"
+            onClick={enviarMensagem}
+            disabled={enviando || !texto.trim()}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+          >
+            {enviando ? 'A enviar...' : <><Send size={14} strokeWidth={1.5} /> Enviar</>}
+          </button>
+        </div>
       </div>
     </div>
   );
