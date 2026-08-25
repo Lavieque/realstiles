@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { Zap, AlertTriangle, Package, ExternalLink, Puzzle } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { ShoppingBag, Loader2, XCircle } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';

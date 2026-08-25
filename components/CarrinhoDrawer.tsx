@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import { useCarrinho, getTotalItems, getTotalPreco } from '@/store/carrinho';
 import { X, ShoppingBag, ArrowRight } from 'lucide-react';
 

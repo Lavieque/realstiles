@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout, actualizarPerfil } from '@/lib/auth';
 import { signInWithCustomToken } from 'firebase/auth';

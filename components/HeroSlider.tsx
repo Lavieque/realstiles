@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';

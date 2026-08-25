@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from './Toast';
 import type { Produto } from '@/lib/produtos';

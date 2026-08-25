@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';

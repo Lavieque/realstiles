@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import { ShoppingBag, X } from 'lucide-react';
 import { getProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
 import { uploadParaCloudinary } from '@/lib/cloudinary';

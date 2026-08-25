@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
+import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { onAuthChange } from '@/lib/auth';
 import { getEncomendasCliente, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
