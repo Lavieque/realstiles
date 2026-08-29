@@ -12,13 +12,14 @@ export interface ItemCarrinho {
   cor: string;
   quantidade: number;
   stock: number;
+  url_origem: string;
 }
 
 interface CarrinhoState {
   items: ItemCarrinho[];
   drawerOpen: boolean;
   bumped: boolean;
-  adicionarItem: (produto: { id: string; nome: string; preco: number; imagens?: string[] }, tamanho: string, cor: string, quantidade?: number) => void;
+  adicionarItem: (produto: { id: string; nome: string; preco: number; imagens?: string[]; url_origem?: string }, tamanho: string, cor: string, quantidade?: number) => void;
   removerItem: (key: string) => void;
   actualizarQuantidade: (key: string, quantidade: number) => void;
   limpar: () => void;
@@ -53,6 +54,7 @@ export const useCarrinho = create<CarrinhoState>()(
               imagem: produto.imagens?.[0] || '',
               tamanho, cor, quantidade,
               stock: stockMax,
+              url_origem: produto.url_origem || '',
             }],
           });
         }

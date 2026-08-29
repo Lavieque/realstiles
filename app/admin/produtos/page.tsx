@@ -150,6 +150,14 @@ export default function AdminProdutosPage() {
                 </div>
                 <div className="form-group"><label>Stock</label><input type="number" value={seleccionado.stock || ''} onChange={f('stock')} /></div>
               </div>
+              {seleccionado.url_origem && (
+                <div className="form-group">
+                  <label>URL de origem</label>
+                  <p style={{ fontSize: 13, wordBreak: 'break-all' }}>
+                    <a href={seleccionado.url_origem} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gray-600)' }}>{seleccionado.url_origem}</a>
+                  </p>
+                </div>
+              )}
               <div className="form-group" style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 0 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 0 }}>
                   <input type="checkbox" checked={seleccionado.destaque || false} onChange={e => setSeleccionado(s => ({ ...s, destaque: e.target.checked }))} />

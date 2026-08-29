@@ -23,6 +23,8 @@ export interface Produto {
   preco_original?: number;
   em_promocao?: boolean;
   categoria?: string;
+  fonte?: string;
+  url_origem?: string;
   stock: number;
   imagens: string[];
   tamanhos: string[];

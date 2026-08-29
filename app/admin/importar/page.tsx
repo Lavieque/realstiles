@@ -230,7 +230,7 @@ function AdminImportarPage() {
       const res = await fetch('/api/produtos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...ajustes, fonte: resultado?.fonte }),
+        body: JSON.stringify({ ...ajustes, fonte: resultado?.fonte, url_origem: resultado?.url }),
       });
       if (res.status === 402 || res.status === 403) {
         const data = await res.json();

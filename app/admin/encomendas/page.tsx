@@ -223,6 +223,11 @@ export default function AdminEncomendasPage() {
                   <div>
                     <p style={{ fontWeight: 500 }}>{item.nome}</p>
                     <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{item.tamanho && `Tam: ${item.tamanho}`} {item.cor && `· ${item.cor}`} · Qtd: {item.quantidade}</p>
+                    {item.url_origem && (
+                      <p style={{ fontSize: 12 }}>
+                        <a href={item.url_origem} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gray-500)' }}>Ver produto original ↗</a>
+                      </p>
+                    )}
                   </div>
                   <p style={{ fontWeight: 700 }}>{(item.preco * item.quantidade).toFixed(2)} MZN</p>
                 </div>

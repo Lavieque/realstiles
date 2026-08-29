@@ -15,6 +15,7 @@ export interface ItemEncomenda {
   tamanho: string;
   cor: string;
   quantidade: number;
+  url_origem?: string;
 }
 
 export interface HistoricoEstado {
