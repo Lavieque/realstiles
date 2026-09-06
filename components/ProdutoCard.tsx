@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import Image from '@/components/CloudImage';
+import Estrelas from '@/components/Estrelas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from './Toast';
 import type { Produto } from '@/lib/produtos';
@@ -30,6 +31,12 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
       </div>
       <div className="produto-card-body">
         <p className="produto-card-nome">{produto.nome}</p>
+        {!!produto.num_avaliacoes && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <Estrelas valor={produto.avaliacao || 0} tamanho={12} />
+            <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>({produto.num_avaliacoes})</span>
+          </div>
+        )}
         <div className="produto-card-footer">
           <span className="preco-atual">{preco} MZN</span>
           <button

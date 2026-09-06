@@ -1,25 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { MessageSquare, Check, X, Star } from 'lucide-react';
+import { MessageSquare, Check, X } from 'lucide-react';
 import { getComentariosPendentes, aprovarComentario, rejeitarComentario } from '@/lib/comentarios';
 import type { ComentarioProduto } from '@/lib/comentarios';
 import { getProduto } from '@/lib/produtos';
 import { formatarData } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
+import Estrelas from '@/components/Estrelas';
 
 interface Linha extends ComentarioProduto {
   produto_nome: string;
-}
-
-function Estrelas({ valor }: { valor: number }) {
-  return (
-    <div style={{ display: 'flex', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <Star key={i} size={14} strokeWidth={1.5} fill={i <= valor ? '#f5b301' : 'none'} color={i <= valor ? '#f5b301' : 'var(--gray-300)'} />
-      ))}
-    </div>
-  );
 }
 
 export default function AdminComentariosPage() {
