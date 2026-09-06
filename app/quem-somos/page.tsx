@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from '@/components/CloudImage';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 
 export const metadata: Metadata = {
@@ -9,6 +10,14 @@ export const metadata: Metadata = {
 
 export default async function QuemSomosPage() {
   const config = await getConfigSSR();
+
+  const membros = [
+    { nome: config.qs_membro1_nome, cargo: config.qs_membro1_cargo, foto: config.qs_membro1_foto, bio: config.qs_membro1_bio },
+    { nome: config.qs_membro2_nome, cargo: config.qs_membro2_cargo, foto: config.qs_membro2_foto, bio: config.qs_membro2_bio },
+  ].filter(m => m.nome.trim());
+
+  const morada = [config.empresa_morada, config.empresa_cidade].filter(Boolean).join(', ');
+
   return (
     <>
       {/* HERO */}
@@ -84,6 +93,49 @@ export default async function QuemSomosPage() {
           </div>
         </div>
       </section>
+
+      {/* EQUIPA */}
+      {membros.length > 0 && (
+        <section className="qs-equipa">
+          <div className="qs-equipa-inner">
+            <h2>{config.qs_equipa_titulo}</h2>
+            <div className="qs-equipa-grid">
+              {membros.map((m, i) => (
+                <div key={i} className="qs-membro">
+                  <div className="qs-membro-foto">
+                    {m.foto ? (
+                      <Image src={m.foto} alt={m.nome} fill style={{ objectFit: 'cover' }} sizes="120px" />
+                    ) : (
+                      <div className="qs-membro-sem-foto">{m.nome.charAt(0).toUpperCase()}</div>
+                    )}
+                  </div>
+                  <h3>{m.nome}</h3>
+                  {m.cargo && <p className="cargo">{m.cargo}</p>}
+                  {m.bio && <p className="bio">{m.bio}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* LOCALIZAÇÃO */}
+      {morada && (
+        <section className="qs-localizacao">
+          <div className="qs-localizacao-inner">
+            <h2>{config.qs_localizacao_titulo}</h2>
+            <p className="qs-localizacao-morada">{morada}</p>
+            <div className="qs-localizacao-mapa">
+              <iframe
+                src={`https://www.google.com/maps?q=${encodeURIComponent(morada)}&output=embed`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Localização"
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="qs-cta">

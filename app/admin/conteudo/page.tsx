@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Image from '@/components/CloudImage';
 import { getConfig, saveConfig, DEFAULTS } from '@/lib/config-site';
+import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
 import type { SiteConfig } from '@/lib/config-site';
 
@@ -8,6 +10,21 @@ export default function AdminConteudoPage() {
   const [config, setConfig] = useState<SiteConfig>({ ...DEFAULTS });
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [uploadPct, setUploadPct] = useState<{ [k: string]: number }>({});
+
+  const handleFotoUpload = (campo: 'qs_membro1_foto' | 'qs_membro2_foto') => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadPct(p => ({ ...p, [campo]: 0 }));
+    try {
+      const url = await uploadParaCloudinary(file, pct => setUploadPct(p => ({ ...p, [campo]: pct })));
+      setConfig(c => ({ ...c, [campo]: url }));
+    } catch {
+      mostrarToast('Erro no upload', 'error');
+    } finally {
+      setUploadPct(p => { const resto = { ...p }; delete resto[campo]; return resto; });
+    }
+  };
 
   useEffect(() => {
     getConfig().then(c => { setConfig(c); setLoading(false); });
@@ -59,16 +76,55 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Quem Somos — Equipa</h2>
+          <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>
+            O bloco só aparece na página se pelo menos um membro tiver nome preenchido.
+          </p>
+          <div className="form-group"><label>Título da secção</label><input value={config.qs_equipa_titulo} onChange={f('qs_equipa_titulo')} /></div>
+          <div className="form-grid-2">
+            {(['1', '2'] as const).map(n => {
+              const campoFoto = `qs_membro${n}_foto` as 'qs_membro1_foto' | 'qs_membro2_foto';
+              return (
+                <div key={n} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16 }}>
+                  <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Membro {n}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: 'var(--gray-100)', position: 'relative', flexShrink: 0 }}>
+                      {config[campoFoto] && <Image src={config[campoFoto]} alt="" fill style={{ objectFit: 'cover' }} sizes="56px" />}
+                    </div>
+                    <div>
+                      <input type="file" accept="image/*" onChange={handleFotoUpload(campoFoto)} style={{ fontSize: 12 }} />
+                      {uploadPct[campoFoto] !== undefined && <p style={{ fontSize: 11, color: 'var(--gray-500)' }}>A enviar... {uploadPct[campoFoto]}%</p>}
+                    </div>
+                  </div>
+                  <div className="form-group"><label>Nome</label><input value={config[`qs_membro${n}_nome` as const]} onChange={f(`qs_membro${n}_nome` as const)} /></div>
+                  <div className="form-group"><label>Cargo</label><input value={config[`qs_membro${n}_cargo` as const]} onChange={f(`qs_membro${n}_cargo` as const)} /></div>
+                  <div className="form-group"><label>Bio (opcional)</label><textarea value={config[`qs_membro${n}_bio` as const]} onChange={f(`qs_membro${n}_bio` as const)} /></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="form-card">
           <h2>Dados de Fatura / Recibo</h2>
           <div className="form-group"><label>Nome da empresa</label><input value={config.empresa_nome} onChange={f('empresa_nome')} /></div>
           <div className="form-grid-2">
             <div className="form-group"><label>NUIT</label><input value={config.empresa_nif} onChange={f('empresa_nif')} placeholder="Ex: 400123456" /></div>
             <div className="form-group"><label>Email de faturação</label><input value={config.empresa_email} onChange={f('empresa_email')} placeholder="faturacao@..." /></div>
           </div>
-          <div className="form-group"><label>Morada</label><input value={config.empresa_morada} onChange={f('empresa_morada')} /></div>
+          <div className="form-group">
+            <label>Morada</label>
+            <input value={config.empresa_morada} onChange={f('empresa_morada')} />
+            <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Esta morada (+ cidade) também define o mapa da secção "Onde Estamos" em Quem Somos.</p>
+          </div>
           <div className="form-group"><label>Cidade / País</label><input value={config.empresa_cidade} onChange={f('empresa_cidade')} /></div>
           <div className="form-group"><label>Condições de entrega (aparece no recibo)</label><input value={config.fatura_condicoes} onChange={f('fatura_condicoes')} /></div>
           <div className="form-group"><label>Observações (aparece no recibo)</label><textarea value={config.fatura_obs} onChange={f('fatura_obs')} /></div>
+        </div>
+
+        <div className="form-card">
+          <h2>Quem Somos — Localização</h2>
+          <div className="form-group"><label>Título da secção</label><input value={config.qs_localizacao_titulo} onChange={f('qs_localizacao_titulo')} /></div>
         </div>
 
         <div className="form-card">
