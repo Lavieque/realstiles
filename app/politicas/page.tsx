@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 
