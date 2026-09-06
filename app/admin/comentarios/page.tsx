@@ -27,6 +27,8 @@ export default function AdminComentariosPage() {
         return { ...c, produto_nome: p?.nome || 'Produto removido' };
       }));
       setLinhas(comNome);
+    } catch {
+      mostrarToast('Erro ao carregar avaliações pendentes', 'error');
     } finally {
       setLoading(false);
     }

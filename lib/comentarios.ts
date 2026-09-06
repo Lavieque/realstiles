@@ -1,5 +1,5 @@
 import {
-  collection, collectionGroup, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -69,9 +69,16 @@ export async function getComentarioCliente(produtoId: string, clienteId: string)
 
 // --- Moderação (admin) ---
 
+// Varre os produtos um a um em vez de usar collectionGroup — uma
+// collectionGroup query exige sempre um índice explícito no Firestore
+// (mesmo com um único filtro de igualdade), o que causava falhas silenciosas.
 export async function getComentariosPendentes(): Promise<ComentarioProduto[]> {
-  const snap = await getDocs(query(collectionGroup(db, 'comentarios'), where('estado', '==', 'pendente')));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ComentarioProduto)).sort(porDataDesc);
+  const produtosSnap = await getDocs(collection(db, 'produtos'));
+  const listas = await Promise.all(produtosSnap.docs.map(p =>
+    getDocs(query(colComentarios(p.id), where('estado', '==', 'pendente')))
+      .then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() } as ComentarioProduto)))
+  ));
+  return listas.flat().sort(porDataDesc);
 }
 
 export async function aprovarComentario(produtoId: string, clienteId: string): Promise<void> {
