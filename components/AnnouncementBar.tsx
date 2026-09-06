@@ -22,7 +22,7 @@ export default function AnnouncementBar() {
   if (!itens.length) return null;
 
   return (
-    <div className="announcement-bar">
+    <div className="announcement-section">
       <div className="announcement-track">
         {itens.map((item) => (
           <div key={item.id} className="announcement-item">

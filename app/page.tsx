@@ -56,11 +56,13 @@ export default async function HomePage() {
               <a href="/promocoes" className="btn btn-accent">{config.hero_btn} →</a>
               <a href="/?novo=true" className="btn btn-outline-white">Ver novidades</a>
             </div>
-            <AnnouncementBar />
           </div>
           <HeroSlider destaques={comImagem} />
         </div>
       </div>
+
+      {/* ANÚNCIOS / BENEFÍCIOS */}
+      <AnnouncementBar />
 
       {/* CATÁLOGO */}
       <div className="catalogo-section" id="catalogo">
