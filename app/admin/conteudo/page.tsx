@@ -86,18 +86,23 @@ export default function AdminConteudoPage() {
               const campoFoto = `qs_membro${n}_foto` as 'qs_membro1_foto' | 'qs_membro2_foto';
               return (
                 <div key={n} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16 }}>
-                  <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Membro {n}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                    <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: 'var(--gray-100)', position: 'relative', flexShrink: 0 }}>
-                      {config[campoFoto] && <Image src={config[campoFoto]} alt="" fill style={{ objectFit: 'cover' }} sizes="56px" />}
+                  <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Membro {n}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: 'var(--gray-100)', position: 'relative', flexShrink: 0, border: '1px solid var(--gray-200)' }}>
+                      {config[campoFoto] && <Image src={config[campoFoto]} alt="" fill style={{ objectFit: 'cover' }} sizes="64px" />}
                     </div>
                     <div>
-                      <input type="file" accept="image/*" onChange={handleFotoUpload(campoFoto)} style={{ fontSize: 12 }} />
-                      {uploadPct[campoFoto] !== undefined && <p style={{ fontSize: 11, color: 'var(--gray-500)' }}>A enviar... {uploadPct[campoFoto]}%</p>}
+                      <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                        {config[campoFoto] ? 'Trocar foto' : 'Escolher foto'}
+                        <input type="file" accept="image/*" onChange={handleFotoUpload(campoFoto)} style={{ display: 'none' }} />
+                      </label>
+                      {uploadPct[campoFoto] !== undefined && <p style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 6 }}>A enviar... {uploadPct[campoFoto]}%</p>}
                     </div>
                   </div>
-                  <div className="form-group"><label>Nome</label><input value={config[`qs_membro${n}_nome` as const]} onChange={f(`qs_membro${n}_nome` as const)} /></div>
-                  <div className="form-group"><label>Cargo</label><input value={config[`qs_membro${n}_cargo` as const]} onChange={f(`qs_membro${n}_cargo` as const)} /></div>
+                  <div className="form-grid-2">
+                    <div className="form-group"><label>Nome</label><input value={config[`qs_membro${n}_nome` as const]} onChange={f(`qs_membro${n}_nome` as const)} /></div>
+                    <div className="form-group"><label>Cargo</label><input value={config[`qs_membro${n}_cargo` as const]} onChange={f(`qs_membro${n}_cargo` as const)} /></div>
+                  </div>
                   <div className="form-group"><label>Bio (opcional)</label><textarea value={config[`qs_membro${n}_bio` as const]} onChange={f(`qs_membro${n}_bio` as const)} /></div>
                 </div>
               );
