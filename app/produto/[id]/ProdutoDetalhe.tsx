@@ -388,9 +388,12 @@ export default function ProdutoDetalhe({
           {user && podeComentar && (
             <div className="form-card" style={{ marginBottom: 24 }}>
               <p style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>{meuComentario ? 'A tua avaliação' : 'Avalia este produto'}</p>
-              <div style={{ marginBottom: 12 }}>
+              <div style={{ marginBottom: formEstrelas === 0 ? 6 : 12 }}>
                 <Estrelas valor={formEstrelas} tamanho={24} onChange={setFormEstrelas} />
               </div>
+              {formEstrelas === 0 && (
+                <p style={{ fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>Seleciona uma classificação (1 a 5 estrelas) para poderes publicar.</p>
+              )}
               <textarea
                 value={formTexto}
                 onChange={e => setFormTexto(e.target.value)}
