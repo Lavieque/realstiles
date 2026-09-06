@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Produtos — leitura pública; escrita (admin/importação) para autenticados.
+    match /produtos/{produtoId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+
+      // Avaliações de clientes — só ficam públicas depois de aprovadas pelo
+      // admin. Cada cliente só pode criar/editar/apagar a SUA própria
+      // avaliação, e não pode auto-aprovar-se (create/update força
+      // estado == 'pendente'). O admin (clientes/{uid}.admin == true) pode
+      // ler tudo, aprovar (mudar estado) e apagar qualquer avaliação.
+      match /comentarios/{clienteId} {
+        function isAdmin() {
+          return request.auth != null &&
+            get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.admin == true;
+        }
+
+        allow read: if resource.data.estado == 'aprovado'
+          || (request.auth != null && request.auth.uid == clienteId)
+          || isAdmin();
+
+        allow create: if request.auth != null
+          && request.auth.uid == clienteId
+          && request.resource.data.cliente_id == request.auth.uid
+          && request.resource.data.produto_id == produtoId
+          && request.resource.data.estado == 'pendente';
+
+        allow update: if (request.auth != null
+            && request.auth.uid == clienteId
+            && request.resource.data.cliente_id == request.auth.uid
+            && request.resource.data.produto_id == produtoId
+            && request.resource.data.estado == 'pendente')
+          || isAdmin();
+
+        allow delete: if (request.auth != null && request.auth.uid == clienteId) || isAdmin();
+      }
+    }
+
+    // Config do site — leitura pública (textos, títulos, etc.)
+    match /config/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Clientes, encomendas, reclamações — só utilizadores autenticados
+    match /clientes/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    match /encomendas/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    match /reclamacoes/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Qualquer outra colecção não prevista acima fica negada por omissão
+    // (comportamento seguro por defeito). Se criares uma colecção nova,
+    // adiciona aqui um bloco `match` explícito para ela.
+  }
+}

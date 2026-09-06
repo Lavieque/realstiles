@@ -9,7 +9,7 @@ import type { Perfil } from '@/lib/auth';
 import type { ReactNode } from 'react';
 import {
   BarChart2, Package, Tag, Layers, Users, Pencil, Bell,
-  ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet,
+  ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare,
 } from 'lucide-react';
 
 
@@ -41,6 +41,7 @@ const NAV: NavItem[] = [
   { href: '/admin/produtos', label: 'Produtos', icon: <Tag size={18} strokeWidth={1.5} />, section: 'Catálogo' },
   { href: '/admin/importar', label: 'Importar via link', icon: <LinkIcon size={18} strokeWidth={1.5} /> },
   { href: '/admin/categorias', label: 'Categorias', icon: <Layers size={18} strokeWidth={1.5} /> },
+  { href: '/admin/comentarios', label: 'Avaliações', icon: <MessageSquare size={18} strokeWidth={1.5} /> },
   { href: '/admin/clientes', label: 'Clientes', icon: <Users size={18} strokeWidth={1.5} />, section: 'Clientes' },
   { href: '/admin/conteudo', label: 'Conteúdo do site', icon: <Pencil size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/banner', label: 'Barra de anúncios', icon: <Bell size={18} strokeWidth={1.5} /> },

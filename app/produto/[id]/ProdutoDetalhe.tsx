@@ -7,7 +7,33 @@ import { mostrarToast } from '@/components/Toast';
 import ProdutoCard from '@/components/ProdutoCard';
 import { getProduto as getProdutoClient, getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
-import { Frown, AlertTriangle, Link as LinkIcon } from 'lucide-react';
+import { onAuthChange, getPerfil } from '@/lib/auth';
+import { getComentariosProduto, getComentarioCliente, podeAvaliar, criarComentario } from '@/lib/comentarios';
+import type { ComentarioProduto } from '@/lib/comentarios';
+import { formatarData } from '@/lib/encomendas';
+import type { User } from 'firebase/auth';
+import { Frown, AlertTriangle, Link as LinkIcon, Star } from 'lucide-react';
+
+function Estrelas({ valor, tamanho = 16, onChange }: { valor: number; tamanho?: number; onChange?: (v: number) => void }) {
+  return (
+    <div style={{ display: 'flex', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <span
+          key={i}
+          onClick={onChange ? () => onChange(i) : undefined}
+          style={{ cursor: onChange ? 'pointer' : 'default', lineHeight: 0 }}
+        >
+          <Star
+            size={tamanho}
+            strokeWidth={1.5}
+            fill={i <= Math.round(valor) ? '#f5b301' : 'none'}
+            color={i <= Math.round(valor) ? '#f5b301' : 'var(--gray-300)'}
+          />
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const COR_MAP: Record<string, string> = {
   'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
@@ -54,6 +80,50 @@ export default function ProdutoDetalhe({
   const [quantidade, setQuantidade] = useState(1);
   const touchStartX = useRef(0);
   const { adicionarItem, abrirDrawer } = useCarrinho();
+
+  const [comentarios, setComentarios] = useState<ComentarioProduto[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [podeComentar, setPodeComentar] = useState(false);
+  const [meuComentario, setMeuComentario] = useState<ComentarioProduto | null>(null);
+  const [formEstrelas, setFormEstrelas] = useState(0);
+  const [formTexto, setFormTexto] = useState('');
+  const [enviandoComentario, setEnviandoComentario] = useState(false);
+
+  useEffect(() => {
+    getComentariosProduto(id).then(setComentarios).catch(() => {});
+    const unsub = onAuthChange(async (u) => {
+      setUser(u);
+      if (!u) { setPodeComentar(false); setMeuComentario(null); return; }
+      const [pode, meu] = await Promise.all([
+        podeAvaliar(u.uid, id).catch(() => false),
+        getComentarioCliente(id, u.uid).catch(() => null),
+      ]);
+      setPodeComentar(pode);
+      if (meu) { setMeuComentario(meu); setFormEstrelas(meu.estrelas); setFormTexto(meu.texto); }
+    });
+    return unsub;
+  }, [id]);
+
+  const enviarComentario = async () => {
+    if (!user || formEstrelas === 0) return;
+    setEnviandoComentario(true);
+    try {
+      const perfil = await getPerfil(user.uid);
+      const nome = perfil?.nome || user.displayName || 'Cliente';
+      await criarComentario(id, user.uid, nome, formTexto, formEstrelas);
+      const [novosComentarios, meu] = await Promise.all([
+        getComentariosProduto(id),
+        getComentarioCliente(id, user.uid),
+      ]);
+      setComentarios(novosComentarios);
+      setMeuComentario(meu);
+      mostrarToast('Avaliação publicada!', 'success');
+    } catch {
+      mostrarToast('Erro ao publicar avaliação', 'error');
+    } finally {
+      setEnviandoComentario(false);
+    }
+  };
 
   useEffect(() => {
     if (initialProduto) {
@@ -323,6 +393,64 @@ export default function ProdutoDetalhe({
             )}
           </div>
         </div>
+
+        {/* Avaliações */}
+        <section style={{ marginTop: 64, maxWidth: 640 }}>
+          <h2 style={{ fontFamily: 'var(--font-playfair, "Playfair Display"), serif', fontSize: '1.6rem', marginBottom: 16 }}>Avaliações</h2>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+            <Estrelas valor={produto.avaliacao || 0} tamanho={20} />
+            <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>
+              {produto.num_avaliacoes ? `${(produto.avaliacao || 0).toFixed(1)} · ${produto.num_avaliacoes} avaliação${produto.num_avaliacoes !== 1 ? 'ões' : ''}` : 'Ainda sem avaliações'}
+            </span>
+          </div>
+
+          {user && podeComentar && (
+            <div className="form-card" style={{ marginBottom: 24 }}>
+              <p style={{ fontWeight: 600, marginBottom: 10, fontSize: 14 }}>{meuComentario ? 'A tua avaliação' : 'Avalia este produto'}</p>
+              <div style={{ marginBottom: 12 }}>
+                <Estrelas valor={formEstrelas} tamanho={24} onChange={setFormEstrelas} />
+              </div>
+              <textarea
+                value={formTexto}
+                onChange={e => setFormTexto(e.target.value)}
+                placeholder="O que achaste do produto? (opcional)"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', resize: 'vertical', minHeight: 70, outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={enviarComentario}
+                disabled={enviandoComentario || formEstrelas === 0}
+              >
+                {enviandoComentario ? 'A publicar...' : meuComentario ? 'Actualizar avaliação' : 'Publicar avaliação'}
+              </button>
+              {meuComentario?.estado === 'pendente' && (
+                <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 10 }}>
+                  A tua avaliação está pendente de aprovação e ainda não é visível para outros clientes.
+                </p>
+              )}
+            </div>
+          )}
+
+          {comentarios.length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--gray-400)' }}>Este produto ainda não tem avaliações.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {comentarios.map(c => (
+                <div key={c.id} style={{ borderBottom: '1px solid var(--gray-100)', paddingBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Estrelas valor={c.estrelas} />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{c.cliente_nome}</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>{formatarData(c.criado_em)}</span>
+                  </div>
+                  {c.texto && <p style={{ fontSize: 14, color: 'var(--gray-600)', lineHeight: 1.6 }}>{c.texto}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Relacionados */}
         {relacionados.length > 0 && (
