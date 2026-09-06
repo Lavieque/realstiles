@@ -79,7 +79,7 @@ export default function ProdutoDetalhe({
         getComentarioCliente(id, u.uid).catch(() => null),
       ]);
       setPodeComentar(pode);
-      if (meu) { setMeuComentario(meu); setFormEstrelas(meu.estrelas); setFormTexto(meu.texto); }
+      if (meu) setMeuComentario(meu);
     });
     return unsub;
   }, [id]);
