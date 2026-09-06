@@ -33,6 +33,17 @@ export default function AdminConteudoPage() {
   const f = (k: keyof SiteConfig) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setConfig(c => ({ ...c, [k]: e.target.value }));
 
+  const removerMembro = (n: '1' | '2') => {
+    if (!confirm(`Remover o Membro ${n}?`)) return;
+    setConfig(c => ({
+      ...c,
+      [`qs_membro${n}_nome`]: '',
+      [`qs_membro${n}_cargo`]: '',
+      [`qs_membro${n}_foto`]: '',
+      [`qs_membro${n}_bio`]: '',
+    }));
+  };
+
   const salvar = async () => {
     setSalvando(true);
     try {
@@ -84,9 +95,17 @@ export default function AdminConteudoPage() {
           <div className="form-grid-2">
             {(['1', '2'] as const).map(n => {
               const campoFoto = `qs_membro${n}_foto` as 'qs_membro1_foto' | 'qs_membro2_foto';
+              const temDados = !!(config[`qs_membro${n}_nome` as const] || config[`qs_membro${n}_cargo` as const] || config[campoFoto] || config[`qs_membro${n}_bio` as const]);
               return (
                 <div key={n} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16 }}>
-                  <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Membro {n}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <p style={{ fontWeight: 600, fontSize: 13 }}>Membro {n}</p>
+                    {temDados && (
+                      <button type="button" className="btn btn-outline btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', fontSize: 12 }} onClick={() => removerMembro(n)}>
+                        Remover
+                      </button>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
                     <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: 'var(--gray-100)', position: 'relative', flexShrink: 0, border: '1px solid var(--gray-200)' }}>
                       {config[campoFoto] && <Image src={config[campoFoto]} alt="" fill style={{ objectFit: 'cover' }} sizes="64px" />}
