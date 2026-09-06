@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminGuard from '@/components/AdminGuard';
 import { logout } from '@/lib/auth';
+import { getComentariosPendentes } from '@/lib/comentarios';
 import type { Perfil } from '@/lib/auth';
 import type { ReactNode } from 'react';
 import {
@@ -52,6 +53,11 @@ const NAV: NavItem[] = [
 
 function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boolean; onClose: () => void }) {
   const path = usePathname();
+  const [pendentes, setPendentes] = useState(0);
+
+  useEffect(() => {
+    getComentariosPendentes().then(l => setPendentes(l.length)).catch(() => {});
+  }, [path]);
 
   return (
     <>
@@ -66,7 +72,11 @@ function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boole
             <div key={item.href}>
               {item.section && <div className="sidebar-section">{item.section}</div>}
               <Link href={item.href} className={path === item.href ? 'active' : ''} onClick={onClose}>
-                <span className="icon">{item.icon}</span> {item.label}
+                <span className="icon">{item.icon}</span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.href === '/admin/comentarios' && pendentes > 0 && (
+                  <span style={{ background: 'var(--red)', color: 'white', borderRadius: 100, fontSize: 11, fontWeight: 700, padding: '1px 7px', lineHeight: 1.6 }}>{pendentes}</span>
+                )}
               </Link>
             </div>
           ))}

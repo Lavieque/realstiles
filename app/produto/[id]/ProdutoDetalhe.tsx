@@ -407,11 +407,6 @@ export default function ProdutoDetalhe({
               >
                 {enviandoComentario ? 'A publicar...' : meuComentario ? 'Actualizar avaliação' : 'Publicar avaliação'}
               </button>
-              {meuComentario?.estado === 'pendente' && (
-                <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 10 }}>
-                  A tua avaliação está pendente de aprovação e ainda não é visível para outros clientes.
-                </p>
-              )}
             </div>
           )}
 
