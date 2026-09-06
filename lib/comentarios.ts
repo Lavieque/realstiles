@@ -1,9 +1,17 @@
 import {
   collection, collectionGroup, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp,
+  query, where, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { getEncomendasCliente } from './encomendas';
+
+// Ordena por data de criação (mais recente primeiro) em memória — evita depender
+// de um índice composto do Firestore (filtro por 'estado' + orderBy 'criado_em'
+// em campos diferentes exige um índice composto que não é criado automaticamente).
+function porDataDesc(a: { criado_em?: unknown }, b: { criado_em?: unknown }): number {
+  const ms = (v: unknown) => (v as { toMillis?: () => number })?.toMillis?.() ?? 0;
+  return ms(b.criado_em) - ms(a.criado_em);
+}
 
 export type EstadoComentario = 'pendente' | 'aprovado';
 
@@ -24,12 +32,8 @@ function colComentarios(produtoId: string) {
 
 // Lista pública — só comentários já aprovados pelo admin
 export async function getComentariosProduto(produtoId: string): Promise<ComentarioProduto[]> {
-  const snap = await getDocs(query(
-    colComentarios(produtoId),
-    where('estado', '==', 'aprovado'),
-    orderBy('criado_em', 'desc'),
-  ));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ComentarioProduto));
+  const snap = await getDocs(query(colComentarios(produtoId), where('estado', '==', 'aprovado')));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ComentarioProduto)).sort(porDataDesc);
 }
 
 // Um cliente só pode avaliar um produto que lhe conste numa encomenda já entregue
@@ -66,12 +70,8 @@ export async function getComentarioCliente(produtoId: string, clienteId: string)
 // --- Moderação (admin) ---
 
 export async function getComentariosPendentes(): Promise<ComentarioProduto[]> {
-  const snap = await getDocs(query(
-    collectionGroup(db, 'comentarios'),
-    where('estado', '==', 'pendente'),
-    orderBy('criado_em', 'desc'),
-  ));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ComentarioProduto));
+  const snap = await getDocs(query(collectionGroup(db, 'comentarios'), where('estado', '==', 'pendente')));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ComentarioProduto)).sort(porDataDesc);
 }
 
 export async function aprovarComentario(produtoId: string, clienteId: string): Promise<void> {
