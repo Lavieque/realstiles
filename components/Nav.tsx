@@ -51,7 +51,7 @@ export default function Nav() {
   return (
     <nav>
       <Link href="/" className="nav-logo">
-        <Image src="/img/logo.png" alt="Real Stiles" height={52} width={120} style={{ height: 52, width: 'auto' }} />
+        <Image src="/img/logo.png" alt="Real Stiles" height={52} width={52} style={{ height: 52, width: 52 }} />
       </Link>
 
       <ul className={`nav-links${menuOpen ? ' open' : ''}`}>
