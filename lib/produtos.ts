@@ -59,26 +59,40 @@ export async function getProdutos({
   max?: number;
   ultimoDoc?: QueryDocumentSnapshot<DocumentData> | null;
 } = {}): Promise<ProdutosResult> {
-  const slugs = categorias ?? (categoria ? [categoria] : null);
-  const needsClientFilter = !!(slugs) || destaque !== null || activo === null;
+  const slugsPedidos = categorias ?? (categoria ? [categoria] : null);
+  // Firestore só aceita até 30 valores num 'in' — acima disso, sem filtro
+  // server-side possível, cai-se de volta ao sobre-fetch + filtro em memória.
+  const slugsServidor = slugsPedidos && slugsPedidos.length <= 30 ? slugsPedidos : null;
+  const slugsMemoria = slugsPedidos && slugsPedidos.length > 30 ? slugsPedidos : null;
+
+  // 'destaque' e 'em_promocao' ainda não têm índice composto com orderBy no
+  // Firestore — em vez de exigir criar um manualmente, ordena-se em memória.
+  const ordenarEmMemoria = destaque !== null || emPromocao !== null || !!slugsMemoria;
+  const needsClientFilter = !!slugsMemoria || activo === null;
   const fetchLimit = needsClientFilter ? Math.min(max * 10, 500) : max;
 
-  const filters: unknown[] = [orderBy('criado_em', 'desc'), limit(fetchLimit)];
-  if (activo !== null) filters.unshift(where('activo', '==', activo));
-  if (emPromocao !== null) filters.unshift(where('em_promocao', '==', emPromocao));
-  if (ultimoDoc && !needsClientFilter) filters.push(startAfter(ultimoDoc));
+  const filters: unknown[] = [];
+  if (activo !== null) filters.push(where('activo', '==', activo));
+  if (slugsServidor) filters.push(where('categoria', 'in', slugsServidor));
+  if (destaque !== null) filters.push(where('destaque', '==', destaque));
+  if (emPromocao !== null) filters.push(where('em_promocao', '==', emPromocao));
+  if (!ordenarEmMemoria) filters.push(orderBy('criado_em', 'desc'));
+  filters.push(limit(fetchLimit));
+  if (ultimoDoc && !needsClientFilter && !ordenarEmMemoria) filters.push(startAfter(ultimoDoc));
 
   const snap = await comTimeout(getDocs(query(collection(db, COL), ...(filters as Parameters<typeof query>[1][]))));
 
   let docs = snap.docs;
-  if (activo !== null && needsClientFilter) docs = docs.filter(d => d.data().activo === activo);
-  if (slugs) docs = docs.filter(d => d.data().categoria && slugs.includes(d.data().categoria));
-  if (destaque !== null) docs = docs.filter(d => d.data().destaque === destaque);
+  if (slugsMemoria) docs = docs.filter(d => d.data().categoria && slugsMemoria.includes(d.data().categoria));
+  if (ordenarEmMemoria) {
+    const ms = (d: typeof docs[number]) => (d.data().criado_em as { toMillis?: () => number })?.toMillis?.() ?? 0;
+    docs = [...docs].sort((a, b) => ms(b) - ms(a));
+  }
   docs = docs.slice(0, max);
 
   return {
     produtos: docs.map(d => ({ id: d.id, ...d.data() } as Produto)),
-    ultimoDoc: docs.length > 0 ? docs[docs.length - 1] : null,
+    ultimoDoc: docs.length > 0 && !ordenarEmMemoria ? docs[docs.length - 1] : null,
   };
 }
 

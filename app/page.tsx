@@ -13,11 +13,18 @@ async function getProdutosSSR(opts: { destaque?: boolean; max?: number } = {}): 
   try {
     const db = getAdminDb();
     if (!db) return [];
-    let q = db.collection('produtos').where('activo', '==', true).orderBy('criado_em', 'desc');
-    if (opts.destaque !== undefined) q = q.where('destaque', '==', opts.destaque) as typeof q;
+    // 'activo' + 'destaque' + orderBy exigiria um índice composto que não
+    // existe — filtra por destaque sem orderBy e ordena depois em memória.
+    const comDestaque = opts.destaque !== undefined;
+    let q = db.collection('produtos').where('activo', '==', true);
+    if (comDestaque) q = q.where('destaque', '==', opts.destaque) as typeof q;
+    if (!comDestaque) q = q.orderBy('criado_em', 'desc') as typeof q;
     q = q.limit(opts.max || 20) as typeof q;
     const snap = await q.get();
-    return snap.docs.map(d => ({ ...serializar<Produto>(d.data()), id: d.id }));
+    const produtos = snap.docs.map(d => ({ ...serializar<Produto>(d.data()), id: d.id }));
+    if (!comDestaque) return produtos;
+    // serializar() já converteu criado_em num número (ms) antes de chegar aqui
+    return produtos.sort((a, b) => (Number(b.criado_em) || 0) - (Number(a.criado_em) || 0));
   } catch {
     return [];
   }
