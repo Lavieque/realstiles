@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { getConfig } from '@/lib/config-site';
 import type { SiteConfig } from '@/lib/config-site';
-import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
+import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
@@ -230,6 +230,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
 
   const ordemActual = TIMELINE_ESTADOS.findIndex(e => e.key === encomenda.estado);
   const codCurto = encomenda.id.substring(0, 8).toUpperCase();
+  const ref = referenciaEncomenda(encomenda);
 
   // Data de cada estado a partir do histórico (se existir)
   const dataEstado = (key: string): string => {
@@ -240,7 +241,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   };
 
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent(
-    `Olá, tenho uma dúvida sobre a minha encomenda #${codCurto}.`
+    `Olá, tenho uma dúvida sobre a minha encomenda ${ref}.`
   )}`;
 
   return (
@@ -266,7 +267,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h1 style={{ fontSize: '1.6rem' }}>
-                Encomenda <span style={{ fontFamily: 'monospace', fontSize: '1.2rem' }}>#{codCurto}</span>
+                Encomenda <span style={{ fontFamily: 'monospace', fontSize: '1.2rem' }}>{ref}</span>
               </h1>
               <p style={{ marginTop: 4 }}>{formatarData(encomenda.criado_em)}</p>
             </div>
@@ -304,7 +305,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           <div className="enc-modal-overlay" onClick={() => setConfirmarCancel(false)}>
             <div className="enc-modal" onClick={e => e.stopPropagation()}>
               <h3>Cancelar encomenda?</h3>
-              <p>Esta acção não pode ser desfeita. Tens a certeza que queres cancelar a encomenda <strong>#{codCurto}</strong>?</p>
+              <p>Esta acção não pode ser desfeita. Tens a certeza que queres cancelar a encomenda <strong>{ref}</strong>?</p>
               <div className="enc-modal-acoes">
                 <button className="btn btn-outline" onClick={() => setConfirmarCancel(false)}>Não, manter</button>
                 <button className="btn enc-cancel-btn" onClick={handleCancelar} disabled={cancelando}>

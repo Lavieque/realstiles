@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { onAuthChange } from '@/lib/auth';
-import { getEncomendasCliente, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
+import { getEncomendasCliente, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Package, MessageCircle } from 'lucide-react';
@@ -151,7 +151,7 @@ export default function EncomendasPage() {
                   {/* Info principal */}
                   <div className="enc-row-info">
                     <div className="enc-row-top">
-                      <code className="enc-row-ref">#{enc.id.substring(0, 8).toUpperCase()}</code>
+                      <code className="enc-row-ref">{referenciaEncomenda(enc)}</code>
                       <span className="enc-row-data">{formatarData(enc.criado_em)}</span>
                     </div>
                     <div className="enc-row-artigos">

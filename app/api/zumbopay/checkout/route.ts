@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { referenciaEncomendaServer } from '@/lib/referencia-server';
 
 const ZP_BASE = 'https://zumbopay.com/api/public/v1';
 
@@ -16,9 +17,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Wallet cartão não configurada' }, { status: 503 });
     }
 
-    const codCurto = encomenda_id.substring(0, 8).toUpperCase();
+    const ref = await referenciaEncomendaServer(encomenda_id);
     const payloadEnviado = {
-      title: `Encomenda #${codCurto}`,
+      title: `Encomenda ${ref}`,
       amount,
       currency: 'MZN',
       channels: ['card'],

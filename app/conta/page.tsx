@@ -7,7 +7,7 @@ import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, 
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
-import { getEncomendasCliente, badgeEstadoLabel, badgeEstadoClass, formatarData } from '@/lib/encomendas';
+import { getEncomendasCliente, badgeEstadoLabel, badgeEstadoClass, formatarData, referenciaEncomenda } from '@/lib/encomendas';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
@@ -325,7 +325,7 @@ function ContaInner() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <code style={{ fontSize: 11, background: 'var(--gray-100)', padding: '2px 7px', borderRadius: 5, fontWeight: 600 }}>#{enc.id.substring(0, 8).toUpperCase()}</code>
+                          <code style={{ fontSize: 11, background: 'var(--gray-100)', padding: '2px 7px', borderRadius: 5, fontWeight: 600 }}>{referenciaEncomenda(enc)}</code>
                           <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{formatarData(enc.criado_em)}</span>
                         </div>
                         <p style={{ fontSize: 13, color: 'var(--gray-600)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -355,7 +355,7 @@ function ContaInner() {
       <div className="auth-lado-marca">
         <div className="auth-marca-conteudo">
           <Link href="/">
-            <Image src="/img/logo.png" alt="Real Stiles" width={120} height={48} style={{ height: 48, width: 'auto', mixBlendMode: 'screen' }} />
+            <Image src="/img/logo.png" alt="Real Stiles" width={48} height={48} style={{ height: 48, width: 48 }} />
           </Link>
           <h2 className="auth-marca-titulo">Veste o teu<br /><em>estilo.</em></h2>
           <p className="auth-marca-sub">As melhores peças de vestuário, cuidadosamente seleccionadas para ti.</p>

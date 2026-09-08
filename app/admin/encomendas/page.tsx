@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Package, Mail, MapPin, Phone, FileText, Download } from 'lucide-react';
-import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
+import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 
@@ -52,8 +52,7 @@ export default function AdminEncomendasPage() {
             entregue: 'foi entregue. Obrigado pela tua compra!',
             cancelada: 'foi cancelada. Contacta-nos se precisares de ajuda.',
           };
-          const ref8 = id.substring(0, 8).toUpperCase();
-          const mensagem = `${icones[estado] || '📦'} *Encomenda #${ref8}*\n\nA tua encomenda ${msgs[estado] || `foi actualizada para ${estado}`}.\n\nVer detalhes: realstiles.co.mz/encomenda/${id}`;
+          const mensagem = `${icones[estado] || '📦'} *Encomenda ${referenciaEncomenda(seleccionada)}*\n\nA tua encomenda ${msgs[estado] || `foi actualizada para ${estado}`}.\n\nVer detalhes: realstiles.co.mz/encomenda/${id}`;
           fetch('/api/notify/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -167,7 +166,7 @@ export default function AdminEncomendasPage() {
                 style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer', background: seleccionada?.id === enc.id ? 'var(--gray-100)' : 'white', transition: 'background 0.15s' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <code style={{ fontSize: 12, fontWeight: 700 }}>#{enc.id.substring(0, 8).toUpperCase()}</code>
+                  <code style={{ fontSize: 12, fontWeight: 700 }}>{referenciaEncomenda(enc)}</code>
                   <span className={`badge-estado ${badgeEstadoClass(enc.estado as EstadoEncomenda)}`} style={{ fontSize: 11 }}>{badgeEstadoLabel(enc.estado as EstadoEncomenda)}</span>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 2 }}>{enc.cliente_nome || enc.cliente_email || (enc.cliente_id?.startsWith('wa_') ? enc.cliente_id.replace('wa_', '') : '—')}</p>
@@ -191,7 +190,7 @@ export default function AdminEncomendasPage() {
         ) : (
           <div style={{ padding: 32, maxWidth: 720 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700 }}>#{seleccionada.id.substring(0, 8).toUpperCase()}</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700 }}>{referenciaEncomenda(seleccionada)}</h2>
               <span className={`badge-estado ${badgeEstadoClass(seleccionada.estado as EstadoEncomenda)}`} style={{ fontSize: 13 }}>{badgeEstadoLabel(seleccionada.estado as EstadoEncomenda)}</span>
             </div>
 

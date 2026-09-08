@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { referenciaEncomendaServer } from '@/lib/referencia-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,19 +23,20 @@ export async function POST(req: NextRequest) {
     // ── Confirmação de encomenda → cliente + admin ──────────────────────────
     if (tipo === 'confirmacao_encomenda') {
       const { encomenda_id, cliente_email, itens, total, morada } = body;
+      const ref = await referenciaEncomendaServer(encomenda_id);
       if (cliente_email) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
           to: [cliente_email],
-          subject: `✅ Encomenda #${encomenda_id.substring(0, 8).toUpperCase()} recebida — ${LOJA_NOME}`,
-          html: gerarEmailConfirmacao(encomenda_id, itens, total, morada, LOJA_NOME, LOJA_URL),
+          subject: `✅ Encomenda ${ref} recebida — ${LOJA_NOME}`,
+          html: gerarEmailConfirmacao(ref, itens, total, morada, LOJA_NOME, LOJA_URL),
         });
       }
       if (ADMIN_EMAIL) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
           to: [ADMIN_EMAIL],
-          subject: `🛍️ Nova encomenda #${encomenda_id.substring(0, 8).toUpperCase()} de ${cliente_email}`,
+          subject: `🛍️ Nova encomenda ${ref} de ${cliente_email}`,
           html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
             <h2>Nova encomenda recebida</h2>
             <p><strong>Cliente:</strong> ${cliente_email}</p>
@@ -98,11 +100,12 @@ export async function POST(req: NextRequest) {
     if (tipo === 'estado_encomenda') {
       const { encomenda_id, cliente_email, estado, notas } = body;
       if (cliente_email) {
+        const ref = await referenciaEncomendaServer(encomenda_id);
         envios.push({
           from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
           to: [cliente_email],
-          subject: `📦 Encomenda #${encomenda_id.substring(0, 8).toUpperCase()} — ${estadoLabel(estado)}`,
-          html: gerarEmailEstado(encomenda_id, estado, notas, LOJA_NOME, LOJA_URL),
+          subject: `📦 Encomenda ${ref} — ${estadoLabel(estado)}`,
+          html: gerarEmailEstado(ref, estado, notas, LOJA_NOME, LOJA_URL),
         });
       }
     }
@@ -218,7 +221,7 @@ function wrap(lojaNome: string, lojaUrl: string, inner: string) {
 }
 
 function gerarEmailConfirmacao(
-  id: string,
+  ref: string,
   itens: { nome: string; tamanho?: string; cor?: string; preco: number; quantidade: number }[],
   total: number, morada: string, lojaNome: string, lojaUrl: string
 ) {
@@ -231,7 +234,7 @@ function gerarEmailConfirmacao(
 
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;">✅ Encomenda recebida!</h2>
-    <p style="color:#666;font-size:14px;">Referência: <strong>#${id.substring(0, 8).toUpperCase()}</strong></p>
+    <p style="color:#666;font-size:14px;">Referência: <strong>${ref}</strong></p>
     <table style="width:100%;border-collapse:collapse;border:1px solid #eee;">
       <thead><tr style="background:#f8f8f8;">
         <th style="padding:10px 8px;text-align:left;font-size:12px;color:#888;">PRODUTO</th>
@@ -294,7 +297,7 @@ function gerarEmailReclamacaoCliente(nome: string, assunto: string, reclamacaoId
 }
 
 function gerarEmailEstado(
-  id: string, estado: string, notas: string | undefined,
+  ref: string, estado: string, notas: string | undefined,
   lojaNome: string, lojaUrl: string
 ) {
   const icones: Record<string, string> = {
@@ -312,7 +315,7 @@ function gerarEmailEstado(
 
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;">${icone} Actualização da encomenda</h2>
-    <p style="font-size:13px;color:#888;">Referência: <strong>#${id.substring(0, 8).toUpperCase()}</strong></p>
+    <p style="font-size:13px;color:#888;">Referência: <strong>${ref}</strong></p>
     <div style="text-align:center;margin:24px 0;padding:20px;background:#f8f8f8;border-radius:12px;">
       <p style="font-size:32px;margin:0 0 8px;">${icone}</p>
       <p style="font-size:18px;font-weight:700;margin:0 0 4px;">${estadoLabel(estado)}</p>

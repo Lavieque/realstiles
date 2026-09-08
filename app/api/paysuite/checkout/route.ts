@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createContact, createPayment, PaySuiteError } from '@/lib/paysuite';
+import { referenciaEncomendaServer } from '@/lib/referencia-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const loja = process.env.LOJA_URL || 'https://realstiles.co.mz';
-    const codCurto = String(encomenda_id).substring(0, 8).toUpperCase();
+    const ref = await referenciaEncomendaServer(String(encomenda_id));
 
     const pagRef = await adminDb.collection('pagamentos').add({
       encomenda_id,
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       const payloadEnviado = {
         amount,
         reference: pagRef.id,
-        description: `Encomenda #${codCurto}`,
+        description: `Encomenda ${ref}`,
         return_url: `${loja}/encomenda/${encomenda_id}?confirmada=1`,
         webhook_url: `${loja}/api/paysuite/webhook`,
         contact_id: contact.id,

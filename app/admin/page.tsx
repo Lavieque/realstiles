@@ -3,8 +3,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { getProdutos } from '@/lib/produtos';
-import { getTodasEncomendas, badgeEstadoClass, badgeEstadoLabel, formatarData } from '@/lib/encomendas';
-import { getDocs, collection } from 'firebase/firestore';
+import { getTodasEncomendas, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
+import { collection, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { Produto } from '@/lib/produtos';
@@ -18,16 +18,16 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     (async () => {
-      const [encomendas, { produtos }, clientesSnap] = await Promise.all([
+      const [encomendas, { produtos }, clientesCount] = await Promise.all([
         getTodasEncomendas(),
         getProdutos({ max: 500 }),
-        getDocs(collection(db, 'clientes')),
+        getCountFromServer(collection(db, 'clientes')),
       ]);
       setStats({
         pendentes: encomendas.filter(e => e.estado === 'pendente').length,
         total: encomendas.length,
         produtos: produtos.length,
-        clientes: clientesSnap.size,
+        clientes: clientesCount.data().count,
       });
       setRecentes(encomendas.slice(0, 8));
       setTodasEncomendas(encomendas);
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
                       <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--gray-400)', padding: 32 }}>Sem encomendas ainda</td></tr>
                     ) : recentes.map(e => (
                       <tr key={e.id}>
-                        <td><code style={{ fontSize: 12 }}>#{e.id.substring(0, 8).toUpperCase()}</code></td>
+                        <td><code style={{ fontSize: 12 }}>{referenciaEncomenda(e)}</code></td>
                         <td>{e.cliente_nome || e.cliente_email || (e.cliente_id?.startsWith('wa_') ? e.cliente_id.replace('wa_', '') : '—')}</td>
                         <td><strong>{e.total?.toFixed(2)} MZN</strong></td>
                         <td><span className={`badge-estado ${badgeEstadoClass(e.estado as EstadoEncomenda)}`}>{badgeEstadoLabel(e.estado as EstadoEncomenda)}</span></td>

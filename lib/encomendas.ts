@@ -1,8 +1,11 @@
 import {
-  collection, addDoc, updateDoc, doc,
-  query, where, orderBy, limit, getDocs, getDoc, serverTimestamp,
+  collection, updateDoc, doc,
+  query, where, orderBy, limit, getDocs, getDoc, serverTimestamp, runTransaction,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
+import { referenciaEncomenda } from './referencia';
+
+export { referenciaEncomenda } from './referencia';
 
 export type EstadoEncomenda = 'pendente' | 'confirmada' | 'enviada' | 'entregue' | 'cancelada';
 
@@ -41,8 +44,26 @@ export interface Encomenda {
   pagamento_ref?: string;
   notif_canal?: 'email' | 'whatsapp';
   historico_estados?: HistoricoEstado[];
+  numero_sequencial?: number;
   criado_em?: unknown;
   actualizado_em?: unknown;
+}
+
+// Cria o documento da encomenda com um id novo e um número sequencial
+// atribuído atomicamente (contador em config/contador_encomendas) — os dois
+// juntos formam a referência ENC (ver lib/referencia.ts).
+async function criarComNumeroSequencial(dados: Record<string, unknown>): Promise<{ id: string; numero_sequencial: number }> {
+  const novoRef = doc(collection(db, 'encomendas'));
+  const contadorRef = doc(db, 'config', 'contador_encomendas');
+  const numero_sequencial = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(contadorRef);
+    const atual = snap.exists() ? (snap.data().atual as number) : 0;
+    const proximo = atual + 1;
+    tx.set(contadorRef, { atual: proximo }, { merge: true });
+    tx.set(novoRef, { ...dados, numero_sequencial: proximo });
+    return proximo;
+  });
+  return { id: novoRef.id, numero_sequencial };
 }
 
 export async function criarEncomendaPendente({
@@ -74,7 +95,7 @@ export async function criarEncomendaPendente({
     } catch { /* mantém default */ }
   }
 
-  const ref = await addDoc(collection(db, 'encomendas'), {
+  const ref = await criarComNumeroSequencial({
     cliente_id: user?.uid || 'guest',
     cliente_nome: clienteNome || undefined,
     cliente_email: emailFinal,
@@ -130,7 +151,7 @@ export async function criarEncomenda({
     } catch { /* mantém o default */ }
   }
 
-  const ref = await addDoc(collection(db, 'encomendas'), {
+  const ref = await criarComNumeroSequencial({
     cliente_id: user?.uid || 'guest',
     cliente_nome: clienteNome || undefined,
     cliente_email: emailFinal,
@@ -150,8 +171,7 @@ export async function criarEncomenda({
     try {
       const telLimpo = telefoneNotif.replace(/\D/g, '');
       if (telLimpo) {
-        const ref8 = ref.id.substring(0, 8).toUpperCase();
-        const mensagem = `✅ *Encomenda #${ref8} recebida!*\n\nTotal: *${total.toFixed(2)} MZN*\nEntrega: ${morada}\n\nAcompanha o estado em realstiles.co.mz/encomendas`;
+        const mensagem = `✅ *Encomenda ${referenciaEncomenda(ref)} recebida!*\n\nTotal: *${total.toFixed(2)} MZN*\nEntrega: ${morada}\n\nAcompanha o estado em realstiles.co.mz/encomendas`;
         await fetch('/api/notify/messages/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
