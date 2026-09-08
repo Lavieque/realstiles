@@ -10,7 +10,7 @@ import type { Perfil } from '@/lib/auth';
 import type { ReactNode } from 'react';
 import {
   BarChart2, Package, Tag, Layers, Users, Pencil, Bell,
-  ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare,
+  ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare, Percent,
 } from 'lucide-react';
 
 
@@ -41,6 +41,7 @@ const NAV: NavItem[] = [
   { href: '/admin/encomendas', label: 'Encomendas', icon: <Package size={18} strokeWidth={1.5} /> },
   { href: '/admin/produtos', label: 'Produtos', icon: <Tag size={18} strokeWidth={1.5} />, section: 'Catálogo' },
   { href: '/admin/importar', label: 'Importar via link', icon: <LinkIcon size={18} strokeWidth={1.5} /> },
+  { href: '/admin/taxas', label: 'Taxas de importação', icon: <Percent size={18} strokeWidth={1.5} /> },
   { href: '/admin/categorias', label: 'Categorias', icon: <Layers size={18} strokeWidth={1.5} /> },
   { href: '/admin/comentarios', label: 'Avaliações', icon: <MessageSquare size={18} strokeWidth={1.5} /> },
   { href: '/admin/clientes', label: 'Clientes', icon: <Users size={18} strokeWidth={1.5} />, section: 'Clientes' },
@@ -55,16 +56,19 @@ function Sidebar({ perfil, open, onClose }: { perfil: Perfil | null; open: boole
   const path = usePathname();
   const [pendentes, setPendentes] = useState(0);
 
+  // Corre só uma vez por sessão do admin (não a cada navegação) — evita
+  // percorrer todos os produtos repetidamente e consumir quota do Firestore.
+  // A página /admin/comentarios mostra sempre os dados reais e atualizados.
   useEffect(() => {
     getComentariosPendentes().then(l => setPendentes(l.length)).catch(() => {});
-  }, [path]);
+  }, []);
 
   return (
     <>
       {open && <div className="sidebar-overlay" onClick={onClose} />}
       <aside className={`sidebar${open ? ' open' : ''}`}>
         <div className="sidebar-logo">
-          <Link href="/"><Image src="/img/logo.png" alt="Real Stiles" height={40} width={100} style={{ height: 40, width: 'auto' }} /></Link>
+          <Link href="/"><Image src="/img/logo.png" alt="Real Stiles" height={40} width={40} style={{ height: 40, width: 40 }} /></Link>
           <p>Painel de administração</p>
         </div>
         <div className="sidebar-nav">
