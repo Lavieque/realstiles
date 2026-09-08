@@ -11,6 +11,8 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
   const { adicionarItem, abrirDrawer } = useCarrinho();
   const preco = Number(produto.preco || 0).toFixed(2);
   const img = produto.imagens?.[0] || '/placeholder.svg';
+  const emPromocao = !!(produto.preco_original && produto.preco_original > produto.preco);
+  const desconto = emPromocao ? Math.round((1 - produto.preco / produto.preco_original!) * 100) : 0;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -28,6 +30,7 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
     <Link href={`/produto/${produto.id}`} className="produto-card" style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="produto-card-img">
         <Image src={img} alt={produto.nome} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 50vw, 25vw" />
+        {emPromocao && <span className="produto-card-badge-sale">-{desconto}%</span>}
       </div>
       <div className="produto-card-body">
         <p className="produto-card-nome">{produto.nome}</p>
@@ -38,7 +41,10 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
           </div>
         )}
         <div className="produto-card-footer">
-          <span className="preco-atual">{preco} MZN</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="preco-atual">{preco} MZN</span>
+            {emPromocao && <span className="preco-original">{Number(produto.preco_original).toFixed(2)} MZN</span>}
+          </div>
           <button
             className="btn-carrinho-icon"
             disabled={produto.stock === 0}

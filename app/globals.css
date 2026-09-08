@@ -202,6 +202,11 @@ footer img { mix-blend-mode: screen; }
 .produto-card-preco { display: flex; align-items: center; gap: 8px; }
 .preco-atual { font-size: 16px; font-weight: 700; }
 .preco-original { font-size: 13px; color: var(--gray-400); text-decoration: line-through; }
+.produto-card-badge-sale {
+  position: absolute; top: 10px; left: 10px;
+  background: var(--red); color: white;
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; z-index: 2;
+}
 .produto-card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; }
 .produto-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 10px; }
 .btn-carrinho-icon {
@@ -291,6 +296,21 @@ footer ul a:hover { color: var(--accent); }
 .footer-bottom {
   border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;
   display: flex; justify-content: space-between; font-size: 13px; flex-wrap: wrap; gap: 8px;
+}
+
+/* ── BANNER DE COOKIES ── */
+.cookie-consent {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 950;
+  background: var(--black); color: white;
+  padding: 16px 24px; display: flex; align-items: center; justify-content: center;
+  gap: 20px; flex-wrap: wrap; box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+}
+.cookie-consent p { font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.85); margin: 0; max-width: 640px; }
+.cookie-consent p a { color: var(--accent); text-decoration: underline; }
+.cookie-consent button { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .cookie-consent { padding: 14px 16px; justify-content: flex-start; }
+  .cookie-consent button { width: 100%; }
 }
 
 /* ── WHATSAPP FLUTUANTE ── */

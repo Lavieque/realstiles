@@ -16,6 +16,7 @@ export default function AdminProdutosPage() {
   const [salvando, setSalvando] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [filtro, setFiltro] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'destaque' | 'promocao' | 'novidades'>('todos');
   const [categorias, setCategorias] = useState<string[]>([]);
 
   useEffect(() => {
@@ -75,7 +76,24 @@ export default function AdminProdutosPage() {
   const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setSeleccionado(s => ({ ...s, [k]: e.target.value }));
 
-  const filtrados = produtos.filter(p => !filtro || p.nome?.toLowerCase().includes(filtro.toLowerCase()) || p.categoria?.toLowerCase().includes(filtro.toLowerCase()));
+  const ehPromocao = (p: Partial<Produto>) => !!(p.preco_original && (p.preco || 0) > 0 && p.preco_original > (p.preco || 0));
+  const ehNovidade = (p: Produto) => {
+    const t = p.criado_em as { toDate?: () => Date } | string | number | null | undefined;
+    if (!t) return false;
+    const d = typeof t === 'object' && t.toDate ? t.toDate() : new Date(t as string | number);
+    return (Date.now() - d.getTime()) / 86400000 <= 14;
+  };
+
+  const filtrados = produtos
+    .filter(p => !filtro || p.nome?.toLowerCase().includes(filtro.toLowerCase()) || p.categoria?.toLowerCase().includes(filtro.toLowerCase()))
+    .filter(p => {
+      if (filtroTipo === 'destaque') return !!p.destaque;
+      if (filtroTipo === 'promocao') return ehPromocao(p);
+      if (filtroTipo === 'novidades') return ehNovidade(p);
+      return true;
+    });
+
+  const emPromocaoLive = ehPromocao(seleccionado || {});
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -86,7 +104,19 @@ export default function AdminProdutosPage() {
           <button className="btn btn-primary btn-sm" onClick={novo}>+ Novo</button>
         </div>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--gray-200)' }}>
-          <input placeholder="Pesquisar..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none' }} />
+          <input placeholder="Pesquisar..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: 10 }} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {([
+              { v: 'todos', label: 'Todos' },
+              { v: 'destaque', label: 'Destaque' },
+              { v: 'promocao', label: 'Promoção' },
+              { v: 'novidades', label: 'Novidades' },
+            ] as const).map(t => (
+              <button key={t.v} className={`filtro-estado-btn${filtroTipo === t.v ? ' active' : ''}`} onClick={() => setFiltroTipo(t.v)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? <div className="loading"><div className="spinner" /></div> :
@@ -99,7 +129,12 @@ export default function AdminProdutosPage() {
                   <p style={{ fontWeight: 500, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nome}</p>
                   <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>{Number(p.preco ?? 0).toFixed(2)} MZN · Stock: {p.stock}</p>
                 </div>
-                {!p.activo && <span style={{ fontSize: 10, background: 'var(--gray-200)', padding: '2px 6px', borderRadius: 4, color: 'var(--gray-600)' }}>Inactivo</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
+                  {!p.activo && <span style={{ fontSize: 10, background: 'var(--gray-200)', padding: '2px 6px', borderRadius: 4, color: 'var(--gray-600)' }}>Inactivo</span>}
+                  {ehPromocao(p) && <span style={{ fontSize: 10, background: 'var(--red)', padding: '2px 6px', borderRadius: 4, color: 'white' }}>Promoção</span>}
+                  {p.destaque && <span style={{ fontSize: 10, background: 'var(--accent-light)', padding: '2px 6px', borderRadius: 4, color: 'var(--accent-dark)' }}>Destaque</span>}
+                  {ehNovidade(p) && <span style={{ fontSize: 10, background: 'var(--gray-100)', padding: '2px 6px', borderRadius: 4, color: 'var(--gray-600)', border: '1px solid var(--gray-200)' }}>Novidade</span>}
+                </div>
               </div>
             ))
           }
@@ -132,8 +167,19 @@ export default function AdminProdutosPage() {
               <div className="form-group"><label>Nome *</label><input value={seleccionado.nome || ''} onChange={f('nome')} /></div>
               <div className="form-group"><label>Descrição</label><textarea value={seleccionado.descricao || ''} onChange={f('descricao')} /></div>
               <div className="form-grid-2">
-                <div className="form-group"><label>Preço (MZN) *</label><input type="number" value={seleccionado.preco || ''} onChange={f('preco')} /></div>
-                <div className="form-group"><label>Preço original (MZN)</label><input type="number" value={seleccionado.preco_original || ''} onChange={f('preco_original')} /></div>
+                <div className="form-group">
+                  <label>Preço (MZN) *</label>
+                  <input type="number" value={seleccionado.preco || ''} onChange={f('preco')} />
+                </div>
+                <div className="form-group">
+                  <label>Preço original (MZN)</label>
+                  <input type="number" value={seleccionado.preco_original || ''} onChange={f('preco_original')} />
+                  {!!seleccionado.preco_original && (
+                    <p style={{ fontSize: 12, marginTop: 4, color: emPromocaoLive ? 'var(--green)' : 'var(--gray-500)' }}>
+                      {emPromocaoLive ? '✓ Em promoção' : 'Não conta como promoção (tem de ser maior que o preço actual)'}
+                    </p>
+                  )}
+                </div>
                 <div className="form-group">
                   <label>Categoria</label>
                   {categorias.length > 0 ? (
