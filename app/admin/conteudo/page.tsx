@@ -173,6 +173,24 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Página de Termos e Condições</h2>
+          <div className="form-group"><label>Título</label><input value={config.termos_titulo} onChange={f('termos_titulo')} /></div>
+          <div className="form-group"><label>Data de actualização</label><input value={config.termos_data} onChange={f('termos_data')} /></div>
+          <div className="form-group">
+            <label>Conteúdo (opcional — parágrafos separados por linha em branco; se vazio, usa o texto padrão)</label>
+            <textarea value={config.termos_conteudo} onChange={f('termos_conteudo')} style={{ minHeight: 160 }} />
+          </div>
+        </div>
+
+        <div className="form-card">
+          <h2>Banner de Cookies</h2>
+          <div className="form-group">
+            <label>Texto do aviso</label>
+            <textarea value={config.cookies_texto} onChange={f('cookies_texto')} />
+          </div>
+        </div>
+
+        <div className="form-card">
           <h2>Livro de Reclamações</h2>
           <div className="form-group"><label>Título</label><input value={config.rec_titulo} onChange={f('rec_titulo')} /></div>
           <div className="form-group"><label>Introdução</label><textarea value={config.rec_intro} onChange={f('rec_intro')} /></div>

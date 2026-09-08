@@ -11,7 +11,7 @@ export default async function Footer() {
     <footer>
       <div className="footer-grid">
         <div className="footer-logo">
-          <Image src="/img/logo.png" alt="Real Stiles" height={56} width={140} style={{ height: 56, width: 'auto', marginBottom: 12 }} />
+          <Image src="/img/logo.png" alt="Real Stiles" height={56} width={56} style={{ height: 56, width: 56, marginBottom: 12 }} />
           <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>{config.footer_descricao}</p>
         </div>
         <div>
@@ -35,6 +35,7 @@ export default async function Footer() {
           <ul>
             <li><Link href="/quem-somos">Quem Somos</Link></li>
             <li><Link href="/politicas">Políticas</Link></li>
+            <li><Link href="/termos">Termos e Condições</Link></li>
             <li><Link href="/reclamacao">Reclamações</Link></li>
           </ul>
         </div>

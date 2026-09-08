@@ -8,15 +8,17 @@ const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'], variabl
 import Footer from '@/components/Footer';
 import CarrinhoDrawer from '@/components/CarrinhoDrawer';
 import Toast from '@/components/Toast';
+import CookieConsent from '@/components/CookieConsent';
+import { getConfigSSR } from '@/lib/config-site-ssr';
 
 export const metadata: Metadata = {
   title: 'Real Stiles — Moda para todos',
   description: 'Loja de vestuário online. Encontra as melhores peças de roupa a preços acessíveis.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/img/logo.png',
+    shortcut: '/img/logo.png',
+    apple: '/img/logo.png',
   },
 };
 
@@ -24,7 +26,8 @@ export const viewport = {
   themeColor: '#0d1347',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const config = await getConfigSSR();
   return (
     <html lang="pt" className={`${inter.variable} ${playfair.variable}`}>
       <body>
@@ -33,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <CarrinhoDrawer />
         <Toast />
+        <CookieConsent texto={config.cookies_texto} />
         <a
           href="https://wa.me/258878753754"
           className="whatsapp-float"
