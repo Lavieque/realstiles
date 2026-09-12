@@ -22,7 +22,7 @@ export default async function TermosPage() {
 
   return (
     <div className="page-wrapper">
-      <div className="container" style={{ maxWidth: 760 }}>
+      <div className="container" style={{ maxWidth: 900 }}>
         <div className="page-header">
           <h1>{config.termos_titulo}</h1>
           <p>{config.termos_data}</p>
