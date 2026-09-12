@@ -739,7 +739,7 @@ tr:hover td { background: var(--gray-100); }
 .hero-loja > .hero-loja-content > p { color: rgba(255,255,255,0.7); font-size: 16px; line-height: 1.7; margin-bottom: 40px; max-width: 480px; }
 .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
 .hero-badge { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); font-size: 13px; padding: 6px 14px; border-radius: 100px; }
-.hero-loja-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-loja-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .btn-accent { background: var(--accent); color: var(--black); font-weight: 700; border: none; padding: 13px 28px; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 15px; display: inline-flex; align-items: center; transition: opacity 0.15s; }
 .btn-accent:hover { opacity: 0.88; }
 .btn-outline-white { background: transparent; color: white; font-weight: 600; border: 2px solid rgba(255,255,255,0.4); padding: 11px 24px; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 15px; display: inline-flex; align-items: center; transition: border-color 0.15s; }
