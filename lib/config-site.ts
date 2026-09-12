@@ -1,6 +1,13 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
+export interface MembroEquipa {
+  nome: string;
+  cargo: string;
+  foto: string;
+  bio: string;
+}
+
 export const DEFAULTS = {
   hero_titulo:    'Veste o teu estilo.',
   hero_subtitulo: 'As melhores peças de vestuário, cuidadosamente seleccionadas para ti.',
@@ -12,6 +19,8 @@ export const DEFAULTS = {
   qs_cta_titulo:      'Pronto para fazer o seu pedido?',
   qs_cta_subtitulo:   'Fale connosco e diga-nos o que precisa. Tratamos de tudo com rapidez e segurança.',
   qs_equipa_titulo:   'A Nossa Equipa',
+  qs_equipa_texto:    '',
+  qs_equipa_membros:  [] as MembroEquipa[],
   qs_membro1_nome:  '',
   qs_membro1_cargo: '',
   qs_membro1_foto:  '',
@@ -54,4 +63,16 @@ export async function getConfig(): Promise<SiteConfig> {
 
 export async function saveConfig(dados: Partial<SiteConfig>): Promise<void> {
   await setDoc(doc(db, 'config', 'site'), dados, { merge: true });
+}
+
+// Devolve a lista de membros da equipa, migrando dados antigos (qs_membro1_*/qs_membro2_*)
+// para o novo formato dinâmico quando ainda não existe qs_equipa_membros preenchido.
+export function membrosEquipa(config: SiteConfig): MembroEquipa[] {
+  if (config.qs_equipa_membros?.length > 0) {
+    return config.qs_equipa_membros.filter(m => m.nome?.trim());
+  }
+  return [
+    { nome: config.qs_membro1_nome, cargo: config.qs_membro1_cargo, foto: config.qs_membro1_foto, bio: config.qs_membro1_bio },
+    { nome: config.qs_membro2_nome, cargo: config.qs_membro2_cargo, foto: config.qs_membro2_foto, bio: config.qs_membro2_bio },
+  ].filter(m => m.nome?.trim());
 }

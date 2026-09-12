@@ -1,48 +1,53 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from '@/components/CloudImage';
-import { getConfig, saveConfig, DEFAULTS } from '@/lib/config-site';
+import { getConfig, saveConfig, membrosEquipa, DEFAULTS } from '@/lib/config-site';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
-import type { SiteConfig } from '@/lib/config-site';
+import type { SiteConfig, MembroEquipa } from '@/lib/config-site';
+
+const MEMBRO_VAZIO: MembroEquipa = { nome: '', cargo: '', foto: '', bio: '' };
 
 export default function AdminConteudoPage() {
   const [config, setConfig] = useState<SiteConfig>({ ...DEFAULTS });
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [uploadPct, setUploadPct] = useState<{ [k: string]: number }>({});
+  const [uploadPct, setUploadPct] = useState<{ [k: number]: number }>({});
 
-  const handleFotoUpload = (campo: 'qs_membro1_foto' | 'qs_membro2_foto') => async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoUpload = (indice: number) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadPct(p => ({ ...p, [campo]: 0 }));
+    setUploadPct(p => ({ ...p, [indice]: 0 }));
     try {
-      const url = await uploadParaCloudinary(file, pct => setUploadPct(p => ({ ...p, [campo]: pct })));
-      setConfig(c => ({ ...c, [campo]: url }));
+      const url = await uploadParaCloudinary(file, pct => setUploadPct(p => ({ ...p, [indice]: pct })));
+      setConfig(c => ({ ...c, qs_equipa_membros: c.qs_equipa_membros.map((m, i) => i === indice ? { ...m, foto: url } : m) }));
     } catch {
       mostrarToast('Erro no upload', 'error');
     } finally {
-      setUploadPct(p => { const resto = { ...p }; delete resto[campo]; return resto; });
+      setUploadPct(p => { const resto = { ...p }; delete resto[indice]; return resto; });
     }
   };
 
+  const adicionarMembro = () => setConfig(c => ({ ...c, qs_equipa_membros: [...c.qs_equipa_membros, { ...MEMBRO_VAZIO }] }));
+
+  const removerMembroEquipa = (indice: number) => {
+    if (!confirm('Remover este membro da equipa?')) return;
+    setConfig(c => ({ ...c, qs_equipa_membros: c.qs_equipa_membros.filter((_, i) => i !== indice) }));
+  };
+
+  const fMembro = (indice: number, campo: 'nome' | 'cargo' | 'bio') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setConfig(c => ({ ...c, qs_equipa_membros: c.qs_equipa_membros.map((m, i) => i === indice ? { ...m, [campo]: e.target.value } : m) }));
+
   useEffect(() => {
-    getConfig().then(c => { setConfig(c); setLoading(false); });
+    getConfig().then(c => {
+      const qs_equipa_membros = c.qs_equipa_membros?.length ? c.qs_equipa_membros : membrosEquipa(c);
+      setConfig({ ...c, qs_equipa_membros });
+      setLoading(false);
+    });
   }, []);
 
   const f = (k: keyof SiteConfig) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setConfig(c => ({ ...c, [k]: e.target.value }));
-
-  const removerMembro = (n: '1' | '2') => {
-    if (!confirm(`Remover o Membro ${n}?`)) return;
-    setConfig(c => ({
-      ...c,
-      [`qs_membro${n}_nome`]: '',
-      [`qs_membro${n}_cargo`]: '',
-      [`qs_membro${n}_foto`]: '',
-      [`qs_membro${n}_bio`]: '',
-    }));
-  };
 
   const salvar = async () => {
     setSalvando(true);
@@ -64,7 +69,7 @@ export default function AdminConteudoPage() {
         <h1>Conteúdo do site</h1>
         <button className="btn btn-primary btn-sm" onClick={salvar} disabled={salvando}>{salvando ? 'A guardar...' : 'Guardar tudo'}</button>
       </div>
-      <div className="admin-content" style={{ maxWidth: 760 }}>
+      <div className="admin-content" style={{ maxWidth: 1400, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20, alignItems: 'start' }}>
         <div className="form-card">
           <h2>Página inicial — Hero</h2>
           <div className="form-group"><label>Título</label><input value={config.hero_titulo} onChange={f('hero_titulo')} /></div>
@@ -86,47 +91,43 @@ export default function AdminConteudoPage() {
           <div className="form-group"><label>CTA Subtítulo</label><input value={config.qs_cta_subtitulo} onChange={f('qs_cta_subtitulo')} /></div>
         </div>
 
-        <div className="form-card">
+        <div className="form-card" style={{ gridColumn: '1 / -1' }}>
           <h2>Quem Somos — Equipa</h2>
           <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 16 }}>
-            O bloco só aparece na página se pelo menos um membro tiver nome preenchido.
+            O bloco só aparece na página se pelo menos um membro tiver nome preenchido. Adiciona quantos membros quiseres.
           </p>
           <div className="form-group"><label>Título da secção</label><input value={config.qs_equipa_titulo} onChange={f('qs_equipa_titulo')} /></div>
-          <div className="form-grid-2">
-            {(['1', '2'] as const).map(n => {
-              const campoFoto = `qs_membro${n}_foto` as 'qs_membro1_foto' | 'qs_membro2_foto';
-              const temDados = !!(config[`qs_membro${n}_nome` as const] || config[`qs_membro${n}_cargo` as const] || config[campoFoto] || config[`qs_membro${n}_bio` as const]);
-              return (
-                <div key={n} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <p style={{ fontWeight: 600, fontSize: 13 }}>Membro {n}</p>
-                    {temDados && (
-                      <button type="button" className="btn btn-outline btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', fontSize: 12 }} onClick={() => removerMembro(n)}>
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: 'var(--gray-100)', position: 'relative', flexShrink: 0, border: '1px solid var(--gray-200)' }}>
-                      {config[campoFoto] && <Image src={config[campoFoto]} alt="" fill style={{ objectFit: 'cover' }} sizes="64px" />}
-                    </div>
-                    <div>
-                      <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer', display: 'inline-block' }}>
-                        {config[campoFoto] ? 'Trocar foto' : 'Escolher foto'}
-                        <input type="file" accept="image/*" onChange={handleFotoUpload(campoFoto)} style={{ display: 'none' }} />
-                      </label>
-                      {uploadPct[campoFoto] !== undefined && <p style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 6 }}>A enviar... {uploadPct[campoFoto]}%</p>}
-                    </div>
-                  </div>
-                  <div className="form-grid-2">
-                    <div className="form-group"><label>Nome</label><input value={config[`qs_membro${n}_nome` as const]} onChange={f(`qs_membro${n}_nome` as const)} /></div>
-                    <div className="form-group"><label>Cargo</label><input value={config[`qs_membro${n}_cargo` as const]} onChange={f(`qs_membro${n}_cargo` as const)} /></div>
-                  </div>
-                  <div className="form-group"><label>Bio (opcional)</label><textarea value={config[`qs_membro${n}_bio` as const]} onChange={f(`qs_membro${n}_bio` as const)} /></div>
+          <div className="form-group"><label>Texto (opcional — breve descrição por baixo do título)</label><textarea value={config.qs_equipa_texto} onChange={f('qs_equipa_texto')} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16, marginBottom: 16 }}>
+            {config.qs_equipa_membros.map((m, i) => (
+              <div key={i} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <p style={{ fontWeight: 600, fontSize: 13 }}>Membro {i + 1}</p>
+                  <button type="button" className="btn btn-outline btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', fontSize: 12 }} onClick={() => removerMembroEquipa(i)}>
+                    Remover
+                  </button>
                 </div>
-              );
-            })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: 'var(--gray-100)', position: 'relative', flexShrink: 0, border: '1px solid var(--gray-200)' }}>
+                    {m.foto && <Image src={m.foto} alt="" fill style={{ objectFit: 'cover' }} sizes="64px" />}
+                  </div>
+                  <div>
+                    <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                      {m.foto ? 'Trocar foto' : 'Escolher foto'}
+                      <input type="file" accept="image/*" onChange={handleFotoUpload(i)} style={{ display: 'none' }} />
+                    </label>
+                    {uploadPct[i] !== undefined && <p style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 6 }}>A enviar... {uploadPct[i]}%</p>}
+                  </div>
+                </div>
+                <div className="form-grid-2">
+                  <div className="form-group"><label>Nome</label><input value={m.nome} onChange={fMembro(i, 'nome')} /></div>
+                  <div className="form-group"><label>Cargo</label><input value={m.cargo} onChange={fMembro(i, 'cargo')} /></div>
+                </div>
+                <div className="form-group"><label>Bio (opcional)</label><textarea value={m.bio} onChange={fMembro(i, 'bio')} style={{ minHeight: 100 }} /></div>
+              </div>
+            ))}
           </div>
+          <button type="button" className="btn btn-outline btn-sm" onClick={adicionarMembro}>+ Adicionar membro</button>
         </div>
 
         <div className="form-card">
@@ -196,7 +197,7 @@ export default function AdminConteudoPage() {
           <div className="form-group"><label>Introdução</label><textarea value={config.rec_intro} onChange={f('rec_intro')} /></div>
         </div>
 
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', gridColumn: '1 / -1' }}>
           <button className="btn btn-primary btn-lg" onClick={salvar} disabled={salvando}>{salvando ? 'A guardar...' : 'Guardar alterações'}</button>
         </div>
       </div>

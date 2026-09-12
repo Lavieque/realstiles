@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from '@/components/CloudImage';
 import { getConfigSSR } from '@/lib/config-site-ssr';
+import { membrosEquipa } from '@/lib/config-site';
 
 export const metadata: Metadata = {
   title: 'Quem Somos — Real Stiles',
@@ -13,10 +14,7 @@ export const metadata: Metadata = {
 export default async function QuemSomosPage() {
   const config = await getConfigSSR();
 
-  const membros = [
-    { nome: config.qs_membro1_nome, cargo: config.qs_membro1_cargo, foto: config.qs_membro1_foto, bio: config.qs_membro1_bio },
-    { nome: config.qs_membro2_nome, cargo: config.qs_membro2_cargo, foto: config.qs_membro2_foto, bio: config.qs_membro2_bio },
-  ].filter(m => m.nome.trim());
+  const membros = membrosEquipa(config);
 
   const morada = [config.empresa_morada, config.empresa_cidade].filter(Boolean).join(', ');
 
@@ -101,6 +99,7 @@ export default async function QuemSomosPage() {
         <section className="qs-equipa">
           <div className="qs-equipa-inner">
             <h2>{config.qs_equipa_titulo}</h2>
+            {config.qs_equipa_texto && <p className="qs-equipa-texto">{config.qs_equipa_texto}</p>}
             <div className="qs-equipa-grid">
               {membros.map((m, i) => (
                 <div key={i} className="qs-membro">
