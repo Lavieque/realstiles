@@ -84,7 +84,7 @@ function AdminImportarPage() {
           const p = data.produto;
           setResultado(p);
           setImagemAtiva(0);
-          setAjustes({ nome: p.nome, preco: aplicarTaxas(p.preco, taxas), descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
+          setAjustes({ nome: p.nome, preco: p.preco, descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
         }
       } catch { /* silencioso */ }
     }, 2000);
@@ -106,7 +106,7 @@ function AdminImportarPage() {
           const p = data.produto;
           setResultado(p);
           setImagemAtiva(0);
-          setAjustes({ nome: p.nome, preco: aplicarTaxas(p.preco, taxas), descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
+          setAjustes({ nome: p.nome, preco: p.preco, descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
         }
       } catch { /* silencioso */ }
     }, 2000);
@@ -141,7 +141,7 @@ function AdminImportarPage() {
           const p = data.produto;
           setResultado(p);
           setImagemAtiva(0);
-          setAjustes({ nome: p.nome, preco: aplicarTaxas(p.preco, taxas), descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
+          setAjustes({ nome: p.nome, preco: p.preco, descricao: p.descricao, imagens: p.imagens, tamanhos: p.tamanhos || [], cores: p.cores || [], tags: p.tags || [], categoria: p.categoria || '' });
         }
       } catch { /* silencioso */ }
     }, 2000);
@@ -218,7 +218,7 @@ function AdminImportarPage() {
       setImagemAtiva(0);
       // Actualiza contador de uso
       if (infoTF) setInfoTF(i => i ? { ...i, usados: i.usados + 1 } : i);
-      setAjustes({ nome: data.nome, preco: aplicarTaxas(data.preco, taxas), descricao: data.descricao, imagens: data.imagens, tamanhos: data.tamanhos || [], cores: data.cores || [], tags: data.tags || [], categoria: data.categoria || '' });
+      setAjustes({ nome: data.nome, preco: data.preco, descricao: data.descricao, imagens: data.imagens, tamanhos: data.tamanhos || [], cores: data.cores || [], tags: data.tags || [], categoria: data.categoria || '' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Não foi possível importar este produto';
       mostrarToast(msg, 'error');
@@ -231,10 +231,11 @@ function AdminImportarPage() {
     if (!ajustes.nome) return;
     setSalvando(true);
     try {
+      const precoFinal = taxas.length > 0 ? aplicarTaxas(Number(ajustes.preco) || 0, taxas) : Number(ajustes.preco) || 0;
       const res = await fetch('/api/produtos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...ajustes, fonte: resultado?.fonte, url_origem: resultado?.url }),
+        body: JSON.stringify({ ...ajustes, preco: precoFinal, fonte: resultado?.fonte, url_origem: resultado?.url }),
       });
       if (res.status === 402 || res.status === 403) {
         const data = await res.json();
@@ -568,21 +569,6 @@ function AdminImportarPage() {
                 );
               })()}
               <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>Fonte: <a href={resultado.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gray-400)' }}>{resultado.url}</a></p>
-              {taxas.length > 0 && (
-                <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '10px 14px', marginTop: 8 }}>
-                  <p style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 6 }}>Preço da fonte: {Number(resultado.preco || 0).toFixed(2)} MZN</p>
-                  {detalharTaxas(resultado.preco || 0, taxas).map((t, i) => (
-                    <p key={i} style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>+ {t.nome} ({t.descricao})</span>
-                      <span>{t.valorAplicado.toFixed(2)} MZN</span>
-                    </p>
-                  ))}
-                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', display: 'flex', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--gray-200)' }}>
-                    <span>Preço final sugerido</span>
-                    <span>{aplicarTaxas(resultado.preco || 0, taxas).toFixed(2)} MZN</span>
-                  </p>
-                </div>
-              )}
             </div>
 
             <div className="form-card">
@@ -590,7 +576,24 @@ function AdminImportarPage() {
               <div className="form-group"><label>Nome *</label><input value={ajustes.nome || ''} onChange={f('nome')} /></div>
               <div className="form-group"><label>Descrição</label><textarea value={ajustes.descricao || ''} onChange={f('descricao')} /></div>
               <div className="form-grid-2">
-                <div className="form-group"><label>Preço (MZN) *</label><input type="number" value={ajustes.preco || ''} onChange={f('preco')} /></div>
+                <div className="form-group">
+                  <label>Preço (MZN) *</label>
+                  <input type="number" value={ajustes.preco || ''} onChange={f('preco')} />
+                  {taxas.length > 0 && !!ajustes.preco && (
+                    <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '8px 12px', marginTop: 8 }}>
+                      {detalharTaxas(Number(ajustes.preco) || 0, taxas).map((t, i) => (
+                        <p key={i} style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>+ {t.nome} ({t.descricao})</span>
+                          <span>{t.valorAplicado.toFixed(2)} MZN</span>
+                        </p>
+                      ))}
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', display: 'flex', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--gray-200)' }}>
+                        <span>Preço final com taxas</span>
+                        <span>{aplicarTaxas(Number(ajustes.preco) || 0, taxas).toFixed(2)} MZN</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div className="form-group">
                   <label>Preço original (MZN) <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(opcional — marca como promoção)</span></label>
                   <input type="number" value={ajustes.preco_original || ''} onChange={f('preco_original')} />
