@@ -69,7 +69,7 @@ export default function AdminConteudoPage() {
         <h1>Conteúdo do site</h1>
         <button className="btn btn-primary btn-sm" onClick={salvar} disabled={salvando}>{salvando ? 'A guardar...' : 'Guardar tudo'}</button>
       </div>
-      <div className="admin-content" style={{ maxWidth: 1400, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20, alignItems: 'start' }}>
+      <div className="admin-content" style={{ maxWidth: 1400, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))', gap: 20, alignItems: 'start' }}>
         <div className="form-card">
           <h2>Página inicial — Hero</h2>
           <div className="form-group"><label>Título</label><input value={config.hero_titulo} onChange={f('hero_titulo')} /></div>
@@ -98,7 +98,7 @@ export default function AdminConteudoPage() {
           </p>
           <div className="form-group"><label>Título da secção</label><input value={config.qs_equipa_titulo} onChange={f('qs_equipa_titulo')} /></div>
           <div className="form-group"><label>Texto (opcional — breve descrição por baixo do título)</label><textarea value={config.qs_equipa_texto} onChange={f('qs_equipa_texto')} /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(340px, 100%), 1fr))', gap: 16, marginBottom: 16 }}>
             {config.qs_equipa_membros.map((m, i) => (
               <div key={i} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
