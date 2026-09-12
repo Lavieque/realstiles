@@ -5,6 +5,8 @@ import { ShoppingBag, X } from 'lucide-react';
 import { getProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
+import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
+import type { Taxa } from '@/lib/taxas';
 import type { Produto } from '@/lib/produtos';
 
 const VAZIO: Partial<Produto> = { nome: '', descricao: '', preco: 0, preco_original: 0, categoria: '', stock: 0, imagens: [], tamanhos: [], cores: [], tags: [], destaque: false, activo: true };
@@ -18,11 +20,13 @@ export default function AdminProdutosPage() {
   const [filtro, setFiltro] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'destaque' | 'promocao' | 'novidades'>('todos');
   const [categorias, setCategorias] = useState<string[]>([]);
+  const [taxas, setTaxas] = useState<Taxa[]>([]);
 
   useEffect(() => {
     getProdutos({ max: 200 }).then(({ produtos: p }) => { setProdutos(p); setLoading(false); });
     getCategorias().then(setCategorias).catch(() => {});
     fetch('/api/admin/sincronizar-categorias', { method: 'POST' }).catch(() => {});
+    fetch('/api/config/taxas').then(r => r.json()).then(d => setTaxas(d.itens || [])).catch(() => {});
   }, []);
 
   const novo = () => setSeleccionado({ ...VAZIO });
@@ -170,6 +174,20 @@ export default function AdminProdutosPage() {
                 <div className="form-group">
                   <label>Preço (MZN) *</label>
                   <input type="number" value={seleccionado.preco || ''} onChange={f('preco')} />
+                  {taxas.length > 0 && !!seleccionado.preco && (
+                    <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '8px 12px', marginTop: 8 }}>
+                      {detalharTaxas(Number(seleccionado.preco) || 0, taxas).map((t, i) => (
+                        <p key={i} style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>+ {t.nome} ({t.descricao})</span>
+                          <span>{t.valorAplicado.toFixed(2)} MZN</span>
+                        </p>
+                      ))}
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', display: 'flex', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--gray-200)' }}>
+                        <span>Com taxas</span>
+                        <span>{aplicarTaxas(Number(seleccionado.preco) || 0, taxas).toFixed(2)} MZN</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Preço original (MZN)</label>
