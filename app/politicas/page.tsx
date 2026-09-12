@@ -21,7 +21,7 @@ export default async function PoliticasPage() {
 
   return (
     <div className="page-wrapper">
-      <div className="container" style={{ maxWidth: 900 }}>
+      <div className="container" style={{ maxWidth: 1200 }}>
         <div className="page-header">
           <h1>{config.pol_titulo}</h1>
           <p>{config.pol_data}</p>
