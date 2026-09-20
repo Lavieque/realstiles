@@ -37,13 +37,18 @@ export default function AdminProdutosPage() {
     if (!seleccionado?.nome) { mostrarToast('Nome obrigatório', 'error'); return; }
     setSalvando(true);
     try {
-      if ((seleccionado as Produto).id) {
-        await actualizarProduto((seleccionado as Produto).id, seleccionado);
-        setProdutos(p => p.map(x => x.id === (seleccionado as Produto).id ? { ...x, ...seleccionado } as Produto : x));
+      const ehNovo = !(seleccionado as Produto).id;
+      const dados = ehNovo && taxas.length > 0
+        ? { ...seleccionado, preco: aplicarTaxas(Number(seleccionado.preco) || 0, taxas) }
+        : seleccionado;
+
+      if (!ehNovo) {
+        await actualizarProduto((seleccionado as Produto).id, dados);
+        setProdutos(p => p.map(x => x.id === (seleccionado as Produto).id ? { ...x, ...dados } as Produto : x));
         mostrarToast('Produto actualizado', 'success');
       } else {
-        const id = await criarProduto(seleccionado);
-        const novo = { ...seleccionado, id } as Produto;
+        const id = await criarProduto(dados);
+        const novo = { ...dados, id } as Produto;
         setProdutos(p => [novo, ...p]);
         mostrarToast('Produto criado', 'success');
       }
@@ -174,7 +179,7 @@ export default function AdminProdutosPage() {
                 <div className="form-group">
                   <label>Preço (MZN) *</label>
                   <input type="number" value={seleccionado.preco || ''} onChange={f('preco')} />
-                  {taxas.length > 0 && !!seleccionado.preco && (
+                  {!(seleccionado as Produto).id && taxas.length > 0 && !!seleccionado.preco && (
                     <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '8px 12px', marginTop: 8 }}>
                       {detalharTaxas(Number(seleccionado.preco) || 0, taxas).map((t, i) => (
                         <p key={i} style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between' }}>
