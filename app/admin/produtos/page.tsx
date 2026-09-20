@@ -179,7 +179,7 @@ export default function AdminProdutosPage() {
                 <div className="form-group">
                   <label>Preço (MZN) *</label>
                   <input type="number" value={seleccionado.preco || ''} onChange={f('preco')} />
-                  {!(seleccionado as Produto).id && taxas.length > 0 && !!seleccionado.preco && (
+                  {taxas.length > 0 && !!seleccionado.preco && (
                     <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '8px 12px', marginTop: 8 }}>
                       {detalharTaxas(Number(seleccionado.preco) || 0, taxas).map((t, i) => (
                         <p key={i} style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between' }}>
@@ -191,6 +191,21 @@ export default function AdminProdutosPage() {
                         <span>Com taxas</span>
                         <span>{aplicarTaxas(Number(seleccionado.preco) || 0, taxas).toFixed(2)} MZN</span>
                       </p>
+                      {!!(seleccionado as Produto).id && (
+                        <>
+                          <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 6 }}>
+                            Produto existente — ao guardar, o preço acima fica tal como está (não reaplica taxas, para não duplicar).
+                          </p>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ marginTop: 6, width: '100%' }}
+                            onClick={() => setSeleccionado(s => s ? { ...s, preco: aplicarTaxas(Number(s.preco) || 0, taxas) } : s)}
+                          >
+                            Aplicar taxas a este preço
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
