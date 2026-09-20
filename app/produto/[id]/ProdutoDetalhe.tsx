@@ -13,7 +13,7 @@ import { getComentariosProduto, getComentarioCliente, podeAvaliar, criarComentar
 import type { ComentarioProduto } from '@/lib/comentarios';
 import { formatarData } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Frown, AlertTriangle, Link as LinkIcon } from 'lucide-react';
+import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn } from 'lucide-react';
 
 const COR_MAP: Record<string, string> = {
   'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
@@ -58,6 +58,8 @@ export default function ProdutoDetalhe({
   const [tamanho, setTamanho] = useState('');
   const [cor, setCor] = useState('');
   const [quantidade, setQuantidade] = useState(1);
+  const [zoomAberto, setZoomAberto] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const touchStartX = useRef(0);
   const { adicionarItem, abrirDrawer } = useCarrinho();
 
@@ -216,6 +218,8 @@ export default function ProdutoDetalhe({
             <div className="pd-main-wrap">
               <div
                 className="pd-main"
+                style={{ cursor: imagens[imgIdx] ? 'zoom-in' : undefined }}
+                onClick={() => { if (imagens[imgIdx]) setZoomAberto(true); }}
                 onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
                 onTouchEnd={e => {
                   const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -234,6 +238,9 @@ export default function ProdutoDetalhe({
                 )}
                 {desconto > 0 && (
                   <span className="pd-badge-sale">-{desconto}%</span>
+                )}
+                {imagens[imgIdx] && (
+                  <span className="pd-zoom-hint"><ZoomIn size={16} strokeWidth={1.5} /></span>
                 )}
               </div>
 
@@ -373,6 +380,36 @@ export default function ProdutoDetalhe({
             )}
           </div>
         </div>
+
+        {/* Lightbox de zoom da imagem */}
+        {zoomAberto && imagens[imgIdx] && (
+          <div
+            className="pd-zoom-overlay"
+            onClick={() => setZoomAberto(false)}
+          >
+            <button className="pd-zoom-close" onClick={() => setZoomAberto(false)} aria-label="Fechar">
+              <X size={22} strokeWidth={1.5} />
+            </button>
+            <div
+              className="pd-zoom-img-wrap"
+              onClick={e => e.stopPropagation()}
+              onMouseMove={e => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setZoomPos({ x, y });
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagens[imgIdx]}
+                alt={produto.nome}
+                className="pd-zoom-img"
+                style={{ transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Avaliações */}
         <section style={{ marginTop: 64, maxWidth: 640 }}>
