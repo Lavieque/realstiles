@@ -4,14 +4,14 @@ import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { ShoppingBag, Loader2, XCircle } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
-import { criarEncomendaPendente, criarEncomenda } from '@/lib/encomendas';
+import { criarEncomendaPendente } from '@/lib/encomendas';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 
-type Metodo = 'mpesa' | 'emola' | 'cartao' | 'paysuite';
+type Metodo = 'mpesa' | 'emola' | 'cartao';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
 
 
@@ -35,24 +35,16 @@ const LogoCartao = () => (
   </svg>
 );
 
-const LogoPaySuite = () => (
-  <div style={{ height: 32, display: 'flex', alignItems: 'center', fontWeight: 800, fontSize: 14, letterSpacing: '-0.02em', color: '#0d1347' }}>
-    PaySuite
-  </div>
-);
-
 const METODOS: { id: Metodo; label: string; sub: string; Logo: () => JSX.Element }[] = [
   { id: 'mpesa',    label: 'M-Pesa',   sub: '84 / 85',   Logo: LogoMpesa },
   { id: 'emola',    label: 'e-Mola',   sub: '86 / 87',   Logo: LogoEmola },
   { id: 'cartao',   label: 'Cartão',   sub: 'Visa / MC', Logo: LogoCartao },
-  { id: 'paysuite', label: 'PaySuite', sub: 'Mpesa/eMola/Cartão', Logo: LogoPaySuite },
 ];
 
 export default function CarrinhoPage() {
   const { items, removerItem, actualizarQuantidade, limpar } = useCarrinho();
   const total = getTotalPreco(items);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', morada: '', cidade: '', telefone: '', notas: '' });
@@ -64,7 +56,6 @@ export default function CarrinhoPage() {
   const [aguardarSecs, setAguardarSecs] = useState(180);
   const unsubRef = useRef<(() => void) | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const canUseZumboPay = isAdmin;
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -72,7 +63,6 @@ export default function CarrinhoPage() {
       if (u) {
         const p = await getPerfil(u.uid);
         if (p) {
-          setIsAdmin(!!p.admin);
           setForm(f => ({
             ...f,
             email: u.email || '',
@@ -120,27 +110,6 @@ export default function CarrinhoPage() {
     });
   };
 
-  const handleCheckoutSimples = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const encId = await criarEncomenda({
-        itens: items,
-        morada: form.morada,
-        cidade: form.cidade,
-        telefone: form.telefone,
-        notas: form.notas,
-        guestEmail: form.email,
-      });
-      limpar();
-      window.location.href = `/encomenda/${encId}`;
-    } catch (err) {
-      mostrarToast(err instanceof Error ? err.message : 'Erro ao processar encomenda.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -162,24 +131,6 @@ export default function CarrinhoPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ encomenda_id: encId, amount: total }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
-        window.location.href = data.checkout_url;
-        return;
-      }
-
-      if (metodo === 'paysuite') {
-        const res = await fetch('/api/paysuite/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            encomenda_id: encId,
-            amount: total,
-            customer_name: user?.displayName || form.email || 'Cliente',
-            customer_email: form.email,
-            customer_phone: form.telefone,
-          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
@@ -340,7 +291,7 @@ export default function CarrinhoPage() {
             )}
 
             {pagStatus === 'idle' && checkoutOpen && (
-              <form onSubmit={canUseZumboPay ? handleCheckout : handleCheckoutSimples}>
+              <form onSubmit={handleCheckout}>
                 {(!user || !user.email) && (
                   <div className="form-group">
                     <label>Email de contacto {!user ? '*' : '(opcional)'}</label>
@@ -364,63 +315,56 @@ export default function CarrinhoPage() {
                   <textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Instruções especiais..." style={{ minHeight: 80 }} />
                 </div>
 
-                {canUseZumboPay && (
-                  <div className="form-group" style={{ marginBottom: 20 }}>
-                    <label style={{ marginBottom: 10, display: 'block' }}>Método de pagamento *</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                      {METODOS.map(m => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setMetodo(m.id)}
-                          style={{
-                            padding: '12px 8px 10px',
-                            borderRadius: 12,
-                            border: `2px solid ${metodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
-                            background: metodo === m.id ? '#f5f5f5' : 'white',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            transition: 'all 0.15s',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 6,
-                            boxShadow: metodo === m.id ? '0 0 0 2px var(--black)' : 'none',
-                          }}
-                        >
-                          <m.Logo />
-                        </button>
-                      ))}
-                    </div>
-                    {metodo !== 'cartao' && metodo !== 'paysuite' && (
-                      <div style={{ marginTop: 12 }}>
-                        <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                          Número {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} para pagamento
-                        </label>
-                        <input
-                          type="tel"
-                          value={pagTelefone}
-                          onChange={e => setPagTelefone(e.target.value)}
-                          placeholder="Ex: 84 000 0000"
-                          style={{ width: '100%' }}
-                        />
-                        <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 6 }}>
-                          Receberás uma notificação neste número para inserir o PIN e confirmar o pagamento.
-                        </p>
-                      </div>
-                    )}
-                    {metodo === 'cartao' && (
-                      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
-                        Serás redirecionado para a página de pagamento segura.
-                      </p>
-                    )}
-                    {metodo === 'paysuite' && (
-                      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
-                        Serás redirecionado para a página de pagamento PaySuite, onde escolhes o método (M-Pesa, e-Mola ou Cartão).
-                      </p>
-                    )}
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <label style={{ marginBottom: 10, display: 'block' }}>Método de pagamento *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {METODOS.map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setMetodo(m.id)}
+                        style={{
+                          padding: '12px 8px 10px',
+                          borderRadius: 12,
+                          border: `2px solid ${metodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
+                          background: metodo === m.id ? '#f5f5f5' : 'white',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.15s',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: metodo === m.id ? '0 0 0 2px var(--black)' : 'none',
+                        }}
+                      >
+                        <m.Logo />
+                      </button>
+                    ))}
                   </div>
-                )}
+                  {metodo !== 'cartao' && (
+                    <div style={{ marginTop: 12 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                        Número {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} para pagamento
+                      </label>
+                      <input
+                        type="tel"
+                        value={pagTelefone}
+                        onChange={e => setPagTelefone(e.target.value)}
+                        placeholder="Ex: 84 000 0000"
+                        style={{ width: '100%' }}
+                      />
+                      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 6 }}>
+                        Receberás uma notificação neste número para inserir o PIN e confirmar o pagamento.
+                      </p>
+                    </div>
+                  )}
+                  {metodo === 'cartao' && (
+                    <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
+                      Serás redirecionado para a página de pagamento segura.
+                    </p>
+                  )}
+                </div>
 
                 {!user && (
                   <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>
@@ -431,13 +375,9 @@ export default function CarrinhoPage() {
                 <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
                   {loading
                     ? 'A processar...'
-                    : canUseZumboPay
-                      ? metodo === 'cartao'
-                        ? 'Pagar com Cartão →'
-                        : metodo === 'paysuite'
-                          ? 'Pagar com PaySuite →'
-                          : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`
-                      : 'Finalizar encomenda →'}
+                    : metodo === 'cartao'
+                      ? 'Pagar com Cartão →'
+                      : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`}
                 </button>
                 <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setCheckoutOpen(false)}>
                   Cancelar

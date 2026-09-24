@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { onAuthChange, getPerfil } from '@/lib/auth';
+import { onAuthChange } from '@/lib/auth';
 import { getConfig } from '@/lib/config-site';
 import type { SiteConfig } from '@/lib/config-site';
 import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
@@ -16,7 +16,7 @@ import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
 
 
-type Metodo = 'mpesa' | 'emola' | 'cartao' | 'paysuite';
+type Metodo = 'mpesa' | 'emola' | 'cartao';
 
 const LogoMpesa = () => (
   // eslint-disable-next-line @next/next/no-img-element
@@ -36,17 +36,10 @@ const LogoCartao = () => (
   </svg>
 );
 
-const LogoPaySuite = () => (
-  <div style={{ height: 28, display: 'flex', alignItems: 'center', fontWeight: 800, fontSize: 13, letterSpacing: '-0.02em', color: '#0d1347' }}>
-    PaySuite
-  </div>
-);
-
 const METODOS_RETRY: { id: Metodo; Logo: () => JSX.Element }[] = [
   { id: 'mpesa',    Logo: LogoMpesa },
   { id: 'emola',    Logo: LogoEmola },
   { id: 'cartao',   Logo: LogoCartao },
-  { id: 'paysuite', Logo: LogoPaySuite },
 ];
 
 const WHATSAPP_NUM = '258878753754';
@@ -62,7 +55,6 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const confirmada = searchParams.get('confirmada') === '1';
   const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [encomenda, setEncomenda] = useState<Encomenda | null>(null);
   const [loading, setLoading] = useState(true);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
@@ -79,8 +71,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     const unsub = onAuthChange(async (u) => {
       setUser(u);
       if (!u) { setLoading(false); return; }
-      const [enc, cfg, perfil] = await Promise.all([getEncomenda(params.id), getConfig(), getPerfil(u.uid)]);
-      setIsAdmin(!!perfil?.admin);
+      const [enc, cfg] = await Promise.all([getEncomenda(params.id), getConfig()]);
       setEncomenda(enc);
       setSiteConfig(cfg);
       if (enc?.telefone_contacto) setRetryTelefone(enc.telefone_contacto);
@@ -100,24 +91,6 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ encomenda_id: encomenda.id, amount: encomenda.total }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
-        window.location.href = data.checkout_url;
-        return;
-      }
-
-      if (retryMetodo === 'paysuite') {
-        const res = await fetch('/api/paysuite/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            encomenda_id: encomenda.id,
-            amount: encomenda.total,
-            customer_name: user?.displayName || encomenda.cliente_email || 'Cliente',
-            customer_email: encomenda.cliente_email,
-            customer_phone: retryTelefone,
-          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
@@ -317,8 +290,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         )}
 
         {/* Retry pagamento ZumboPay */}
-        {isAdmin &&
-          encomenda.estado === 'pendente' &&
+        {encomenda.estado === 'pendente' &&
           encomenda.pagamento_metodo &&
           encomenda.pagamento_estado !== 'pago' && (
           <div className="detalhe-card" style={{ border: '1.5px solid #f7b731', background: '#fffdf0' }}>
@@ -341,7 +313,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
               </div>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
                   {METODOS_RETRY.map(m => (
                     <button key={m.id} type="button" onClick={() => setRetryMetodo(m.id)} style={{
                       padding: '10px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
@@ -354,7 +326,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                     </button>
                   ))}
                 </div>
-                {retryMetodo !== 'cartao' && retryMetodo !== 'paysuite' && (
+                {retryMetodo !== 'cartao' && (
                   <div className="form-group" style={{ marginBottom: 14 }}>
                     <label style={{ fontSize: 13, marginBottom: 6, display: 'block' }}>Número de telemóvel</label>
                     <input
@@ -370,9 +342,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                     ? 'A processar...'
                     : retryMetodo === 'cartao'
                       ? 'Pagar com Cartão →'
-                      : retryMetodo === 'paysuite'
-                        ? 'Pagar com PaySuite →'
-                        : `Pagar ${encomenda.total?.toFixed(2)} MZN`}
+                      : `Pagar ${encomenda.total?.toFixed(2)} MZN`}
                 </button>
               </>
             )}
