@@ -48,6 +48,8 @@ export const DEFAULTS = {
   termos_titulo:    'Termos e Condições',
   termos_data:      'Última actualização: Janeiro 2026',
   termos_conteudo:  '',
+  aviso_ativo: true,
+  aviso_texto: 'Estamos com problemas temporários nos pagamentos online\nPedimos desculpa pelo incómodo\nDúvidas? Fala connosco via WhatsApp +258 87 875 3754',
   cookies_texto: 'Usamos cookies para o site funcionar correctamente (carrinho, sessão de conta) e melhorar a sua experiência. Ao continuar a navegar, aceita a nossa utilização de cookies.',
   rec_titulo: 'Livro de Reclamações',
   rec_intro:  'Prezamos pela sua satisfação. Se tiver alguma reclamação, utilize o formulário abaixo.',

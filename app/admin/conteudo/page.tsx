@@ -184,6 +184,20 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Aviso no topo do site</h2>
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={config.aviso_ativo} onChange={e => setConfig(c => ({ ...c, aviso_ativo: e.target.checked }))} style={{ width: 'auto' }} />
+              Mostrar aviso
+            </label>
+          </div>
+          <div className="form-group">
+            <label>Mensagens (uma por linha — passam em rotação na faixa do topo)</label>
+            <textarea value={config.aviso_texto} onChange={f('aviso_texto')} style={{ minHeight: 100 }} />
+          </div>
+        </div>
+
+        <div className="form-card">
           <h2>Banner de Cookies</h2>
           <div className="form-group">
             <label>Texto do aviso</label>

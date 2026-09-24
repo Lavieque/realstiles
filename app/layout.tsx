@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import CarrinhoDrawer from '@/components/CarrinhoDrawer';
 import Toast from '@/components/Toast';
 import CookieConsent from '@/components/CookieConsent';
+import AvisoPagamentos from '@/components/AvisoPagamentos';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="pt" className={`${inter.variable} ${playfair.variable}`}>
       <body>
+        <AvisoPagamentos ativo={config.aviso_ativo} texto={config.aviso_texto} />
         <Nav />
         {children}
         <Footer />
