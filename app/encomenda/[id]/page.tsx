@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { onAuthChange } from '@/lib/auth';
 import { getConfig } from '@/lib/config-site';
 import type { SiteConfig } from '@/lib/config-site';
-import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
+import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
@@ -366,6 +366,12 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
               <div className="item-preco">{(item.preco * item.quantidade).toFixed(2)} MZN</div>
             </div>
           ))}
+          {encomenda.forma_entrega && (
+            <div className="total-row" style={{ borderTop: 'none', paddingTop: 0, paddingBottom: 0 }}>
+              <span style={{ fontSize: 14, color: 'var(--gray-600)' }}>{FORMAS_ENTREGA[encomenda.forma_entrega]}</span>
+              <span style={{ fontSize: 14 }}>{encomenda.taxa_entrega ? `${encomenda.taxa_entrega.toFixed(2)} MZN` : 'Grátis'}</span>
+            </div>
+          )}
           <div className="total-row">
             <span style={{ fontSize: 15, color: 'var(--gray-600)' }}>Total</span>
             <span style={{ fontSize: 22, fontWeight: 700 }}>{encomenda.total?.toFixed(2)} MZN</span>
@@ -376,8 +382,15 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         <div className="detalhe-card">
           <h3>Informações de entrega</h3>
           <div className="info-grid">
-            <div className="info-item"><label>Morada</label><span>{encomenda.morada_entrega || '—'}</span></div>
-            <div className="info-item"><label>Cidade</label><span>{encomenda.cidade_entrega || '—'}</span></div>
+            {encomenda.forma_entrega && (
+              <div className="info-item"><label>Forma de entrega</label><span>{FORMAS_ENTREGA[encomenda.forma_entrega]}</span></div>
+            )}
+            {encomenda.forma_entrega !== 'recolha' && (
+              <>
+                <div className="info-item"><label>Morada</label><span>{encomenda.morada_entrega || '—'}</span></div>
+                <div className="info-item"><label>Cidade</label><span>{encomenda.cidade_entrega || '—'}</span></div>
+              </>
+            )}
             <div className="info-item"><label>Telefone</label><span>{encomenda.telefone_contacto || '—'}</span></div>
             <div className="info-item"><label>Email</label><span>{encomenda.cliente_email || '—'}</span></div>
           </div>
@@ -491,7 +504,9 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                 <span className="fp-parte-label">CLIENTE</span>
                 <strong>{encomenda.cliente_nome || encomenda.cliente_email}</strong>
                 <span>NUIT: Consumidor final</span>
-                <span>{encomenda.morada_entrega}{encomenda.cidade_entrega ? `, ${encomenda.cidade_entrega}` : ''}</span>
+                {encomenda.forma_entrega === 'recolha'
+                  ? <span>{FORMAS_ENTREGA.recolha}</span>
+                  : <span>{encomenda.morada_entrega}{encomenda.cidade_entrega ? `, ${encomenda.cidade_entrega}` : ''}</span>}
                 {encomenda.telefone_contacto && <span>Tel.: {encomenda.telefone_contacto}</span>}
               </div>
             </div>
@@ -521,6 +536,15 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                     <td className="fp-td-right">{(Number(item.preco) * item.quantidade).toFixed(2)} MZN</td>
                   </tr>
                 ))}
+                {!!encomenda.taxa_entrega && (
+                  <tr>
+                    <td className="fp-td-center">1</td>
+                    <td>{FORMAS_ENTREGA.domicilio}</td>
+                    <td className="fp-td-right">{(encomenda.taxa_entrega / (1 + IVA_TAXA)).toFixed(2)} MZN</td>
+                    <td className="fp-td-right">{(IVA_TAXA * 100).toFixed(0)}%</td>
+                    <td className="fp-td-right">{encomenda.taxa_entrega.toFixed(2)} MZN</td>
+                  </tr>
+                )}
               </tbody>
             </table>
 

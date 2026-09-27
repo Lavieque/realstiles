@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Package, Mail, MapPin, Phone, FileText, Download } from 'lucide-react';
-import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
+import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 
@@ -98,12 +98,14 @@ export default function AdminEncomendasPage() {
 
   const exportarCSV = () => {
     const linhas = [
-      ['ID', 'Email', 'Estado', 'Total (MZN)', 'Morada', 'Cidade', 'Telefone', 'Data'],
+      ['ID', 'Email', 'Estado', 'Total (MZN)', 'Forma de entrega', 'Taxa de entrega (MZN)', 'Morada', 'Cidade', 'Telefone', 'Data'],
       ...filtradas.map(e => [
         e.id,
         e.cliente_email || '',
         e.estado,
         (e.total || 0).toFixed(2),
+        e.forma_entrega ? FORMAS_ENTREGA[e.forma_entrega] : '',
+        (e.taxa_entrega || 0).toFixed(2),
         e.morada_entrega || '',
         e.cidade_entrega || '',
         e.telefone_contacto || '',
@@ -231,6 +233,12 @@ export default function AdminEncomendasPage() {
                   <p style={{ fontWeight: 700 }}>{(item.preco * item.quantidade).toFixed(2)} MZN</p>
                 </div>
               ))}
+              {seleccionada.forma_entrega && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontSize: 14, color: 'var(--gray-600)' }}>
+                  <span>{FORMAS_ENTREGA[seleccionada.forma_entrega]}</span>
+                  <span>{seleccionada.taxa_entrega ? `${seleccionada.taxa_entrega.toFixed(2)} MZN` : 'Grátis'}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontWeight: 700 }}>
                 <span>Total</span><span>{seleccionada.total?.toFixed(2)} MZN</span>
               </div>
@@ -238,9 +246,13 @@ export default function AdminEncomendasPage() {
 
             {/* Entrega */}
             <div style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', padding: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Entrega</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+                Entrega{seleccionada.forma_entrega ? ` — ${FORMAS_ENTREGA[seleccionada.forma_entrega]}` : ''}
+              </h3>
               <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={14} strokeWidth={1.5} /> {seleccionada.cliente_email}</p>
-              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={14} strokeWidth={1.5} /> {seleccionada.morada_entrega}, {seleccionada.cidade_entrega}</p>
+              {seleccionada.forma_entrega !== 'recolha' && (
+                <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={14} strokeWidth={1.5} /> {seleccionada.morada_entrega}, {seleccionada.cidade_entrega}</p>
+              )}
               <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={14} strokeWidth={1.5} /> {seleccionada.telefone_contacto}</p>
               {seleccionada.notas && <p style={{ fontSize: 14, color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={14} strokeWidth={1.5} /> {seleccionada.notas}</p>}
             </div>

@@ -41,6 +41,9 @@ export const DEFAULTS = {
   empresa_cidade:  '',
   empresa_email:   '',
   fatura_condicoes: 'Envio por transportadora. Prazo estimado: 3 a 5 dias úteis.',
+  // Formas de entrega no checkout
+  entrega_domicilio_taxa: 25,
+  entrega_recolha_info:   '',
   fatura_obs:       '',
   pol_titulo:    'Políticas da Loja',
   pol_data:      'Última actualização: Janeiro 2026',

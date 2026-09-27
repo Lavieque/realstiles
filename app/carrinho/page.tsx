@@ -4,7 +4,9 @@ import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { ShoppingBag, Loader2, XCircle } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
-import { criarEncomendaPendente } from '@/lib/encomendas';
+import { criarEncomendaPendente, FORMAS_ENTREGA } from '@/lib/encomendas';
+import type { FormaEntrega } from '@/lib/encomendas';
+import { getConfig, DEFAULTS } from '@/lib/config-site';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
@@ -43,7 +45,14 @@ const METODOS: { id: Metodo; label: string; sub: string; Logo: () => JSX.Element
 
 export default function CarrinhoPage() {
   const { items, removerItem, actualizarQuantidade, limpar } = useCarrinho();
-  const total = getTotalPreco(items);
+  const subtotal = getTotalPreco(items);
+  const [formaEntrega, setFormaEntrega] = useState<FormaEntrega>('recolha');
+  const [entregaConfig, setEntregaConfig] = useState({
+    taxa: DEFAULTS.entrega_domicilio_taxa,
+    recolhaInfo: DEFAULTS.entrega_recolha_info,
+  });
+  const taxaEntrega = formaEntrega === 'domicilio' ? entregaConfig.taxa : 0;
+  const total = subtotal + taxaEntrega;
   const [user, setUser] = useState<User | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,6 +82,15 @@ export default function CarrinhoPage() {
       }
     });
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    getConfig()
+      .then(c => setEntregaConfig({
+        taxa: Math.max(0, Number(c.entrega_domicilio_taxa) || 0),
+        recolhaInfo: c.entrega_recolha_info || '',
+      }))
+      .catch(() => {});
   }, []);
 
   // Limpa listener Firestore ao desmontar
@@ -117,12 +135,15 @@ export default function CarrinhoPage() {
     try {
       const encId = await criarEncomendaPendente({
         itens: items,
-        morada: form.morada,
-        cidade: form.cidade,
+        // Ponto de recolha não tem morada do cliente
+        morada: formaEntrega === 'domicilio' ? form.morada : '',
+        cidade: formaEntrega === 'domicilio' ? form.cidade : '',
         telefone: form.telefone,
         notas: form.notas,
         guestEmail: form.email,
         pagamento_metodo: metodo,
+        forma_entrega: formaEntrega,
+        taxa_entrega: taxaEntrega,
       });
       setEncomendaId(encId);
 
@@ -225,10 +246,11 @@ export default function CarrinhoPage() {
           <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 24, position: 'sticky', top: 'calc(var(--nav-h) + 16px)' }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Resumo da encomenda</h2>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14, color: 'var(--gray-600)' }}>
-              <span>Subtotal</span><span>{total.toFixed(2)} MZN</span>
+              <span>Subtotal</span><span>{subtotal.toFixed(2)} MZN</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, fontSize: 14, color: 'var(--gray-600)' }}>
-              <span>Entrega</span><span>A definir</span>
+              <span>{FORMAS_ENTREGA[formaEntrega]}</span>
+              <span>{taxaEntrega > 0 ? `${taxaEntrega.toFixed(2)} MZN` : 'Grátis'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid var(--gray-200)', marginBottom: 20 }}>
               <span style={{ fontWeight: 700, fontSize: 16 }}>Total</span>
@@ -299,13 +321,37 @@ export default function CarrinhoPage() {
                   </div>
                 )}
                 <div className="form-group">
-                  <label>Morada de entrega *</label>
-                  <input required value={form.morada} onChange={e => setForm(f => ({ ...f, morada: e.target.value }))} placeholder="Rua, número, bairro" />
+                  <label style={{ marginBottom: 10, display: 'block' }}>Forma de entrega *</label>
+                  <div className="entrega-opcoes">
+                    {(Object.keys(FORMAS_ENTREGA) as FormaEntrega[]).map(fe => {
+                      const taxa = fe === 'domicilio' ? entregaConfig.taxa : 0;
+                      return (
+                        <label key={fe} className={`entrega-opcao${formaEntrega === fe ? ' active' : ''}`}>
+                          <input type="radio" name="forma_entrega" checked={formaEntrega === fe} onChange={() => setFormaEntrega(fe)} />
+                          <span className="entrega-opcao-nome">{FORMAS_ENTREGA[fe]}</span>
+                          <span className="entrega-opcao-preco">{taxa > 0 ? `+${taxa.toFixed(2)} MZN` : 'Grátis'}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {formaEntrega === 'recolha' && (
+                    <p className="entrega-recolha-info">
+                      {entregaConfig.recolhaInfo || 'Combinamos contigo o ponto de recolha pelo telefone de contacto.'}
+                    </p>
+                  )}
                 </div>
-                <div className="form-group">
-                  <label>Cidade *</label>
-                  <input required value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} placeholder="Ex: Maputo" />
-                </div>
+                {formaEntrega === 'domicilio' && (
+                  <>
+                    <div className="form-group">
+                      <label>Morada de entrega *</label>
+                      <input required value={form.morada} onChange={e => setForm(f => ({ ...f, morada: e.target.value }))} placeholder="Rua, número, bairro" />
+                    </div>
+                    <div className="form-group">
+                      <label>Cidade *</label>
+                      <input required value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} placeholder="Ex: Maputo" />
+                    </div>
+                  </>
+                )}
                 <div className="form-group">
                   <label>Telefone de contacto *</label>
                   <input required value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} placeholder="Ex: 84 000 0000" />

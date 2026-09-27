@@ -9,6 +9,13 @@ export { referenciaEncomenda } from './referencia';
 
 export type EstadoEncomenda = 'pendente' | 'confirmada' | 'enviada' | 'entregue' | 'cancelada';
 
+export type FormaEntrega = 'recolha' | 'domicilio';
+
+export const FORMAS_ENTREGA: Record<FormaEntrega, string> = {
+  recolha: 'Ponto de recolha',
+  domicilio: 'Entrega ao domicílio',
+};
+
 export interface ItemEncomenda {
   key: string;
   produto_id: string;
@@ -32,7 +39,11 @@ export interface Encomenda {
   cliente_nome?: string;
   cliente_email: string;
   itens: ItemEncomenda[];
+  // total = subtotal dos artigos + taxa_entrega
   total: number;
+  subtotal?: number;
+  forma_entrega?: FormaEntrega;
+  taxa_entrega?: number;
   morada_entrega: string;
   cidade_entrega: string;
   telefone_contacto: string;
@@ -68,6 +79,7 @@ async function criarComNumeroSequencial(dados: Record<string, unknown>): Promise
 
 export async function criarEncomendaPendente({
   itens, morada, cidade, telefone, notas = '', guestEmail = '', pagamento_metodo,
+  forma_entrega = 'domicilio', taxa_entrega = 0,
 }: {
   itens: ItemEncomenda[];
   morada: string;
@@ -76,12 +88,16 @@ export async function criarEncomendaPendente({
   notas?: string;
   guestEmail?: string;
   pagamento_metodo: 'mpesa' | 'emola' | 'cartao' | 'paysuite';
+  forma_entrega?: FormaEntrega;
+  taxa_entrega?: number;
 }): Promise<string> {
   const user = auth.currentUser;
   const emailFinal = user?.email || guestEmail || '';
   if (!user && !emailFinal) throw new Error('Email necessário');
 
-  const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
+  const subtotal = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
+  const taxa = forma_entrega === 'domicilio' ? Math.max(0, Number(taxa_entrega) || 0) : 0;
+  const total = subtotal + taxa;
 
   let clienteNome = user?.displayName || '';
   let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
@@ -100,7 +116,9 @@ export async function criarEncomendaPendente({
     cliente_nome: clienteNome || undefined,
     cliente_email: emailFinal,
     guest: !user,
-    itens, total,
+    itens, subtotal, total,
+    forma_entrega,
+    taxa_entrega: taxa,
     morada_entrega: morada,
     cidade_entrega: cidade,
     telefone_contacto: telefone,

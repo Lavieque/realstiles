@@ -148,6 +148,26 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Formas de entrega</h2>
+          <div className="form-group">
+            <label>Taxa de entrega ao domicílio (MZN)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={config.entrega_domicilio_taxa}
+              onChange={e => setConfig(c => ({ ...c, entrega_domicilio_taxa: Math.max(0, Number(e.target.value) || 0) }))}
+            />
+            <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Somada ao total quando o cliente escolhe entrega ao domicílio. O ponto de recolha é grátis.</p>
+          </div>
+          <div className="form-group">
+            <label>Ponto de recolha — morada e horário</label>
+            <textarea value={config.entrega_recolha_info} onChange={f('entrega_recolha_info')} placeholder="Ex: Av. 24 de Julho, 123, Maputo · Seg–Sex 9h–17h" />
+            <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Mostrado no checkout quando o cliente escolhe o ponto de recolha.</p>
+          </div>
+        </div>
+
+        <div className="form-card">
           <h2>Quem Somos — Localização</h2>
           <div className="form-group"><label>Título da secção</label><input value={config.qs_localizacao_titulo} onChange={f('qs_localizacao_titulo')} /></div>
         </div>
