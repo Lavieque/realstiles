@@ -19,6 +19,16 @@ service cloud.firestore {
             get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.admin == true;
         }
 
+        // Fotos da avaliação: opcional, lista com no máximo 4 URLs do Cloudinary
+        function imagensValidas() {
+          let imgs = request.resource.data.get('imagens', []);
+          return imgs is list && imgs.size() <= 4
+            && (imgs.size() < 1 || (imgs[0] is string && imgs[0].matches('https://res[.]cloudinary[.]com/.*')))
+            && (imgs.size() < 2 || (imgs[1] is string && imgs[1].matches('https://res[.]cloudinary[.]com/.*')))
+            && (imgs.size() < 3 || (imgs[2] is string && imgs[2].matches('https://res[.]cloudinary[.]com/.*')))
+            && (imgs.size() < 4 || (imgs[3] is string && imgs[3].matches('https://res[.]cloudinary[.]com/.*')));
+        }
+
         allow read: if resource.data.estado == 'aprovado'
           || (request.auth != null && request.auth.uid == clienteId)
           || isAdmin();
@@ -27,13 +37,15 @@ service cloud.firestore {
           && request.auth.uid == clienteId
           && request.resource.data.cliente_id == request.auth.uid
           && request.resource.data.produto_id == produtoId
-          && request.resource.data.estado == 'pendente';
+          && request.resource.data.estado == 'pendente'
+          && imagensValidas();
 
         allow update: if (request.auth != null
             && request.auth.uid == clienteId
             && request.resource.data.cliente_id == request.auth.uid
             && request.resource.data.produto_id == produtoId
-            && request.resource.data.estado == 'pendente')
+            && request.resource.data.estado == 'pendente'
+            && imagensValidas())
           || isAdmin();
 
         allow delete: if (request.auth != null && request.auth.uid == clienteId) || isAdmin();

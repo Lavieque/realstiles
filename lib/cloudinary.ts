@@ -1,14 +1,22 @@
+import { auth } from './firebase';
+
 export async function uploadParaCloudinary(
   file: File,
   onProgress?: (pct: number) => void
 ): Promise<string> {
+  // A assinatura só é dada a utilizadores autenticados
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('Tens de ter sessão iniciada para enviar ficheiros');
+
   const sigRes = await fetch('/api/cloudinary-sign', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: '{}',
   });
   if (!sigRes.ok) throw new Error('Erro ao obter assinatura de upload');
-  const { signature, timestamp, folder, cloud_name, api_key } = await sigRes.json();
+  const { signature, timestamp, params, cloud_name, api_key } = await sigRes.json() as {
+    signature: string; timestamp: number; params: Record<string, string>; cloud_name: string; api_key: string;
+  };
 
   const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
   const formData = new FormData();
@@ -16,7 +24,8 @@ export async function uploadParaCloudinary(
   formData.append('api_key', api_key);
   formData.append('timestamp', String(timestamp));
   formData.append('signature', signature);
-  formData.append('folder', folder);
+  // Têm de ir exactamente os parâmetros assinados pelo servidor
+  Object.entries(params).forEach(([k, v]) => formData.append(k, v));
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
