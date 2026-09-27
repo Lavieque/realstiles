@@ -1,6 +1,8 @@
 'use client';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { precoActual } from '@/lib/promocao';
+import type { DadosPromocao } from '@/lib/promocao';
 
 export interface ItemCarrinho {
   key: string;
@@ -19,7 +21,7 @@ interface CarrinhoState {
   items: ItemCarrinho[];
   drawerOpen: boolean;
   bumped: boolean;
-  adicionarItem: (produto: { id: string; nome: string; preco: number; imagens?: string[]; url_origem?: string }, tamanho: string, cor: string, quantidade?: number) => void;
+  adicionarItem: (produto: DadosPromocao & { id: string; nome: string; imagens?: string[]; url_origem?: string }, tamanho: string, cor: string, quantidade?: number) => void;
   removerItem: (key: string) => void;
   actualizarQuantidade: (key: string, quantidade: number) => void;
   limpar: () => void;
@@ -50,7 +52,8 @@ export const useCarrinho = create<CarrinhoState>()(
               key,
               produto_id: produto.id,
               nome: produto.nome,
-              preco: produto.preco,
+              // Preço em vigor agora (fora do período da promoção é o original)
+              preco: precoActual(produto),
               imagem: produto.imagens?.[0] || '',
               tamanho, cor, quantidade,
               stock: stockMax,

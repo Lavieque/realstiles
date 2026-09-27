@@ -8,6 +8,7 @@ import { mostrarToast } from '@/components/Toast';
 import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
 import type { Produto } from '@/lib/produtos';
+import { estadoPromocao, msParaInput, inputParaMs } from '@/lib/promocao';
 
 const VAZIO: Partial<Produto> = { nome: '', descricao: '', preco: 0, preco_original: 0, categoria: '', stock: 0, imagens: [], tamanhos: [], cores: [], tags: [], destaque: false, activo: true };
 
@@ -106,6 +107,7 @@ export default function AdminProdutosPage() {
     });
 
   const emPromocaoLive = ehPromocao(seleccionado || {});
+  const estadoLive = estadoPromocao({ ...seleccionado, preco: Number(seleccionado?.preco) || 0 });
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -143,7 +145,11 @@ export default function AdminProdutosPage() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
                   {!p.activo && <span style={{ fontSize: 10, background: 'var(--gray-200)', padding: '2px 6px', borderRadius: 4, color: 'var(--gray-600)' }}>Inactivo</span>}
-                  {ehPromocao(p) && <span style={{ fontSize: 10, background: 'var(--red)', padding: '2px 6px', borderRadius: 4, color: 'white' }}>Promoção</span>}
+                  {ehPromocao(p) && (() => {
+                    const e = estadoPromocao(p);
+                    const label = e.agendada ? 'Promoção agendada' : e.terminada ? 'Promoção terminada' : 'Promoção';
+                    return <span style={{ fontSize: 10, background: e.activa ? 'var(--red)' : 'var(--gray-400)', padding: '2px 6px', borderRadius: 4, color: 'white' }}>{label}</span>;
+                  })()}
                   {p.destaque && <span style={{ fontSize: 10, background: 'var(--accent-light)', padding: '2px 6px', borderRadius: 4, color: 'var(--accent-dark)' }}>Destaque</span>}
                   {ehNovidade(p) && <span style={{ fontSize: 10, background: 'var(--gray-100)', padding: '2px 6px', borderRadius: 4, color: 'var(--gray-600)', border: '1px solid var(--gray-200)' }}>Novidade</span>}
                 </div>
@@ -217,10 +223,35 @@ export default function AdminProdutosPage() {
                   <input type="number" value={seleccionado.preco_original || ''} onChange={f('preco_original')} />
                   {!!seleccionado.preco_original && (
                     <p style={{ fontSize: 12, marginTop: 4, color: emPromocaoLive ? 'var(--green)' : 'var(--gray-500)' }}>
-                      {emPromocaoLive ? '✓ Em promoção' : 'Não conta como promoção (tem de ser maior que o preço actual)'}
+                      {!emPromocaoLive ? 'Não conta como promoção (tem de ser maior que o preço actual)'
+                        : estadoLive.agendada ? '⏳ Promoção agendada — ainda não começou'
+                        : estadoLive.terminada ? 'Promoção terminada — o site mostra o preço original'
+                        : '✓ Em promoção'}
                     </p>
                   )}
                 </div>
+                {(
+                  <>
+                    <div className="form-group">
+                      <label>Início da promoção</label>
+                      <input
+                        type="datetime-local"
+                        value={msParaInput(seleccionado.promocao_inicio)}
+                        onChange={e => setSeleccionado(s => ({ ...s, promocao_inicio: inputParaMs(e.target.value) }))}
+                      />
+                      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>Vazio = começa já</p>
+                    </div>
+                    <div className="form-group">
+                      <label>Fim da promoção</label>
+                      <input
+                        type="datetime-local"
+                        value={msParaInput(seleccionado.promocao_fim)}
+                        onChange={e => setSeleccionado(s => ({ ...s, promocao_fim: inputParaMs(e.target.value) }))}
+                      />
+                      <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>Vazio = sem fim · nas últimas 48h o site mostra a contagem decrescente</p>
+                    </div>
+                  </>
+                )}
                 <div className="form-group">
                   <label>Categoria</label>
                   {categorias.length > 0 ? (

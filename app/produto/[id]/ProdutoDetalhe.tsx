@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useReducer } from 'react';
 import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { useCarrinho } from '@/store/carrinho';
@@ -8,6 +8,8 @@ import ProdutoCard from '@/components/ProdutoCard';
 import Estrelas from '@/components/Estrelas';
 import { getProduto as getProdutoClient, getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
+import { estadoPromocao } from '@/lib/promocao';
+import ContagemPromocao from '@/components/ContagemPromocao';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { getComentariosProduto, getComentarioCliente, podeAvaliar, criarComentario } from '@/lib/comentarios';
 import type { ComentarioProduto } from '@/lib/comentarios';
@@ -62,6 +64,8 @@ export default function ProdutoDetalhe({
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const touchStartX = useRef(0);
   const { adicionarItem, abrirDrawer } = useCarrinho();
+  // Re-render quando a promoção termina para o preço voltar ao original
+  const [, actualizar] = useReducer((n: number) => n + 1, 0);
 
   const [comentarios, setComentarios] = useState<ComentarioProduto[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -162,9 +166,8 @@ export default function ProdutoDetalhe({
     setTimeout(() => { setImgIdx(next); setFade(false); }, 150);
   };
 
-  const desconto = produto.preco_original && produto.preco_original > produto.preco
-    ? Math.round((1 - produto.preco / produto.preco_original) * 100)
-    : 0;
+  const promo = estadoPromocao(produto);
+  const desconto = promo.desconto;
 
   const handleAdd = () => {
     if (produto.tamanhos?.length > 0 && !tamanho) {
@@ -272,11 +275,13 @@ export default function ProdutoDetalhe({
             <h1 className="pd-nome">{produto.nome}</h1>
 
             <div className="pd-precos">
-              <span className="pd-preco-atual">{Number(produto.preco || 0).toFixed(2)} MZN</span>
-              {produto.preco_original && produto.preco_original > produto.preco && (
-                <span className="pd-preco-orig">{Number(produto.preco_original).toFixed(2)} MZN</span>
+              <span className="pd-preco-atual">{promo.preco.toFixed(2)} MZN</span>
+              {promo.activa && (
+                <span className="pd-preco-orig">{Number(promo.precoOriginal).toFixed(2)} MZN</span>
               )}
             </div>
+
+            {promo.activa && <ContagemPromocao fim={promo.fim} variante="detalhe" onTerminar={actualizar} />}
 
             {produto.descricao && (
               <p className="pd-descricao">{produto.descricao}</p>
@@ -348,7 +353,7 @@ export default function ProdutoDetalhe({
             {/* Partilhar */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`${produto.nome} — ${Number(produto.preco || 0).toFixed(2)} MZN\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`${produto.nome} — ${promo.preco.toFixed(2)} MZN\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-outline btn-sm"

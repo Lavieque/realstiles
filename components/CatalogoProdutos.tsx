@@ -6,6 +6,7 @@ import ProdutoCard from './ProdutoCard';
 import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
 import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '@/lib/produtos';
 import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
+import { precoActual } from '@/lib/promocao';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
@@ -171,11 +172,11 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   // Aplicar filtros de preço, tamanho, cor e ordenação
   useEffect(() => {
     const intervalo = INTERVALOS_PRECO[precoIdx];
-    let filtrados = todos.filter(p => p.preco >= intervalo.min && p.preco <= intervalo.max);
+    let filtrados = todos.filter(p => precoActual(p) >= intervalo.min && precoActual(p) <= intervalo.max);
     if (tamActual) filtrados = filtrados.filter(p => p.tamanhos?.includes(tamActual));
     if (corActual) filtrados = filtrados.filter(p => p.cores?.includes(corActual));
-    if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => a.preco - b.preco);
-    else if (ordenacao === 'preco_desc') filtrados = [...filtrados].sort((a, b) => b.preco - a.preco);
+    if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => precoActual(a) - precoActual(b));
+    else if (ordenacao === 'preco_desc') filtrados = [...filtrados].sort((a, b) => precoActual(b) - precoActual(a));
     else if (ordenacao === 'novidades') filtrados = [...filtrados].sort((a, b) => {
       const ta = (a.criado_em as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0;
       const tb = (b.criado_em as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0;

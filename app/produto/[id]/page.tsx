@@ -5,6 +5,7 @@ import { getAdminDb } from '@/lib/firebase-admin';
 import { serializar } from '@/lib/serializar';
 import ProdutoDetalhe from './ProdutoDetalhe';
 import type { Produto } from '@/lib/produtos';
+import { precoActual } from '@/lib/promocao';
 import type { Metadata } from 'next';
 
 const getProduto = cache(async (id: string): Promise<Produto | null> => {
@@ -60,7 +61,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     if (!produto) return { title: 'Produto não encontrado — Real Stiles' };
     return {
       title: `${produto.nome} — Real Stiles`,
-      description: produto.descricao || `${produto.nome} por ${produto.preco?.toFixed(2)} MZN`,
+      description: produto.descricao || `${produto.nome} por ${precoActual(produto).toFixed(2)} MZN`,
       openGraph: { images: produto.imagens?.[0] ? [produto.imagens[0]] : [] },
     };
   } catch {

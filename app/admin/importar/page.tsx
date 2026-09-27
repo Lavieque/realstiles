@@ -9,6 +9,7 @@ import CookieCapturePopup from '@/components/CookieCapturePopup';
 import type { Produto } from '@/lib/produtos';
 import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
+import { msParaInput, inputParaMs } from '@/lib/promocao';
 
 interface SubSub { nome: string; slug: string; }
 interface Sub { nome: string; slug: string; subcategorias?: SubSub[]; }
@@ -602,6 +603,24 @@ function AdminImportarPage() {
                       {Number(ajustes.preco_original) > Number(ajustes.preco || 0) ? '✓ Em promoção' : 'Não conta como promoção (tem de ser maior que o preço final)'}
                     </p>
                   )}
+                </div>
+                <div className="form-group">
+                  <label>Início da promoção</label>
+                  <input
+                    type="datetime-local"
+                    value={msParaInput(ajustes.promocao_inicio)}
+                    onChange={e => setAjustes(a => ({ ...a, promocao_inicio: inputParaMs(e.target.value) }))}
+                  />
+                  <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>Vazio = começa já</p>
+                </div>
+                <div className="form-group">
+                  <label>Fim da promoção</label>
+                  <input
+                    type="datetime-local"
+                    value={msParaInput(ajustes.promocao_fim)}
+                    onChange={e => setAjustes(a => ({ ...a, promocao_fim: inputParaMs(e.target.value) }))}
+                  />
+                  <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>Vazio = sem fim · nas últimas 48h o site mostra a contagem decrescente</p>
                 </div>
                 <div className="form-group">
                   <label>Categoria</label>

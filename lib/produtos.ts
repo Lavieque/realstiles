@@ -22,6 +22,9 @@ export interface Produto {
   preco: number;
   preco_original?: number;
   em_promocao?: boolean;
+  // Período opcional da promoção, em ms (null = sem limite)
+  promocao_inicio?: number | null;
+  promocao_fim?: number | null;
   categoria?: string;
   fonte?: string;
   url_origem?: string;

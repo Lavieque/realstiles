@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import ProdutoCard from '@/components/ProdutoCard';
 import { getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
+import { estadoPromocao } from '@/lib/promocao';
 import { Flame, Tag } from 'lucide-react';
 
 const PAGE = 12;
@@ -17,7 +18,11 @@ export default function PromocoesPage() {
   useEffect(() => {
     getProdutos({ emPromocao: true, max: 500 })
       .then(({ produtos: all }) => {
-        const emPromo = all;
+        // Só as activas agora (exclui agendadas e já terminadas); a acabar primeiro no topo
+        const fimOuInf = (p: Produto) => estadoPromocao(p).fim ?? Infinity;
+        const emPromo = all
+          .filter(p => estadoPromocao(p).activa)
+          .sort((a, b) => fimOuInf(a) - fimOuInf(b));
         setTodos(emPromo);
         const seen = new Set<string>();
         const cats: string[] = [];
