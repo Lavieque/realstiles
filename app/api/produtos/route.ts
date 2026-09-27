@@ -87,6 +87,8 @@ export async function POST(req: NextRequest) {
 
     const ref = await adminDb.collection('produtos').add({
       ...dados,
+      // Necessário para aparecer em /promocoes (query por em_promocao)
+      em_promocao: Number(dados.preco_original) > Number(dados.preco) && Number(dados.preco) > 0,
       activo: dados.activo ?? true,
       destaque: dados.destaque ?? false,
       stock: dados.stock ?? 0,
