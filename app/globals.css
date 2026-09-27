@@ -980,6 +980,12 @@ tr:hover td { background: var(--gray-100); }
   margin-bottom: 16px;
   font-size: 15px; font-weight: 700; color: var(--black);
 }
+.filtros-toggle {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 0; cursor: default;
+  font: inherit; color: inherit; pointer-events: none;
+}
+.filtros-toggle-icone, .filtros-toggle-seta, .filtros-toggle-contador { display: none; }
 .filtros-limpar {
   font-size: 12px; font-weight: 500; color: var(--accent-dark);
   background: none; border: none; cursor: pointer; padding: 2px 0;
@@ -1040,7 +1046,22 @@ tr:hover td { background: var(--gray-100); }
   .filtros-sidebar {
     position: static;
     border-radius: var(--radius);
+    padding: 12px 16px;
   }
+  /* Filtros colapsados por defeito — abrem ao tocar em "Filtros" */
+  .filtros-sidebar-header { margin-bottom: 0; }
+  .filtros-toggle { flex: 1; cursor: pointer; pointer-events: auto; padding: 4px 0; }
+  .filtros-toggle-icone, .filtros-toggle-seta { display: block; }
+  .filtros-toggle-seta { margin-left: auto; transition: transform 0.2s; }
+  .filtros-sidebar.aberto .filtros-toggle-seta { transform: rotate(180deg); }
+  .filtros-sidebar .filtros-limpar { margin-left: 12px; }
+  .filtros-toggle-contador {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 100px;
+    background: var(--black); color: white; font-size: 11px; font-weight: 700;
+  }
+  .filtros-corpo { display: none; margin-top: 12px; }
+  .filtros-sidebar.aberto .filtros-corpo { display: block; }
 }
 
 /* ── QUEM SOMOS ── */

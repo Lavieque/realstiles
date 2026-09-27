@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
 import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
@@ -71,6 +71,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   const [corActual, setCorActual] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState('relevancia');
   const [catExpandida, setCatExpandida] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const scrollRestored = useRef(false);
   const seedRef = useRef<string | null>(null);
   const cursorAleatorioRef = useRef<CursorAleatorio | null>(null);
@@ -200,6 +201,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     setTamActual(null);
     setCorActual(null);
     setCatExpandida(false);
+    setFiltrosAbertos(false);
     const url = cat ? `/?cat=${cat}` : '/';
     window.history.pushState({}, '', url);
     carregarProdutos(cat, false);
@@ -212,6 +214,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   };
 
   const temFiltrosActivos = precoIdx > 0 || tamActual !== null || corActual !== null;
+  const numFiltrosActivos = [!!catActual, precoIdx > 0, tamActual !== null, corActual !== null].filter(Boolean).length;
 
   // Debounce pesquisa + sync URL
   useEffect(() => {
@@ -301,13 +304,26 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       {mostrarSidebar ? (
         <div className="catalogo-com-sidebar">
           {/* Sidebar */}
-          <aside className="filtros-sidebar">
+          <aside className={`filtros-sidebar${filtrosAbertos ? ' aberto' : ''}`}>
             <div className="filtros-sidebar-header">
-              <span>Filtros</span>
+              {/* Em mobile o título é o botão que abre/fecha os filtros */}
+              <button
+                type="button"
+                className="filtros-toggle"
+                onClick={() => setFiltrosAbertos(v => !v)}
+                aria-expanded={filtrosAbertos}
+              >
+                <SlidersHorizontal size={16} strokeWidth={1.5} className="filtros-toggle-icone" />
+                <span>Filtros</span>
+                {numFiltrosActivos > 0 && <span className="filtros-toggle-contador">{numFiltrosActivos}</span>}
+                <ChevronDown size={16} strokeWidth={1.5} className="filtros-toggle-seta" />
+              </button>
               {temFiltrosActivos && (
                 <button className="filtros-limpar" onClick={limparFiltros}>Limpar</button>
               )}
             </div>
+
+            <div className="filtros-corpo">
 
             {/* Categoria */}
             <div className="filtro-grupo" style={{ borderTop: 'none', paddingTop: 0 }}>
@@ -392,6 +408,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
             <p className="filtros-contagem">
               {produtos.length} produto{produtos.length !== 1 ? 's' : ''}
             </p>
+            </div>
           </aside>
 
           {/* Produtos */}
