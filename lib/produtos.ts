@@ -30,6 +30,8 @@ export interface Produto {
   url_origem?: string;
   stock: number;
   imagens: string[];
+  // URL do vídeo (Cloudinary), mostrado na galeria depois das imagens
+  video?: string | null;
   tamanhos: string[];
   cores: string[];
   tags: string[];

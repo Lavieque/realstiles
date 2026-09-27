@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Zap, AlertTriangle, Package, ExternalLink, Puzzle } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';
 import CookieCapturePopup from '@/components/CookieCapturePopup';
+import CampoVideo from '@/components/CampoVideo';
 import type { Produto } from '@/lib/produtos';
 import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
@@ -658,6 +659,10 @@ function AdminImportarPage() {
               <div className="form-group">
                 <label>Cores (separadas por vírgula)</label>
                 <input value={(ajustes.cores as string[] | undefined)?.join(', ') || ''} onChange={e => setAjustes(a => ({ ...a, cores: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))} placeholder="Ex: Preto, Branco, Azul" />
+              </div>
+              <div className="form-group">
+                <label>Vídeo</label>
+                <CampoVideo valor={ajustes.video} onChange={url => setAjustes(a => ({ ...a, video: url }))} />
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button className="btn btn-outline" onClick={() => setResultado(null)}>Cancelar</button>

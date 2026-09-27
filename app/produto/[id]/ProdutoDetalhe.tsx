@@ -15,7 +15,7 @@ import { getComentariosProduto, getComentarioCliente, podeAvaliar, criarComentar
 import type { ComentarioProduto } from '@/lib/comentarios';
 import { formatarData } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn } from 'lucide-react';
+import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn, Play } from 'lucide-react';
 
 const COR_MAP: Record<string, string> = {
   'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
@@ -158,10 +158,14 @@ export default function ProdutoDetalhe({
   );
 
   const imagens = produto.imagens?.length ? produto.imagens : [];
-  const temVarias = imagens.length > 1;
+  // O vídeo entra na galeria como último item, depois das imagens
+  const video = produto.video || null;
+  const totalMidias = imagens.length + (video ? 1 : 0);
+  const temVarias = totalMidias > 1;
+  const mostrarVideo = !!video && imgIdx === imagens.length;
 
   const irParaImagem = (idx: number) => {
-    const next = (idx + imagens.length) % imagens.length;
+    const next = (idx + totalMidias) % totalMidias;
     setFade(true);
     setTimeout(() => { setImgIdx(next); setFade(false); }, 150);
   };
@@ -214,6 +218,15 @@ export default function ProdutoDetalhe({
                     <Image src={src} alt={`${produto.nome} ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="72px" />
                   </button>
                 ))}
+                {video && (
+                  <button
+                    className={`pd-thumb pd-thumb-video${mostrarVideo ? ' active' : ''}`}
+                    onClick={() => irParaImagem(imagens.length)}
+                    aria-label="Ver vídeo"
+                  >
+                    <Play size={22} strokeWidth={1.5} fill="currentColor" />
+                  </button>
+                )}
               </div>
             )}
 
@@ -221,8 +234,8 @@ export default function ProdutoDetalhe({
             <div className="pd-main-wrap">
               <div
                 className="pd-main"
-                style={{ cursor: imagens[imgIdx] ? 'zoom-in' : undefined }}
-                onClick={() => { if (imagens[imgIdx]) setZoomAberto(true); }}
+                style={{ cursor: !mostrarVideo && imagens[imgIdx] ? 'zoom-in' : undefined }}
+                onClick={() => { if (!mostrarVideo && imagens[imgIdx]) setZoomAberto(true); }}
                 onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
                 onTouchEnd={e => {
                   const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -239,10 +252,21 @@ export default function ProdutoDetalhe({
                     priority
                   />
                 )}
+                {mostrarVideo && (
+                  <video
+                    key={video}
+                    src={video}
+                    className="pd-video"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    style={{ opacity: fade ? 0 : 1 }}
+                  />
+                )}
                 {desconto > 0 && (
                   <span className="pd-badge-sale">-{desconto}%</span>
                 )}
-                {imagens[imgIdx] && (
+                {!mostrarVideo && imagens[imgIdx] && (
                   <span className="pd-zoom-hint"><ZoomIn size={16} strokeWidth={1.5} /></span>
                 )}
               </div>
@@ -251,14 +275,14 @@ export default function ProdutoDetalhe({
               {temVarias && (
                 <>
                   <button className="pd-arrow prev" onClick={() => irParaImagem(imgIdx - 1)} disabled={imgIdx === 0}>&#8249;</button>
-                  <button className="pd-arrow next" onClick={() => irParaImagem(imgIdx + 1)} disabled={imgIdx === imagens.length - 1}>&#8250;</button>
+                  <button className="pd-arrow next" onClick={() => irParaImagem(imgIdx + 1)} disabled={imgIdx === totalMidias - 1}>&#8250;</button>
                 </>
               )}
 
               {/* Dots */}
               {temVarias && (
                 <div className="pd-dots">
-                  {imagens.map((_, i) => (
+                  {Array.from({ length: totalMidias }, (_, i) => (
                     <button key={i} className={`pd-dot${i === imgIdx ? ' active' : ''}`} onClick={() => irParaImagem(i)} />
                   ))}
                 </div>

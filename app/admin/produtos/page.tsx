@@ -5,6 +5,7 @@ import { ShoppingBag, X } from 'lucide-react';
 import { getTodosProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
+import CampoVideo from '@/components/CampoVideo';
 import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
 import type { Produto } from '@/lib/produtos';
@@ -304,6 +305,11 @@ export default function AdminProdutosPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="form-card">
+              <h2>Vídeo</h2>
+              <CampoVideo valor={seleccionado.video} onChange={url => setSeleccionado(s => ({ ...s, video: url }))} />
             </div>
 
             <div className="form-card">
