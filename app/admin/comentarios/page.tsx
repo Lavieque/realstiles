@@ -93,6 +93,16 @@ export default function AdminComentariosPage() {
                   <Estrelas valor={c.estrelas} />
                 </div>
                 {c.texto && <p style={{ fontSize: 14, color: 'var(--gray-700)', lineHeight: 1.6, marginBottom: 14 }}>{c.texto}</p>}
+                {!!c.imagens?.length && (
+                  <div className="av-imagens" style={{ marginBottom: 14 }}>
+                    {c.imagens.map((src, i) => (
+                      <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="av-imagem" title={`Imagem ${i + 1}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt={`Imagem ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn-primary btn-sm" onClick={() => aprovar(c)} disabled={aProcessar === c.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Check size={14} strokeWidth={2} /> Aprovar

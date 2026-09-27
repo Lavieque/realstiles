@@ -692,6 +692,21 @@ tr:hover td { background: var(--gray-100); }
   display: flex; align-items: center; justify-content: center;
   background: var(--black); color: white;
 }
+/* Imagens das avaliações */
+.av-imagens { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.av-imagem {
+  position: relative; width: 72px; height: 72px; border-radius: 8px; overflow: hidden;
+  background: var(--gray-100); border: 1px solid var(--gray-200); padding: 0; cursor: pointer;
+}
+.av-imagem-add {
+  width: 72px; height: 72px; border-radius: 8px; border: 1.5px dashed var(--gray-300);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 11px; color: var(--gray-500); cursor: pointer; transition: border-color 0.15s;
+}
+.av-imagem-add:hover { border-color: var(--black); color: var(--black); }
+.av-imagem-add.a-enviar { cursor: wait; }
+.av-imagem-add .spinner { width: 18px; height: 18px; }
+.av-imagem-ampliada { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; cursor: default; }
 .pd-badge-sale {
   position: absolute; top: 16px; left: 16px;
   background: var(--red); color: white;

@@ -15,6 +15,8 @@ function porDataDesc(a: { criado_em?: unknown }, b: { criado_em?: unknown }): nu
 
 export type EstadoComentario = 'pendente' | 'aprovado';
 
+export const MAX_IMAGENS_COMENTARIO = 4;
+
 export interface ComentarioProduto {
   id: string;
   produto_id: string;
@@ -22,6 +24,7 @@ export interface ComentarioProduto {
   cliente_nome: string;
   texto: string;
   estrelas: number;
+  imagens?: string[];
   estado: EstadoComentario;
   criado_em?: unknown;
 }
@@ -50,6 +53,7 @@ export async function criarComentario(
   clienteNome: string,
   texto: string,
   estrelas: number,
+  imagens: string[] = [],
 ): Promise<void> {
   await setDoc(doc(colComentarios(produtoId), clienteId), {
     produto_id: produtoId,
@@ -57,6 +61,7 @@ export async function criarComentario(
     cliente_nome: clienteNome,
     texto: texto.trim(),
     estrelas,
+    imagens: imagens.slice(0, MAX_IMAGENS_COMENTARIO),
     estado: 'pendente',
     criado_em: serverTimestamp(),
   });
