@@ -1,7 +1,7 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   getDoc, getDocs, query, where, orderBy, limit, arrayUnion, arrayRemove,
-  serverTimestamp, startAfter, QueryDocumentSnapshot, DocumentData,
+  serverTimestamp, startAfter, startAt, endBefore, documentId, QueryDocumentSnapshot, DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -93,6 +93,54 @@ export async function getProdutos({
   return {
     produtos: docs.map(d => ({ id: d.id, ...d.data() } as Produto)),
     ultimoDoc: docs.length > 0 && !ordenarEmMemoria ? docs[docs.length - 1] : null,
+  };
+}
+
+export interface CursorAleatorio {
+  seed: string;
+  ultimoId: string | null;
+  deuVolta: boolean;
+}
+
+// Lista produtos activos por ordem de ID a começar na seed; ao chegar ao fim
+// da colecção dá a volta ao início e pára quando volta à seed. Custa as mesmas
+// leituras que a paginação normal (sem índice composto: igualdade + __name__).
+export async function getProdutosAleatorios(
+  cursor: CursorAleatorio,
+  max = 12,
+): Promise<{ produtos: Produto[]; cursor: CursorAleatorio | null }> {
+  const base = [where('activo', '==', true), orderBy(documentId())];
+  const docs: QueryDocumentSnapshot<DocumentData>[] = [];
+  let { ultimoId, deuVolta } = cursor;
+
+  if (!deuVolta) {
+    const snap = await comTimeout(getDocs(query(
+      collection(db, COL), ...base,
+      ultimoId ? startAfter(ultimoId) : startAt(cursor.seed),
+      limit(max),
+    )));
+    docs.push(...snap.docs);
+    if (snap.docs.length < max) { deuVolta = true; ultimoId = null; }
+    else ultimoId = snap.docs[snap.docs.length - 1].id;
+  }
+
+  let fim = false;
+  if (deuVolta && docs.length < max) {
+    const falta = max - docs.length;
+    const snap = await comTimeout(getDocs(query(
+      collection(db, COL), ...base,
+      ...(ultimoId ? [startAfter(ultimoId)] : []),
+      endBefore(cursor.seed),
+      limit(falta),
+    )));
+    docs.push(...snap.docs);
+    if (snap.docs.length < falta) fim = true;
+    else ultimoId = snap.docs[snap.docs.length - 1].id;
+  }
+
+  return {
+    produtos: docs.map(d => ({ id: d.id, ...d.data() } as Produto)),
+    cursor: fim ? null : { seed: cursor.seed, ultimoId, deuVolta },
   };
 }
 

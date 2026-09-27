@@ -3,8 +3,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
-import { getProdutos, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
-import type { Produto, CategoriaConfig, ProdutosResult } from '@/lib/produtos';
+import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
+import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '@/lib/produtos';
+import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
@@ -25,6 +26,19 @@ function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
 const PAGE = 12;
 const CAT_VISIVEIS = 8;
 const SCROLL_KEY = 'catalogo_scroll';
+const SEED_KEY = 'catalogo_seed';
+
+// Ao voltar de um produto reutiliza a seed guardada para manter a mesma ordem;
+// numa visita nova usa a seed do servidor (ou gera uma) para variar os produtos.
+function escolherSeed(seedInicial?: string): string {
+  let seed = seedInicial || gerarSeedAleatoria();
+  try {
+    const guardada = sessionStorage.getItem(SEED_KEY);
+    if (guardada && sessionStorage.getItem(SCROLL_KEY)) seed = guardada;
+    sessionStorage.setItem(SEED_KEY, seed);
+  } catch {}
+  return seed;
+}
 
 const INTERVALOS_PRECO = [
   { label: 'Todos os preços', min: 0, max: Infinity },
@@ -34,7 +48,7 @@ const INTERVALOS_PRECO = [
   { label: '2 000+', min: 2000, max: Infinity },
 ];
 
-export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos' }: { inicial: Produto[]; categoriasIniciais?: string[]; tituloDefault?: string }) {
+export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos' }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string }) {
   const searchParams = useSearchParams();
   const catParam = searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
@@ -58,11 +72,17 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
   const [ordenacao, setOrdenacao] = useState('relevancia');
   const [catExpandida, setCatExpandida] = useState(false);
   const scrollRestored = useRef(false);
+  const seedRef = useRef<string | null>(null);
+  const cursorAleatorioRef = useRef<CursorAleatorio | null>(null);
+  const ordenacaoRef = useRef(ordenacao);
+  ordenacaoRef.current = ordenacao;
 
   // Restaurar scroll ao voltar de um produto
   useEffect(() => {
     if (scrollRestored.current) return;
     scrollRestored.current = true;
+    // Tem de correr antes de SCROLL_KEY ser apagada
+    seedRef.current = escolherSeed(seedInicial);
     const saved = sessionStorage.getItem(SCROLL_KEY);
     if (saved) {
       sessionStorage.removeItem(SCROLL_KEY);
@@ -99,15 +119,34 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
     setLoading(true);
     setErro(false);
     try {
-      const max = cat ? 200 : PAGE + 1;
-      const cursor = cat ? null : (append ? ultimoDocRef.current : null);
-      const slugs = cat ? resolveDescendants(catTreeRef.current, cat) : null;
-      const { produtos: resultado, ultimoDoc: novoUltimoDoc } = await getProdutos({ categorias: slugs, max, ultimoDoc: cursor });
-      const maisDisp = !cat && resultado.length > PAGE;
-      const slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
-      setTemMais(maisDisp);
-      setUltimoDoc(maisDisp ? novoUltimoDoc : null);
-      setTodos(p => append ? [...p, ...slice] : slice);
+      const seed = seedRef.current ?? (seedRef.current = escolherSeed(seedInicial));
+      const aleatorio = ordenacaoRef.current !== 'novidades';
+      let resultado: Produto[];
+      if (!cat && aleatorio) {
+        // Página inicial: amostra aleatória paginada (não sempre os mais recentes)
+        const cursor: CursorAleatorio | null = append
+          ? cursorAleatorioRef.current
+          : { seed, ultimoId: null, deuVolta: false };
+        const res = cursor ? await getProdutosAleatorios(cursor, PAGE) : { produtos: [], cursor: null };
+        resultado = res.produtos;
+        cursorAleatorioRef.current = res.cursor;
+        setTemMais(!!res.cursor && res.produtos.length === PAGE);
+        setUltimoDoc(null);
+        setTodos(p => append ? [...p, ...resultado] : resultado);
+      } else {
+        const max = cat ? 200 : PAGE + 1;
+        const cursor = cat ? null : (append ? ultimoDocRef.current : null);
+        const slugs = cat ? resolveDescendants(catTreeRef.current, cat) : null;
+        const res = await getProdutos({ categorias: slugs, max, ultimoDoc: cursor });
+        resultado = res.produtos;
+        const maisDisp = !cat && resultado.length > PAGE;
+        let slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
+        // Categoria: vem tudo de uma vez — baralhar para não mostrar sempre os mais recentes primeiro
+        if (cat && aleatorio) slice = baralhar(slice, seed);
+        setTemMais(maisDisp);
+        setUltimoDoc(maisDisp ? res.ultimoDoc : null);
+        setTodos(p => append ? [...p, ...slice] : slice);
+      }
       if (cat) {
         const tams = new Set<string>();
         const cors = new Set<string>();
@@ -126,7 +165,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [seedInicial]);
 
   // Aplicar filtros de preço, tamanho, cor e ordenação
   useEffect(() => {
@@ -143,6 +182,16 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
     });
     setProdutos(filtrados);
   }, [todos, precoIdx, tamActual, corActual, ordenacao]);
+
+  // Sem categoria, "Novidades" carrega os mais recentes do servidor e as
+  // restantes ordenações partem da amostra aleatória — recarregar ao alternar.
+  const ehNovidades = ordenacao === 'novidades';
+  const ehNovidadesAnterior = useRef(ehNovidades);
+  useEffect(() => {
+    if (ehNovidadesAnterior.current === ehNovidades) return;
+    ehNovidadesAnterior.current = ehNovidades;
+    if (!catActual && !searchTerm.trim()) carregarProdutos(null, false);
+  }, [ehNovidades]);
 
   const filtrar = (cat: string | null) => {
     setCatActual(cat);

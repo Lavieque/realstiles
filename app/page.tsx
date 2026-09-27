@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
+import { FieldPath } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase-admin';
+import { gerarSeedAleatoria } from '@/lib/aleatorio';
 import { serializar } from '@/lib/serializar';
 import CatalogoProdutos from '@/components/CatalogoProdutos';
 import HeroSlider from '@/components/HeroSlider';
@@ -30,6 +32,25 @@ async function getProdutosSSR(opts: { destaque?: boolean; max?: number } = {}): 
   }
 }
 
+// Mesma lógica de getProdutosAleatorios (lib/produtos) com o Admin SDK:
+// a partir da seed por ordem de ID, dando a volta ao início se faltar.
+async function getProdutosAleatoriosSSR(seed: string, max: number): Promise<Produto[]> {
+  try {
+    const db = getAdminDb();
+    if (!db) return [];
+    const base = db.collection('produtos').where('activo', '==', true).orderBy(FieldPath.documentId());
+    const snap = await base.startAt(seed).limit(max).get();
+    let docs = snap.docs;
+    if (docs.length < max) {
+      const volta = await base.endBefore(seed).limit(max - docs.length).get();
+      docs = [...docs, ...volta.docs];
+    }
+    return docs.map(d => ({ ...serializar<Produto>(d.data()), id: d.id }));
+  } catch {
+    return [];
+  }
+}
+
 async function getCategoriasSSR(): Promise<string[]> {
   try {
     const db = getAdminDb();
@@ -42,9 +63,10 @@ async function getCategoriasSSR(): Promise<string[]> {
 }
 
 export default async function HomePage() {
+  const seed = gerarSeedAleatoria();
   const [destaques, produtosIniciais, categorias, config] = await Promise.all([
     getProdutosSSR({ destaque: true, max: 12 }),
-    getProdutosSSR({ max: 13 }),
+    getProdutosAleatoriosSSR(seed, 12),
     getCategoriasSSR(),
     getConfigSSR(),
   ]);
@@ -74,7 +96,7 @@ export default async function HomePage() {
       {/* CATÁLOGO */}
       <div className="catalogo-section" id="catalogo">
         <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
-          <CatalogoProdutos inicial={produtosIniciais.slice(0, 12)} categoriasIniciais={categorias} tituloDefault={config.catalogo_titulo} />
+          <CatalogoProdutos inicial={produtosIniciais} seedInicial={seed} categoriasIniciais={categorias} tituloDefault={config.catalogo_titulo} />
         </Suspense>
       </div>
     </>
