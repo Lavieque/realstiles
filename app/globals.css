@@ -935,7 +935,14 @@ tr:hover td { background: var(--gray-100); }
   .produtos-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
 @media (max-width: 480px) {
-  .produtos-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .produtos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .produto-card-body { padding: 10px; }
+  .produto-card-nome { font-size: 13px; min-height: calc(13px * 1.45 * 2); }
+  .produto-card-footer { gap: 6px; }
+  .produto-card-footer > div { min-width: 0; }
+  .preco-atual { font-size: 14px; white-space: nowrap; }
+  .preco-original { font-size: 11px; white-space: nowrap; }
+  .btn-carrinho-icon { width: 30px; height: 30px; }
 }
 
 /* ── FAVORITO BUTTON ── */
