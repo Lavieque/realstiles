@@ -995,6 +995,20 @@ tr:hover td { background: var(--gray-100); }
 .filtro-radio:last-child { margin-bottom: 0; }
 .filtro-radio input[type="radio"] { accent-color: var(--black); }
 .filtro-radio:has(input:checked) span { color: var(--black); font-weight: 600; }
+.filtro-cat-lista { display: flex; flex-direction: column; gap: 2px; }
+.filtro-cat-item {
+  text-align: left; padding: 7px 8px; border-radius: 6px; border: none;
+  background: transparent; font-size: 13px; color: var(--gray-600);
+  cursor: pointer; transition: all 0.15s; font-family: var(--font-inter, 'Inter'), sans-serif;
+}
+.filtro-cat-item:hover { background: var(--gray-200); color: var(--black); }
+.filtro-cat-item.active { background: var(--black); color: white; font-weight: 600; }
+.filtro-cat-vermais {
+  margin-top: 6px; padding: 4px 8px; border: none; background: none;
+  font-size: 12px; font-weight: 600; color: var(--accent-dark);
+  cursor: pointer; text-decoration: underline;
+}
+.filtro-cat-vermais:hover { color: var(--black); }
 .filtro-tam-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
 }

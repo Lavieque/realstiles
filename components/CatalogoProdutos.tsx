@@ -23,6 +23,7 @@ function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
 }
 
 const PAGE = 12;
+const CAT_VISIVEIS = 8;
 const SCROLL_KEY = 'catalogo_scroll';
 
 const INTERVALOS_PRECO = [
@@ -55,6 +56,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
   const [tamActual, setTamActual] = useState<string | null>(null);
   const [corActual, setCorActual] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState('relevancia');
+  const [catExpandida, setCatExpandida] = useState(false);
   const scrollRestored = useRef(false);
 
   // Restaurar scroll ao voltar de um produto
@@ -148,6 +150,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
     setPrecoIdx(0);
     setTamActual(null);
     setCorActual(null);
+    setCatExpandida(false);
     const url = cat ? `/?cat=${cat}` : '/';
     window.history.pushState({}, '', url);
     carregarProdutos(cat, false);
@@ -187,7 +190,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  const mostrarSidebar = !!catActual && !searchTerm;
+  const mostrarSidebar = !searchTerm;
 
   // Quando há categoria activa, mostrar só descendentes que têm produtos nos resultados
   // Quando não há nada seleccionado, mostrar todas as categorias com produtos
@@ -237,16 +240,6 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
       {/* Header */}
       <div className="catalogo-header">
         <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>
-      </div>
-
-      {/* Categorias + Ordenação */}
-      <div className="filtros">
-        <button className={`filtro-btn${!catActual ? ' active' : ''}`} onClick={() => filtrar(null)}>Todos</button>
-        {categoriasVisiveis.map(cat => (
-          <button key={cat} className={`filtro-btn${catActual === cat ? ' active' : ''}`} onClick={() => filtrar(cat)}>
-            {cat.charAt(0).toUpperCase() + cat.slice(1)}
-          </button>
-        ))}
         <select className="filtro-ordenacao" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}>
           <option value="relevancia">Relevância</option>
           <option value="novidades">Novidades</option>
@@ -255,7 +248,7 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
         </select>
       </div>
 
-      {/* Layout com sidebar se categoria activa */}
+      {/* Layout com sidebar */}
       {mostrarSidebar ? (
         <div className="catalogo-com-sidebar">
           {/* Sidebar */}
@@ -264,6 +257,26 @@ export default function CatalogoProdutos({ inicial, categoriasIniciais = [], tit
               <span>Filtros</span>
               {temFiltrosActivos && (
                 <button className="filtros-limpar" onClick={limparFiltros}>Limpar</button>
+              )}
+            </div>
+
+            {/* Categoria */}
+            <div className="filtro-grupo" style={{ borderTop: 'none', paddingTop: 0 }}>
+              <p className="filtro-grupo-titulo">Categoria</p>
+              <div className="filtro-cat-lista">
+                <button className={`filtro-cat-item${!catActual ? ' active' : ''}`} onClick={() => filtrar(null)}>
+                  Todos
+                </button>
+                {(catExpandida ? categoriasVisiveis : categoriasVisiveis.slice(0, CAT_VISIVEIS)).map(cat => (
+                  <button key={cat} className={`filtro-cat-item${catActual === cat ? ' active' : ''}`} onClick={() => filtrar(cat)}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </button>
+                ))}
+              </div>
+              {categoriasVisiveis.length > CAT_VISIVEIS && (
+                <button className="filtro-cat-vermais" onClick={() => setCatExpandida(v => !v)}>
+                  {catExpandida ? 'Ver menos' : `Ver mais (${categoriasVisiveis.length - CAT_VISIVEIS})`}
+                </button>
               )}
             </div>
 
