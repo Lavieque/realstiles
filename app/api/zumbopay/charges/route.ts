@@ -2,16 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
-
-const ZP_BASE = 'https://zumbopay.com/api/public/v1';
-
-function zpHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${process.env.ZUMBOPAY_API_KEY || ''}`,
-    'X-Merchant-Id': process.env.ZUMBOPAY_MERCHANT_ID || '',
-  };
-}
+import { ZP_BASE, zpHeaders } from '@/lib/zumbopay';
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${ZP_BASE}/charges`, {
       method: 'POST',
-      headers: zpHeaders(),
+      headers: zpHeaders({ 'Idempotency-Key': sourceUuid }),
       body: JSON.stringify(payloadEnviado),
     });
 
@@ -82,6 +73,14 @@ export async function POST(req: NextRequest) {
     const zpStatus: string = zpData.status ?? '';
     const checkoutUrl: string = zpData.checkout_url ?? '';
     const succeeded = res.status === 200 && zpStatus === 'success';
+
+    // Referência da última tentativa, visível no admin mesmo antes de pago
+    if (referencia && !succeeded) {
+      await adminDb.collection('encomendas').doc(encomenda_id).update({
+        pagamento_ref: referencia,
+        actualizado_em: FieldValue.serverTimestamp(),
+      });
+    }
 
     await pagRef.update({
       referencia_zumbopay: referencia,

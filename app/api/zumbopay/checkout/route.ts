@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { referenciaEncomendaServer } from '@/lib/referencia-server';
-
-const ZP_BASE = 'https://zumbopay.com/api/public/v1';
+import { ZP_BASE, zpHeaders } from '@/lib/zumbopay';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,8 +17,12 @@ export async function POST(req: NextRequest) {
     }
 
     const ref = await referenciaEncomendaServer(encomenda_id);
+    // /payments não aceita um identificador nosso: a ligação é feita pela
+    // `reference` (ZP_…) devolvida na resposta, guardada em referencia_zumbopay.
+    // A referência da encomenda vai em title/description para ser visível no painel.
     const payloadEnviado = {
       title: `Encomenda ${ref}`,
+      description: `Realstiles — encomenda ${ref}`,
       amount,
       currency: 'MZN',
       channels: ['card'],
@@ -42,11 +45,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${ZP_BASE}/payments`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.ZUMBOPAY_API_KEY || ''}`,
-        'X-Merchant-Id': process.env.ZUMBOPAY_MERCHANT_ID || '',
-      },
+      headers: zpHeaders({ 'Idempotency-Key': pagRef.id }),
       body: JSON.stringify(payloadEnviado),
     });
 
@@ -70,6 +69,13 @@ export async function POST(req: NextRequest) {
       resposta_inicial: body,
       actualizado_em: FieldValue.serverTimestamp(),
     });
+    // Referência da última tentativa, visível no admin mesmo antes de pago
+    if (zpData.reference) {
+      await adminDb.collection('encomendas').doc(encomenda_id).update({
+        pagamento_ref: zpData.reference,
+        actualizado_em: FieldValue.serverTimestamp(),
+      });
+    }
 
     return NextResponse.json({
       checkout_url: zpData.checkout_url,
