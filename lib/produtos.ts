@@ -4,6 +4,7 @@ import {
   serverTimestamp, startAfter, startAt, endBefore, documentId, QueryDocumentSnapshot, DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { correspondePesquisa } from './pesquisa';
 
 const COL = 'produtos';
 const CONFIG_DOC = doc(db, 'config', 'loja');
@@ -228,19 +229,18 @@ export async function sincronizarCategoriasAtivas(): Promise<void> {
 // Cache em memória para pesquisa (5 min)
 let searchCache: { produtos: Produto[]; ts: number } | null = null;
 
-export async function pesquisarProdutos(termo: string, max = 48): Promise<Produto[]> {
+// Pesquisa sobre todos os produtos activos (não só os já mostrados).
+export async function pesquisarProdutos(termo: string, max = Infinity): Promise<Produto[]> {
   if (!searchCache || Date.now() - searchCache.ts > 5 * 60 * 1000) {
-    const { produtos } = await getProdutos({ max: 300 });
+    const snap = await comTimeout(getDocs(query(collection(db, COL), where('activo', '==', true))), 30000);
+    const ms = (p: Produto) => (p.criado_em as { toMillis?: () => number })?.toMillis?.() ?? 0;
+    const produtos = snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as Produto))
+      .sort((a, b) => ms(b) - ms(a));
     searchCache = { produtos, ts: Date.now() };
   }
-  const t = termo.toLowerCase();
   return searchCache.produtos
-    .filter(p =>
-      p.nome?.toLowerCase().includes(t) ||
-      p.descricao?.toLowerCase().includes(t) ||
-      p.categoria?.toLowerCase().includes(t) ||
-      p.tags?.some(tag => tag.toLowerCase().includes(t))
-    )
+    .filter(p => correspondePesquisa(termo, [p.nome, p.descricao, p.categoria, p.tags, p.cores]))
     .slice(0, max);
 }
 

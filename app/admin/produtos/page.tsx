@@ -10,6 +10,7 @@ import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
 import type { Produto } from '@/lib/produtos';
 import { estadoPromocao, msParaInput, inputParaMs } from '@/lib/promocao';
+import { correspondePesquisa } from '@/lib/pesquisa';
 
 const VAZIO: Partial<Produto> = { nome: '', descricao: '', preco: 0, preco_original: 0, categoria: '', stock: 0, imagens: [], tamanhos: [], cores: [], tags: [], destaque: false, activo: true };
 
@@ -99,7 +100,7 @@ export default function AdminProdutosPage() {
   };
 
   const filtrados = produtos
-    .filter(p => !filtro || p.nome?.toLowerCase().includes(filtro.toLowerCase()) || p.categoria?.toLowerCase().includes(filtro.toLowerCase()))
+    .filter(p => correspondePesquisa(filtro, [p.id, p.nome, p.descricao, p.categoria, p.fonte, p.url_origem, p.tags, p.cores, p.tamanhos]))
     .filter(p => {
       if (filtroTipo === 'destaque') return !!p.destaque;
       if (filtroTipo === 'promocao') return ehPromocao(p);

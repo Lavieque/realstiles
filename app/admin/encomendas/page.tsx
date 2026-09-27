@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Package, Mail, MapPin, Phone, FileText, Download } from 'lucide-react';
 import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
+import { correspondePesquisa } from '@/lib/pesquisa';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 
 const ESTADOS: EstadoEncomenda[] = ['pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
@@ -22,7 +23,7 @@ export default function AdminEncomendasPage() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    getTodasEncomendas().then(enc => { setEncomendas(enc); setLoading(false); });
+    getTodasEncomendas(null, null).then(enc => { setEncomendas(enc); setLoading(false); });
   }, []);
 
   useEffect(() => {
@@ -92,8 +93,11 @@ export default function AdminEncomendasPage() {
 
   const filtradas = encomendas.filter(e => {
     if (filtroEstado && e.estado !== filtroEstado) return false;
-    if (filtro && !e.id.includes(filtro) && !e.cliente_email?.toLowerCase().includes(filtro.toLowerCase())) return false;
-    return true;
+    return correspondePesquisa(filtro, [
+      e.id, referenciaEncomenda(e), e.numero_sequencial, e.cliente_nome, e.cliente_email, e.cliente_id,
+      e.telefone_contacto, e.morada_entrega, e.cidade_entrega, e.pagamento_ref, e.notas,
+      badgeEstadoLabel(e.estado as EstadoEncomenda), e.itens?.map(i => i.nome),
+    ]);
   });
 
   const exportarCSV = () => {
@@ -154,7 +158,7 @@ export default function AdminEncomendasPage() {
             })}
           </div>
           <input
-            placeholder="Pesquisar por ID ou email..."
+            placeholder="Pesquisar por referência, cliente, telefone, produto..."
             value={filtro}
             onChange={e => setFiltro(e.target.value)}
             style={{ width: '100%', padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: 12 }}

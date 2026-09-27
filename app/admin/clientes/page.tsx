@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import { getDocs, collection, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { mostrarToast } from '@/components/Toast';
+import { correspondePesquisa } from '@/lib/pesquisa';
 import type { Perfil } from '@/lib/auth';
 
 export default function AdminClientesPage() {
@@ -26,7 +27,7 @@ export default function AdminClientesPage() {
   };
 
   const filtrados = clientes.filter(c =>
-    !filtro || c.nome?.toLowerCase().includes(filtro.toLowerCase()) || c.email?.toLowerCase().includes(filtro.toLowerCase())
+    correspondePesquisa(filtro, [c.id, c.nome, c.email, c.telefone, c.morada])
   );
 
   return (
@@ -37,7 +38,7 @@ export default function AdminClientesPage() {
       </div>
       <div className="admin-content">
         <div style={{ marginBottom: 20 }}>
-          <input placeholder="Pesquisar por nome ou email..." value={filtro} onChange={e => setFiltro(e.target.value)}
+          <input placeholder="Pesquisar por nome, email ou telefone..." value={filtro} onChange={e => setFiltro(e.target.value)}
             style={{ width: '100%', maxWidth: 360, padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none' }} />
         </div>
         <div className="table-card">
