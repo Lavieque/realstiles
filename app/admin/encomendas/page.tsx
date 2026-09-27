@@ -2,13 +2,25 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Package, Mail, MapPin, Phone, FileText, Download } from 'lucide-react';
+import { Package, Mail, MapPin, Phone, FileText, Download, CreditCard, Copy, RefreshCw } from 'lucide-react';
+import { auth } from '@/lib/firebase';
 import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import { correspondePesquisa } from '@/lib/pesquisa';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 
 const ESTADOS: EstadoEncomenda[] = ['pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
+
+const METODOS_PAGAMENTO: Record<string, string> = {
+  mpesa: 'M-Pesa', emola: 'e-Mola', cartao: 'Cartão', paysuite: 'PaySuite',
+};
+
+interface TentativaZumbo {
+  reference: string;
+  metodo?: string;
+  estado_local: string;
+  estado_zumbo: string | null;
+}
 
 export default function AdminEncomendasPage() {
   const searchParams = useSearchParams();
@@ -21,6 +33,40 @@ export default function AdminEncomendasPage() {
   const [filtroEstado, setFiltroEstado] = useState<EstadoEncomenda | ''>('');
   const [notas, setNotas] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [verificando, setVerificando] = useState(false);
+  const [tentativas, setTentativas] = useState<TentativaZumbo[] | null>(null);
+
+  useEffect(() => { setTentativas(null); }, [seleccionada?.id]);
+
+  const verificarPagamento = async () => {
+    if (!seleccionada) return;
+    setVerificando(true);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/zumbopay/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
+        body: JSON.stringify({ encomenda_id: seleccionada.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao verificar');
+      setTentativas(data.tentativas);
+      if (data.pago) {
+        const fresca = await getEncomenda(seleccionada.id);
+        if (fresca) {
+          setEncomendas(enc => enc.map(e => e.id === fresca.id ? fresca : e));
+          setSeleccionada(fresca);
+        }
+        mostrarToast('Pagamento confirmado no ZumboPay', 'success');
+      } else {
+        mostrarToast(data.tentativas.length ? 'Ainda sem pagamento confirmado' : 'Sem tentativas ZumboPay', 'info');
+      }
+    } catch (err) {
+      mostrarToast(err instanceof Error ? err.message : 'Erro ao verificar', 'error');
+    } finally {
+      setVerificando(false);
+    }
+  };
 
   useEffect(() => {
     getTodasEncomendas(null, null).then(enc => { setEncomendas(enc); setLoading(false); });
@@ -211,6 +257,47 @@ export default function AdminEncomendasPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Pagamento */}
+            <div style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', padding: 20, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={14} strokeWidth={1.5} /> Pagamento</h3>
+                {seleccionada.pagamento_metodo && seleccionada.pagamento_metodo !== 'paysuite' && (
+                  <button className="btn btn-outline btn-sm" onClick={verificarPagamento} disabled={verificando} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <RefreshCw size={13} strokeWidth={1.5} /> {verificando ? 'A verificar…' : 'Verificar no ZumboPay'}
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize: 14, color: 'var(--gray-600)', marginBottom: 4 }}>
+                Método: <strong>{seleccionada.pagamento_metodo ? METODOS_PAGAMENTO[seleccionada.pagamento_metodo] ?? seleccionada.pagamento_metodo : '—'}</strong>
+                {' · '}Estado: <strong>{seleccionada.pagamento_estado === 'pago' ? 'Pago' : (seleccionada.pagamento_estado || '—')}</strong>
+              </p>
+              <p style={{ fontSize: 14, color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                Referência ZumboPay:{' '}
+                {seleccionada.pagamento_ref ? (
+                  <>
+                    <code style={{ fontWeight: 700 }}>{seleccionada.pagamento_ref}</code>
+                    <button
+                      title="Copiar referência"
+                      onClick={() => { navigator.clipboard.writeText(seleccionada.pagamento_ref!); mostrarToast('Referência copiada', 'success'); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-500)', display: 'flex' }}
+                    >
+                      <Copy size={13} strokeWidth={1.5} />
+                    </button>
+                  </>
+                ) : <span>—</span>}
+              </p>
+              {tentativas && tentativas.length > 0 && (
+                <div style={{ marginTop: 12, borderTop: '1px solid var(--gray-100)', paddingTop: 8 }}>
+                  {tentativas.map(t => (
+                    <div key={t.reference} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gray-600)', padding: '4px 0' }}>
+                      <code>{t.reference}</code>
+                      <span>{t.metodo ? METODOS_PAGAMENTO[t.metodo] ?? t.metodo : ''} · local: {t.estado_local}{t.estado_zumbo ? ` · ZumboPay: ${t.estado_zumbo}` : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Notas admin */}
