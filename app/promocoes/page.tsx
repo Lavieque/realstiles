@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import ProdutoCard from '@/components/ProdutoCard';
+import FiltrosSidebar, { FiltroGrupo, FiltroCategorias, FiltroPreco, dentroDoIntervalo } from '@/components/FiltrosSidebar';
 import { getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
 import { estadoPromocao } from '@/lib/promocao';
@@ -8,33 +9,48 @@ import { Flame, Tag } from 'lucide-react';
 
 const PAGE = 12;
 
+type Ordem = 'fim' | 'desconto' | 'preco_asc' | 'preco_desc';
+
 export default function PromocoesPage() {
   const [todos, setTodos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
   const [catActual, setCatActual] = useState<string | null>(null);
+  const [precoIdx, setPrecoIdx] = useState(0);
+  const [ordem, setOrdem] = useState<Ordem>('fim');
   const [loading, setLoading] = useState(true);
   const [pagina, setPagina] = useState(PAGE);
 
   useEffect(() => {
     getProdutos({ emPromocao: true, max: 500 })
       .then(({ produtos: all }) => {
-        // Só as activas agora (exclui agendadas e já terminadas); a acabar primeiro no topo
-        const fimOuInf = (p: Produto) => estadoPromocao(p).fim ?? Infinity;
-        const emPromo = all
-          .filter(p => estadoPromocao(p).activa)
-          .sort((a, b) => fimOuInf(a) - fimOuInf(b));
+        // Só as activas agora (exclui agendadas e já terminadas)
+        const emPromo = all.filter(p => estadoPromocao(p).activa);
         setTodos(emPromo);
-        const seen = new Set<string>();
-        const cats: string[] = [];
-        emPromo.forEach(p => { if (p.categoria && !seen.has(p.categoria)) { seen.add(p.categoria); cats.push(p.categoria); } });
-        cats.sort();
+        const cats = Array.from(new Set(emPromo.map(p => p.categoria).filter(Boolean) as string[])).sort();
         setCategorias(cats);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const filtrados = catActual ? todos.filter(p => p.categoria === catActual) : todos;
+  const filtrados = todos
+    .filter(p => !catActual || p.categoria === catActual)
+    .filter(p => dentroDoIntervalo(estadoPromocao(p).preco, precoIdx))
+    .sort((a, b) => {
+      const ea = estadoPromocao(a), eb = estadoPromocao(b);
+      switch (ordem) {
+        case 'desconto':   return eb.desconto - ea.desconto;
+        case 'preco_asc':  return ea.preco - eb.preco;
+        case 'preco_desc': return eb.preco - ea.preco;
+        // A terminar primeiro; sem data de fim vão para o fim
+        default:           return (ea.fim ?? Infinity) - (eb.fim ?? Infinity);
+      }
+    });
   const visiveis = filtrados.slice(0, pagina);
+
+  const mudarCategoria = (cat: string | null) => { setCatActual(cat); setPagina(PAGE); };
+  const mudarPreco = (idx: number) => { setPrecoIdx(idx); setPagina(PAGE); };
+  const limpar = () => { setCatActual(null); setPrecoIdx(0); setPagina(PAGE); };
+  const numActivos = [!!catActual, precoIdx > 0].filter(Boolean).length;
 
   return (
     <>
@@ -49,65 +65,64 @@ export default function PromocoesPage() {
         </div>
       </div>
 
-      {/* FILTROS */}
-      {categorias.length > 0 && (
-        <div className="promo-filtros">
-          <span className="promo-filtros-label">Filtrar:</span>
-          <button
-            className={`promo-filtro-btn${catActual === null ? ' active' : ''}`}
-            onClick={() => { setCatActual(null); setPagina(PAGE); }}
-          >
-            Todas
-          </button>
-          {categorias.map(cat => (
-            <button
-              key={cat}
-              className={`promo-filtro-btn${catActual === cat ? ' active' : ''}`}
-              onClick={() => { setCatActual(cat); setPagina(PAGE); }}
-            >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* GRID */}
       <div className="promo-section">
         <div className="promo-topo">
           <h2>Artigos em promoção</h2>
-          {!loading && (
-            <span className="promo-contador">
-              <strong>{filtrados.length}</strong> artigo{filtrados.length !== 1 ? 's' : ''}
-            </span>
-          )}
+          <select className="filtro-ordenacao" value={ordem} onChange={e => setOrdem(e.target.value as Ordem)}>
+            <option value="fim">A terminar primeiro</option>
+            <option value="desconto">Maior desconto</option>
+            <option value="preco_asc">Preço: menor primeiro</option>
+            <option value="preco_desc">Preço: maior primeiro</option>
+          </select>
         </div>
 
-        {loading ? (
-          <div className="loading"><div className="spinner" /> A carregar promoções...</div>
-        ) : filtrados.length === 0 ? (
-          <div className="promo-vazio">
-            <div className="icon"><Tag size={40} strokeWidth={1.5} /></div>
-            <h3>Sem promoções {catActual ? 'nesta categoria' : 'activas'}</h3>
-            <p>Volta em breve para novos descontos.</p>
-          </div>
-        ) : (
-          <>
-            <div className="produtos-grid">
-              {visiveis.map(p => <ProdutoCard key={p.id} produto={p} />)}
-            </div>
-            {filtrados.length > pagina && (
-              <div style={{ textAlign: 'center', marginTop: 40 }}>
-                <button
-                  className="btn btn-outline"
-                  style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
-                  onClick={() => setPagina(n => n + PAGE)}
-                >
-                  Ver mais promoções
-                </button>
-              </div>
+        <div className="catalogo-com-sidebar">
+          <FiltrosSidebar
+            numActivos={numActivos}
+            onLimpar={limpar}
+            contagem={loading ? undefined : `${filtrados.length} artigo${filtrados.length !== 1 ? 's' : ''}`}
+            fecharQuando={catActual}
+          >
+            {categorias.length > 0 && (
+              <FiltroGrupo titulo="Categoria" primeiro>
+                <FiltroCategorias categorias={categorias} actual={catActual} onChange={mudarCategoria} rotuloTodos="Todas" />
+              </FiltroGrupo>
             )}
-          </>
-        )}
+            <FiltroGrupo titulo="Preço" primeiro={categorias.length === 0}>
+              <FiltroPreco valor={precoIdx} onChange={mudarPreco} />
+            </FiltroGrupo>
+          </FiltrosSidebar>
+
+          <div className="catalogo-resultado">
+            {loading ? (
+              <div className="loading"><div className="spinner" /> A carregar promoções...</div>
+            ) : filtrados.length === 0 ? (
+              <div className="promo-vazio">
+                <div className="icon"><Tag size={40} strokeWidth={1.5} /></div>
+                <h3>Sem promoções {numActivos > 0 ? 'com estes filtros' : 'activas'}</h3>
+                <p>{numActivos > 0 ? 'Tenta outro filtro.' : 'Volta em breve para novos descontos.'}</p>
+              </div>
+            ) : (
+              <>
+                <div className="produtos-grid">
+                  {visiveis.map(p => <ProdutoCard key={p.id} produto={p} />)}
+                </div>
+                {filtrados.length > pagina && (
+                  <div style={{ textAlign: 'center', marginTop: 40 }}>
+                    <button
+                      className="btn btn-outline"
+                      style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
+                      onClick={() => setPagina(n => n + PAGE)}
+                    >
+                      Ver mais promoções
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

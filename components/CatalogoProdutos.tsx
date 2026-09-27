@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { AlertTriangle, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
+import FiltrosSidebar, { FiltroGrupo, FiltroCategorias, FiltroPreco, INTERVALOS_PRECO } from './FiltrosSidebar';
 import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdutos } from '@/lib/produtos';
 import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '@/lib/produtos';
 import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
@@ -41,14 +42,6 @@ function escolherSeed(seedInicial?: string): string {
   return seed;
 }
 
-const INTERVALOS_PRECO = [
-  { label: 'Todos os preços', min: 0, max: Infinity },
-  { label: 'Até 500 MZN', min: 0, max: 500 },
-  { label: '500 – 1 000', min: 500, max: 1000 },
-  { label: '1 000 – 2 000', min: 1000, max: 2000 },
-  { label: '2 000+', min: 2000, max: Infinity },
-];
-
 export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos' }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string }) {
   const searchParams = useSearchParams();
   const catParam = searchParams.get('cat');
@@ -71,8 +64,6 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   const [tamActual, setTamActual] = useState<string | null>(null);
   const [corActual, setCorActual] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState('relevancia');
-  const [catExpandida, setCatExpandida] = useState(false);
-  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const scrollRestored = useRef(false);
   const seedRef = useRef<string | null>(null);
   const cursorAleatorioRef = useRef<CursorAleatorio | null>(null);
@@ -201,20 +192,19 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     setPrecoIdx(0);
     setTamActual(null);
     setCorActual(null);
-    setCatExpandida(false);
-    setFiltrosAbertos(false);
     const url = cat ? `/?cat=${cat}` : '/';
     window.history.pushState({}, '', url);
     carregarProdutos(cat, false);
   };
 
-  const limparFiltros = () => {
+  // "Limpar" repõe tudo, incluindo a categoria (filtrar já limpa preço/tamanho/cor)
+  const limparTudo = () => {
+    if (catActual) { filtrar(null); return; }
     setPrecoIdx(0);
     setTamActual(null);
     setCorActual(null);
   };
 
-  const temFiltrosActivos = precoIdx > 0 || tamActual !== null || corActual !== null;
   const numFiltrosActivos = [!!catActual, precoIdx > 0, tamActual !== null, corActual !== null].filter(Boolean).length;
 
   // Debounce pesquisa + sync URL
@@ -305,67 +295,22 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       {mostrarSidebar ? (
         <div className="catalogo-com-sidebar">
           {/* Sidebar */}
-          <aside className={`filtros-sidebar${filtrosAbertos ? ' aberto' : ''}`}>
-            <div className="filtros-sidebar-header">
-              {/* Em mobile o título é o botão que abre/fecha os filtros */}
-              <button
-                type="button"
-                className="filtros-toggle"
-                onClick={() => setFiltrosAbertos(v => !v)}
-                aria-expanded={filtrosAbertos}
-              >
-                <SlidersHorizontal size={16} strokeWidth={1.5} className="filtros-toggle-icone" />
-                <span>Filtros</span>
-                {numFiltrosActivos > 0 && <span className="filtros-toggle-contador">{numFiltrosActivos}</span>}
-                <ChevronDown size={16} strokeWidth={1.5} className="filtros-toggle-seta" />
-              </button>
-              {temFiltrosActivos && (
-                <button className="filtros-limpar" onClick={limparFiltros}>Limpar</button>
-              )}
-            </div>
+          <FiltrosSidebar
+            numActivos={numFiltrosActivos}
+            onLimpar={limparTudo}
+            contagem={`${produtos.length} produto${produtos.length !== 1 ? 's' : ''}`}
+            fecharQuando={catActual}
+          >
+            <FiltroGrupo titulo="Categoria" primeiro>
+              <FiltroCategorias categorias={categoriasVisiveis} actual={catActual} onChange={filtrar} visiveis={CAT_VISIVEIS} />
+            </FiltroGrupo>
 
-            <div className="filtros-corpo">
+            <FiltroGrupo titulo="Preço">
+              <FiltroPreco valor={precoIdx} onChange={setPrecoIdx} />
+            </FiltroGrupo>
 
-            {/* Categoria */}
-            <div className="filtro-grupo" style={{ borderTop: 'none', paddingTop: 0 }}>
-              <p className="filtro-grupo-titulo">Categoria</p>
-              <div className="filtro-cat-lista">
-                <button className={`filtro-cat-item${!catActual ? ' active' : ''}`} onClick={() => filtrar(null)}>
-                  Todos
-                </button>
-                {(catExpandida ? categoriasVisiveis : categoriasVisiveis.slice(0, CAT_VISIVEIS)).map(cat => (
-                  <button key={cat} className={`filtro-cat-item${catActual === cat ? ' active' : ''}`} onClick={() => filtrar(cat)}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </button>
-                ))}
-              </div>
-              {categoriasVisiveis.length > CAT_VISIVEIS && (
-                <button className="filtro-cat-vermais" onClick={() => setCatExpandida(v => !v)}>
-                  {catExpandida ? 'Ver menos' : `Ver mais (${categoriasVisiveis.length - CAT_VISIVEIS})`}
-                </button>
-              )}
-            </div>
-
-            {/* Preço */}
-            <div className="filtro-grupo">
-              <p className="filtro-grupo-titulo">Preço</p>
-              {INTERVALOS_PRECO.map((f, i) => (
-                <label key={f.label} className="filtro-radio">
-                  <input
-                    type="radio"
-                    name="preco"
-                    checked={precoIdx === i}
-                    onChange={() => setPrecoIdx(i)}
-                  />
-                  <span>{f.label}</span>
-                </label>
-              ))}
-            </div>
-
-            {/* Tamanho */}
             {tamanhos.length > 0 && (
-              <div className="filtro-grupo">
-                <p className="filtro-grupo-titulo">Tamanho</p>
+              <FiltroGrupo titulo="Tamanho">
                 <div className="filtro-tam-grid">
                   <button
                     className={`filtro-tam-btn${tamActual === null ? ' active' : ''}`}
@@ -383,13 +328,11 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
                     </button>
                   ))}
                 </div>
-              </div>
+              </FiltroGrupo>
             )}
 
-            {/* Cor */}
             {cores.length > 0 && (
-              <div className="filtro-grupo">
-                <p className="filtro-grupo-titulo">Cor</p>
+              <FiltroGrupo titulo="Cor">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label className="filtro-radio">
                     <input type="radio" name="cor" checked={corActual === null} onChange={() => setCorActual(null)} />
@@ -402,15 +345,9 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
                     </label>
                   ))}
                 </div>
-              </div>
+              </FiltroGrupo>
             )}
-
-            {/* Contagem */}
-            <p className="filtros-contagem">
-              {produtos.length} produto{produtos.length !== 1 ? 's' : ''}
-            </p>
-            </div>
-          </aside>
+          </FiltrosSidebar>
 
           {/* Produtos */}
           <div className="catalogo-resultado">

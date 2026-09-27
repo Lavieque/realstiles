@@ -7,6 +7,7 @@ import { getEncomendasCliente, badgeEstadoClass, badgeEstadoLabel, formatarData,
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Package, MessageCircle } from 'lucide-react';
+import FiltrosSidebar, { FiltroGrupo, FiltroOpcoes } from '@/components/FiltrosSidebar';
 
 const ESTADOS = ['', 'pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
 const ESTADO_LABEL: Record<string, string> = {
@@ -15,11 +16,19 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 const PAGE_SIZE = 8;
 
+type Ordem = 'data_desc' | 'data_asc' | 'valor_desc' | 'valor_asc';
+const ORDENS: { valor: Ordem; label: string }[] = [
+  { valor: 'data_desc', label: 'Mais recentes' },
+  { valor: 'data_asc', label: 'Mais antigas' },
+  { valor: 'valor_desc', label: 'Maior valor' },
+  { valor: 'valor_asc', label: 'Menor valor' },
+];
+
 export default function EncomendasPage() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
   const [filtro, setFiltro] = useState('');
-  const [ordem, setOrdem] = useState<'data_desc' | 'data_asc' | 'valor_desc' | 'valor_asc'>('data_desc');
+  const [ordem, setOrdem] = useState<Ordem>('data_desc');
   const [pagina, setPagina] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -91,36 +100,31 @@ export default function EncomendasPage() {
           <p>{encomendas.length} encomenda{encomendas.length !== 1 ? 's' : ''} no total</p>
         </div>
 
-        {/* Filtros com contadores */}
-        <div className="enc-filtros-wrap">
-          <div className="filtros-estado">
-            {ESTADOS.map(e => (
-              <button
-                key={e}
-                className={`filtro-estado-btn${filtro === e ? ' active' : ''}`}
-                onClick={() => mudarFiltro(e)}
-              >
-                {ESTADO_LABEL[e]}
-                {(contadores[e] || 0) > 0 && (
-                  <span className="filtro-estado-count">{contadores[e]}</span>
-                )}
-              </button>
-            ))}
-          </div>
+        <div className="catalogo-com-sidebar">
+        <FiltrosSidebar
+          numActivos={[!!filtro, ordem !== 'data_desc'].filter(Boolean).length}
+          onLimpar={() => { mudarFiltro(''); setOrdem('data_desc'); }}
+          contagem={`${filtradas.length} encomenda${filtradas.length !== 1 ? 's' : ''}`}
+          fecharQuando={`${filtro}|${ordem}`}
+        >
+          <FiltroGrupo titulo="Estado" primeiro>
+            <FiltroOpcoes
+              nome="estado"
+              valor={filtro}
+              onChange={mudarFiltro}
+              opcoes={ESTADOS.map(e => ({
+                valor: e,
+                label: ESTADO_LABEL[e],
+                extra: (contadores[e] || 0) > 0 ? <span className="filtro-radio-count">{contadores[e]}</span> : undefined,
+              }))}
+            />
+          </FiltroGrupo>
+          <FiltroGrupo titulo="Ordenar por">
+            <FiltroOpcoes nome="ordem" valor={ordem} onChange={setOrdem} opcoes={ORDENS} />
+          </FiltroGrupo>
+        </FiltrosSidebar>
 
-          {/* Ordenação */}
-          <select
-            className="enc-ordem-select"
-            value={ordem}
-            onChange={e => setOrdem(e.target.value as typeof ordem)}
-          >
-            <option value="data_desc">Mais recentes</option>
-            <option value="data_asc">Mais antigas</option>
-            <option value="valor_desc">Maior valor</option>
-            <option value="valor_asc">Menor valor</option>
-          </select>
-        </div>
-
+        <div className="catalogo-resultado">
         {visiveis.length === 0 ? (
           <div className="empty-state">
             <div className="icon"><Package size={40} strokeWidth={1.5} /></div>
@@ -184,6 +188,8 @@ export default function EncomendasPage() {
             )}
           </>
         )}
+        </div>
+        </div>
       </div>
     </div>
   );
