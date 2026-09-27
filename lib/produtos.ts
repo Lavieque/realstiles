@@ -96,6 +96,16 @@ export async function getProdutos({
   };
 }
 
+// Admin: todos os produtos (activos e inactivos), sem limite. Ordena em memória
+// para não excluir documentos sem 'criado_em' (o orderBy do Firestore excluía-os).
+export async function getTodosProdutos(): Promise<Produto[]> {
+  const snap = await comTimeout(getDocs(collection(db, COL)), 30000);
+  const ms = (p: Produto) => (p.criado_em as { toMillis?: () => number })?.toMillis?.() ?? 0;
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as Produto))
+    .sort((a, b) => ms(b) - ms(a));
+}
+
 export async function getProduto(id: string): Promise<Produto | null> {
   const snap = await comTimeout(getDoc(doc(db, COL, id)));
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as Produto) : null;

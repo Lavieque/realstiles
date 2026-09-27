@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Image from '@/components/CloudImage';
 import { ShoppingBag, X } from 'lucide-react';
-import { getProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
+import { getTodosProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
 import { aplicarTaxas, detalharTaxas } from '@/lib/taxas';
@@ -23,7 +23,10 @@ export default function AdminProdutosPage() {
   const [taxas, setTaxas] = useState<Taxa[]>([]);
 
   useEffect(() => {
-    getProdutos({ max: 200 }).then(({ produtos: p }) => { setProdutos(p); setLoading(false); });
+    getTodosProdutos()
+      .then(setProdutos)
+      .catch(() => mostrarToast('Erro ao carregar produtos', 'error'))
+      .finally(() => setLoading(false));
     getCategorias().then(setCategorias).catch(() => {});
     fetch('/api/admin/sincronizar-categorias', { method: 'POST' }).catch(() => {});
     fetch('/api/config/taxas').then(r => r.json()).then(d => setTaxas(d.itens || [])).catch(() => {});
