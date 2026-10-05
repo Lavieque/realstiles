@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Check } from 'lucide-react';
 import { getDocs, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -70,6 +71,16 @@ export default function AdminClientesPage() {
           <input placeholder="Pesquisar por nome, email, telefone ou role..." value={filtro} onChange={e => setFiltro(e.target.value)}
             style={{ width: '100%', maxWidth: 360, padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--gray-200)', fontSize: 14, fontFamily: 'Inter, sans-serif', outline: 'none' }} />
         </div>
+        {gereRoles && (
+          <div style={{ background: '#eaf1fb', border: '1px solid #c7d8f2', borderRadius: 12, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#2c5aa0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <span>
+              {roles.length === 0
+                ? 'Ainda não há roles. Cria uma role e escolhe os menus a que dá acesso; depois atribui-a aqui na coluna "Acesso ao painel".'
+                : 'Para dar acesso só a alguns menus, escolhe uma role na coluna "Acesso ao painel". Os menus de cada role definem-se em Roles e permissões.'}
+            </span>
+            <Link href="/admin/roles" className="btn btn-primary btn-sm">{roles.length === 0 ? 'Criar role' : 'Gerir roles'}</Link>
+          </div>
+        )}
         <div className="table-card">
           <div className="table-wrapper">
             <table>
@@ -96,8 +107,8 @@ export default function AdminClientesPage() {
                       </td>
                       {acesso.superAdmin && (
                         <td>
-                          <button className="btn btn-outline btn-sm" onClick={() => toggleSuperAdmin(c)}>
-                            {c.admin ? 'Remover administrador' : 'Tornar administrador'}
+                          <button className="btn btn-outline btn-sm" onClick={() => toggleSuperAdmin(c)} title="Administrador tem acesso a todos os menus. Para acesso parcial, atribui uma role.">
+                            {c.admin ? 'Remover acesso total' : 'Dar acesso total'}
                           </button>
                         </td>
                       )}
