@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
 
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { account_id } = await req.json();
     if (!account_id) return NextResponse.json({ error: 'account_id obrigatório' }, { status: 400 });

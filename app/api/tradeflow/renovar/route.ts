@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
 
-export async function POST() {
+export async function POST(req: Request) {
+  const auth = await exigirPermissao(req, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const snap = await adminDb.collection('configuracoes').doc('tradeflow').get();
     const accountId = snap.data()?.account_id;

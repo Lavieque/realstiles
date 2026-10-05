@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'produtos', 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   const tfUrl = process.env.TRADEFLOW_API_URL;
   if (!tfUrl) return NextResponse.json({ error: 'TradeFlow não configurado' }, { status: 503 });
 

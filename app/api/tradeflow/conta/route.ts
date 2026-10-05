@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
@@ -32,7 +33,10 @@ async function getStored(): Promise<{ account_id: string; license_key: string; s
 }
 
 // GET /api/tradeflow/conta — devolve { conta, planos, license_key_local }
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'integracoes', 'produtos');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const [stored, planos] = await Promise.all([
       getStored(),
@@ -82,6 +86,9 @@ async function ensureStore(accountId: string, storeUrl: string) {
 
 // POST /api/tradeflow/conta — subscrever plano ou ligar conta existente
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await req.json();
 
@@ -138,7 +145,10 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE /api/tradeflow/conta — desligar conta do site (não cancela no TradeFlow)
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await adminDb.collection('configuracoes').doc('tradeflow').delete();
     return NextResponse.json({ ok: true });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 // POST — extensão envia dados do produto Temu
 export async function POST(req: NextRequest) {
@@ -25,6 +26,9 @@ export async function POST(req: NextRequest) {
 
 // GET — página do realstiles faz polling para saber se a extensão já enviou
 export async function GET(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'produtos');
+  if (auth instanceof NextResponse) return auth;
+
   const token = req.nextUrl.searchParams.get('token');
   if (!token) return NextResponse.json({ ready: false });
 

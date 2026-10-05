@@ -46,11 +46,8 @@ function ContaInner() {
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/tradeflow/conta').then(r => r.json()).catch(() => ({})),
-      fetch('/api/config/notify').then(r => r.json()).catch(() => ({})),
-    ]).then(([tf, notify]) => {
-      const activo = tf.conta?.whatsapp_ativo === true && notify.whatsapp_login === true;
+    fetch('/api/config/notify').then(r => r.json()).catch(() => ({})).then(notify => {
+      const activo = notify.whatsapp_ativo === true && notify.whatsapp_login === true;
       setWhatsappActivo(activo);
       if (!activo) setMetodo('email');
     });

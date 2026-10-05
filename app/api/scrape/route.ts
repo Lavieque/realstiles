@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'produtos');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { url } = await req.json();
     if (!url) return NextResponse.json({ error: 'URL em falta' }, { status: 400 });

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { mostrarToast } from '@/components/Toast';
 import { ICONES } from '@/lib/announcement-icons';
 import { ArrowUp, ArrowDown, X } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface ItemAnuncio {
   id: string;
@@ -29,7 +30,7 @@ export default function AdminBannerPage() {
   const guardar = async (novosItens: ItemAnuncio[]) => {
     setSalvando(true);
     try {
-      const res = await fetch('/api/config/anuncios', {
+      const res = await adminFetch('/api/config/anuncios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itens: novosItens }),

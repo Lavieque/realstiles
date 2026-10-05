@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
 
 // POST /api/tradeflow/creditos — reset ou adicionar créditos
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { acao, quantidade } = await req.json(); // acao: 'reset' | 'adicionar'
     const snap = await adminDb.collection('configuracoes').doc('tradeflow').get();

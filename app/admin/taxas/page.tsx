@@ -4,6 +4,7 @@ import { mostrarToast } from '@/components/Toast';
 import { aplicarTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
 import { X } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 export default function AdminTaxasPage() {
   const [itens, setItens] = useState<Taxa[]>([]);
@@ -14,7 +15,7 @@ export default function AdminTaxasPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/config/taxas')
+    adminFetch('/api/config/taxas')
       .then(r => r.json())
       .then(d => { setItens(d.itens || []); setLoading(false); })
       .catch(() => setLoading(false));
@@ -23,7 +24,7 @@ export default function AdminTaxasPage() {
   const guardar = async (novosItens: Taxa[]) => {
     setSalvando(true);
     try {
-      const res = await fetch('/api/config/taxas', {
+      const res = await adminFetch('/api/config/taxas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itens: novosItens }),

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'produtos');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { categorias } = await req.json();
     await adminDb.collection('config').doc('loja').set({ categorias }, { merge: true });

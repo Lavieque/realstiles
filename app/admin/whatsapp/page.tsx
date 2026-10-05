@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { mostrarToast } from '@/components/Toast';
 import { Lock, Package, Smartphone, AlertTriangle, CreditCard, Play, RefreshCw } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 type Status = {
   status: 'ligado' | 'desligado' | 'aguarda_qr';
@@ -40,7 +41,7 @@ export default function WhatsAppAdmin() {
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/tradeflow/conta').then(r => r.json()).then(d => {
+    adminFetch('/api/tradeflow/conta').then(r => r.json()).then(d => {
       setTemWhatsappTF(d.conta?.whatsapp_ativo === true);
     }).catch(() => setTemWhatsappTF(false));
   }, []);
@@ -48,10 +49,10 @@ export default function WhatsAppAdmin() {
   const comprarAddon = async () => {
     setPortalLoading(true);
     try {
-      const snap = await fetch('/api/tradeflow/conta').then(r => r.json());
+      const snap = await adminFetch('/api/tradeflow/conta').then(r => r.json());
       const accountId = snap.conta?.id;
       if (!accountId) throw new Error('Sem conta TradeFlow');
-      const res = await fetch('/api/tradeflow/checkout', {
+      const res = await adminFetch('/api/tradeflow/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +77,7 @@ export default function WhatsAppAdmin() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/notify/status');
+      const res = await adminFetch('/api/notify/status');
       if (!res.ok) return;
       const data = await res.json();
       setStatusData(data);
@@ -85,7 +86,7 @@ export default function WhatsAppAdmin() {
 
   const fetchMensagens = useCallback(async () => {
     try {
-      const res = await fetch('/api/notify/messages');
+      const res = await adminFetch('/api/notify/messages');
       if (!res.ok) return;
       const data = await res.json();
       setMensagens(data.mensagens || []);
@@ -109,14 +110,14 @@ export default function WhatsAppAdmin() {
     localStorage.setItem(STORAGE_KEY, '1');
     setAderido(true);
     setLoading(true);
-    await fetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: true }) }).catch(() => {});
+    await adminFetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: true }) }).catch(() => {});
     Promise.all([fetchStatus(), fetchMensagens()]).finally(() => setLoading(false));
   };
 
   const cancelarServico = async () => {
     if (!confirm('Tens a certeza que queres cancelar o serviço WhatsApp? O login por WhatsApp ficará desactivado para os clientes.')) return;
     localStorage.removeItem(STORAGE_KEY);
-    await fetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: false }) }).catch(() => {});
+    await adminFetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: false }) }).catch(() => {});
     setAderido(false);
     setStatusData(null);
   };
@@ -124,7 +125,7 @@ export default function WhatsAppAdmin() {
   const conectar = async () => {
     setAAccionar(true);
     try {
-      const res = await fetch('/api/notify/connect', { method: 'POST' });
+      const res = await adminFetch('/api/notify/connect', { method: 'POST' });
       const data = await res.json();
       if (data.ok) {
         mostrarToast('A gerar QR code...', 'info');
@@ -142,7 +143,7 @@ export default function WhatsAppAdmin() {
   const desconectar = async () => {
     if (!confirm('Tens a certeza que queres desligar o WhatsApp?')) return;
     try {
-      const res = await fetch('/api/notify/disconnect', { method: 'POST' });
+      const res = await adminFetch('/api/notify/disconnect', { method: 'POST' });
       const data = await res.json();
       if (data.ok) {
         mostrarToast('Sessão terminada', 'success');

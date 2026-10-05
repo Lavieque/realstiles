@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'produtos', 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await req.json();
     const res = await fetch(`${TF_URL()}/cookies`, {

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
 
 export async function PUT(request: Request) {
+  const auth = await exigirPermissao(request, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { account_id, plano_id, confirmado_upgrade } = await request.json();
     if (!account_id || !plano_id) return NextResponse.json({ error: 'account_id e plano_id são obrigatórios' }, { status: 400 });

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const ZP_BASE = 'https://zumbopay.com/api/public/v1';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await exigirPermissao(req, 'pagamentos');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const res = await fetch(`${ZP_BASE}/wallets`, {
       headers: {

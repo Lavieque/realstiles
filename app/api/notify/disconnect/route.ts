@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 
 const API = process.env.NOTIFY_API_URL || 'http://localhost:3010';
 const KEY = process.env.NOTIFY_API_KEY || '';
 
-export async function POST() {
+export async function POST(req: Request) {
+  const auth = await exigirPermissao(req, 'integracoes');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const res = await fetch(`${API}/status/disconnect`, {
       method: 'POST',
