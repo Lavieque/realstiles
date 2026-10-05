@@ -3,22 +3,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Produtos — leitura pública; escrita (admin/importação) para autenticados.
+    // ── Acessos da equipa ──────────────────────────────────────────────
+    // clientes/{uid}.admin == true  → super admin, acesso a tudo.
+    // clientes/{uid}.role == <id>   → permissões de roles/{id}.permissoes
+    // (chaves definidas em lib/permissoes.ts — mantém as duas em sincronia).
+
+    function perfil() {
+      return get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data;
+    }
+
+    function isSuper() {
+      return request.auth != null && perfil().get('admin', false) == true;
+    }
+
+    function permissoesRole() {
+      return get(/databases/$(database)/documents/roles/$(perfil().role)).data.get('permissoes', []);
+    }
+
+    function temRole() {
+      return request.auth != null
+        && perfil().get('role', null) is string
+        && perfil().role != '';
+    }
+
+    function temPerm(p) {
+      return isSuper() || (temRole() && permissoesRole().hasAny([p]));
+    }
+
+    // Qualquer membro da equipa (super admin ou role com pelo menos uma permissão)
+    function isEquipa() {
+      return isSuper() || (temRole() && permissoesRole().size() > 0);
+    }
+
+    function camposAlterados() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Produtos — leitura pública; escrita para quem gere produtos.
+    // Quem modera avaliações só pode actualizar a média/contagem de estrelas.
     match /produtos/{produtoId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if temPerm('produtos');
+      allow update: if temPerm('avaliacoes')
+        && camposAlterados().hasOnly(['avaliacao', 'num_avaliacoes']);
 
-      // Avaliações de clientes — só ficam públicas depois de aprovadas pelo
-      // admin. Cada cliente só pode criar/editar/apagar a SUA própria
-      // avaliação, e não pode auto-aprovar-se (create/update força
-      // estado == 'pendente'). O admin (clientes/{uid}.admin == true) pode
-      // ler tudo, aprovar (mudar estado) e apagar qualquer avaliação.
+      // Avaliações de clientes — só ficam públicas depois de aprovadas.
+      // Cada cliente só pode criar/editar/apagar a SUA própria avaliação,
+      // e não pode auto-aprovar-se (create/update força estado == 'pendente').
+      // Quem tem a permissão 'avaliacoes' pode ler tudo, aprovar e apagar.
       match /comentarios/{clienteId} {
-        function isAdmin() {
-          return request.auth != null &&
-            get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.admin == true;
-        }
-
         // Fotos da avaliação: opcional, lista com no máximo 4 URLs do Cloudinary
         function imagensValidas() {
           let imgs = request.resource.data.get('imagens', []);
@@ -31,7 +64,7 @@ service cloud.firestore {
 
         allow read: if resource.data.estado == 'aprovado'
           || (request.auth != null && request.auth.uid == clienteId)
-          || isAdmin();
+          || temPerm('avaliacoes');
 
         allow create: if request.auth != null
           && request.auth.uid == clienteId
@@ -46,27 +79,89 @@ service cloud.firestore {
             && request.resource.data.produto_id == produtoId
             && request.resource.data.estado == 'pendente'
             && imagensValidas())
-          || isAdmin();
+          || temPerm('avaliacoes');
 
-        allow delete: if (request.auth != null && request.auth.uid == clienteId) || isAdmin();
+        allow delete: if (request.auth != null && request.auth.uid == clienteId) || temPerm('avaliacoes');
       }
     }
 
-    // Config do site — leitura pública (textos, títulos, etc.)
-    match /config/{document=**} {
-      allow read: if true;
+    // Config do site — leitura pública (textos, títulos, etc.); escrita só
+    // para a equipa. O contador de encomendas é incrementado pelo próprio
+    // cliente ao fazer checkout (transacção em lib/encomendas.ts).
+    match /config/contador_encomendas {
       allow write: if request.auth != null;
     }
+    match /config/{document=**} {
+      allow read: if true;
+      allow write: if isEquipa();
+    }
 
-    // Clientes, encomendas, reclamações — só utilizadores autenticados
-    match /clientes/{document=**} {
-      allow read, write: if request.auth != null;
+    // Roles — a equipa lê (o painel precisa do nome da role); só quem gere
+    // utilizadores cria, edita ou apaga roles.
+    match /roles/{roleId} {
+      allow read: if isEquipa();
+      allow write: if temPerm('utilizadores');
     }
-    match /encomendas/{document=**} {
-      allow read, write: if request.auth != null;
+
+    // Perfis — cada utilizador gere o seu, mas nunca os campos de acesso
+    // (admin/role). Quem gere utilizadores só pode mudar a role; promover
+    // a administrador fica reservado ao super admin.
+    match /clientes/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isEquipa());
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.get('admin', false) == false
+        && request.resource.data.get('role', null) == null;
+      allow update: if isSuper()
+        || (temPerm('utilizadores') && resource.data.get('admin', false) != true
+            && camposAlterados().hasOnly(['role']))
+        || (request.auth != null && request.auth.uid == uid
+            && !camposAlterados().hasAny(['admin', 'role']));
+      allow delete: if isSuper();
+
+      match /{sub=**} {
+        allow read, write: if request.auth != null && (request.auth.uid == uid || isSuper());
+      }
     }
-    match /reclamacoes/{document=**} {
-      allow read, write: if request.auth != null;
+
+    // Encomendas — o cliente cria e vê as suas e só pode cancelá-las;
+    // a equipa com 'encomendas' gere tudo ('dashboard' só lê).
+    match /encomendas/{encomendaId} {
+      allow read: if request.auth != null
+        && (resource.data.cliente_id == request.auth.uid
+            || temPerm('encomendas') || temPerm('dashboard'));
+      allow create: if request.auth != null;
+      allow update: if temPerm('encomendas')
+        || (request.auth != null
+            && resource.data.cliente_id == request.auth.uid
+            && request.resource.data.estado == 'cancelada'
+            && camposAlterados().hasOnly(['estado', 'actualizado_em']));
+      allow delete: if temPerm('encomendas');
+
+      match /{sub=**} {
+        allow read, write: if temPerm('encomendas');
+      }
+    }
+
+    // Reclamações — o cliente cria e acompanha as suas e troca mensagens;
+    // a equipa com 'reclamacoes' gere tudo.
+    match /reclamacoes/{reclamacaoId} {
+      function donoReclamacao() {
+        return request.auth != null
+          && get(/databases/$(database)/documents/reclamacoes/$(reclamacaoId)).data.cliente_id == request.auth.uid;
+      }
+
+      allow read: if request.auth != null
+        && (resource.data.cliente_id == request.auth.uid || temPerm('reclamacoes'));
+      allow create: if request.auth != null;
+      allow update, delete: if temPerm('reclamacoes');
+
+      match /mensagens/{mensagemId} {
+        allow read: if donoReclamacao() || temPerm('reclamacoes');
+        allow create: if (donoReclamacao() && request.resource.data.autor == 'cliente')
+          || temPerm('reclamacoes');
+        allow update, delete: if temPerm('reclamacoes');
+      }
     }
 
     // Qualquer outra colecção não prevista acima fica negada por omissão

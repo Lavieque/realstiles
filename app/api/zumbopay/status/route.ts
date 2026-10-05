@@ -1,24 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
+import { exigirPermissao } from '@/lib/permissoes-server';
 import { consultarPagamentoZumbo, estadoZumboPago, marcarPagamentoZumboPago } from '@/lib/zumbopay';
 
 // Reconciliação manual (admin): consulta no ZumboPay cada tentativa de
 // pagamento da encomenda e confirma-a se alguma estiver paga. Serve para
 // acertar encomendas cujo webhook não chegou.
 export async function POST(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-  if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
-
-  let uid: string;
-  try {
-    uid = (await adminAuth.verifyIdToken(token)).uid;
-  } catch {
-    return NextResponse.json({ error: 'Sessão inválida' }, { status: 401 });
-  }
-  const perfil = await adminDb.collection('clientes').doc(uid).get();
-  if (perfil.data()?.admin !== true) {
-    return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
-  }
+  const auth = await exigirPermissao(req, 'encomendas', 'pagamentos');
+  if (auth instanceof NextResponse) return auth;
 
   const { encomenda_id } = await req.json().catch(() => ({}));
   if (!encomenda_id) return NextResponse.json({ error: 'encomenda_id em falta' }, { status: 400 });

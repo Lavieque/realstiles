@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useCarrinho, getTotalItems } from '@/store/carrinho';
-import { onAuthChange, getPerfil, logout } from '@/lib/auth';
+import { onAuthChange, getPerfil, logout, temAcessoAdmin } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 import { ShoppingCart, Flame, Heart, Search } from 'lucide-react';
 
@@ -133,7 +133,7 @@ export default function Nav() {
                 <li><Link href="/conta">A minha conta</Link></li>
                 <li><Link href="/favoritos" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Favoritos <Heart size={14} strokeWidth={1.5} /></Link></li>
                 <li><Link href="/encomendas">Encomendas</Link></li>
-                {perfil.admin && <li><Link href="/admin">Admin</Link></li>}
+                {temAcessoAdmin(perfil) && <li><Link href="/admin">Admin</Link></li>}
                 <li className="nav-submenu-sep" />
                 <li><a href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}>Sair</a></li>
               </ul>

@@ -3,7 +3,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from '@/components/CloudImage';
 import Link from 'next/link';
-import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout, actualizarPerfil } from '@/lib/auth';
+import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout, actualizarPerfil, temAcessoAdmin } from '@/lib/auth';
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
@@ -294,7 +294,7 @@ function ContaInner() {
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <a href="/encomendas" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Package size={16} strokeWidth={1.5} /> Todas as encomendas</a>
                 <a href="/reclamacoes" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquareText size={16} strokeWidth={1.5} /> As minhas reclamações</a>
-                {perfil.admin && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Settings size={16} strokeWidth={1.5} /> Painel admin</a>}
+                {temAcessoAdmin(perfil) && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Settings size={16} strokeWidth={1.5} /> Painel admin</a>}
                 {user.email && <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }} onClick={handlePasswordReset} disabled={loading}><Key size={16} strokeWidth={1.5} /> Alterar password</button>}
                 <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => { await logout(); setUser(null); setPerfil(null); setEncomendas([]); }}><LogOut size={16} strokeWidth={1.5} /> Sair da conta</button>
               </div>

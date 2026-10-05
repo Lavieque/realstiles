@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { adminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { permissoesDoUtilizador } from '@/lib/permissoes-server';
 
 // Formatos permitidos a clientes (fotos das avaliações). Os admins podem
 // enviar qualquer imagem ou vídeo.
@@ -27,13 +28,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Cloudinary não configurado' }, { status: 500 });
   }
 
-  const db = getAdminDb();
-  const perfil = db ? await db.collection('clientes').doc(uid).get() : null;
-  const isAdmin = perfil?.data()?.admin === true;
+  // Equipa com permissão para gerir produtos ou conteúdo do site pode enviar
+  // qualquer imagem/vídeo para a pasta principal
+  const permissoes = getAdminDb() ? await permissoesDoUtilizador(uid) : new Set();
+  const isEquipa = permissoes.has('produtos') || permissoes.has('conteudo');
 
   // Clientes: pasta própria e só imagens (allowed_formats vai assinado, o
   // Cloudinary rejeita o upload se o cliente o tentar alterar ou remover)
-  const params: Record<string, string> = isAdmin
+  const params: Record<string, string> = isEquipa
     ? { folder }
     : { folder: `${folder}/avaliacoes`, allowed_formats: FORMATOS_CLIENTE };
 

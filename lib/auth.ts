@@ -20,7 +20,10 @@ export interface Perfil {
   email: string;
   telefone: string;
   morada: string;
+  // admin: true = super admin (acesso total). Os restantes membros da equipa
+  // têm uma role (id em roles/) que define as funcionalidades a que acedem.
   admin: boolean;
+  role?: string | null;
   notif_canal?: 'email' | 'whatsapp';
   criado_em?: unknown;
 }
@@ -91,9 +94,10 @@ export async function getPerfil(uid: string): Promise<Perfil | null> {
   return null;
 }
 
-export async function isAdmin(uid: string): Promise<boolean> {
-  const perfil = await getPerfil(uid);
-  return perfil?.admin === true;
+// Indica se o utilizador deve ver a entrada "Admin" no site. A validação
+// final das permissões é feita no AdminGuard e nas firestore.rules.
+export function temAcessoAdmin(perfil: Pick<Perfil, 'admin' | 'role'> | null | undefined): boolean {
+  return !!perfil && (perfil.admin === true || !!perfil.role);
 }
 
 export function onAuthChange(callback: (user: User | null) => void) {

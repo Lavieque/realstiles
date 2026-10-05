@@ -1,30 +1,55 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthChange, isAdmin, getPerfil } from '@/lib/auth';
+import { onAuthChange, getPerfil } from '@/lib/auth';
+import { getPermissoesPerfil } from '@/lib/roles';
 import type { Perfil } from '@/lib/auth';
+import type { Role } from '@/lib/roles';
+import type { Permissao } from '@/lib/permissoes';
 import type { User } from 'firebase/auth';
 
-export default function AdminGuard({ children }: { children: React.ReactNode | ((p: Perfil | null) => React.ReactNode) }) {
+export interface AcessoAdmin {
+  perfil: Perfil | null;
+  role: Role | null;
+  superAdmin: boolean;
+  permissoes: ReadonlySet<Permissao>;
+  tem: (p: Permissao) => boolean;
+}
+
+const AcessoContext = createContext<AcessoAdmin>({
+  perfil: null, role: null, superAdmin: false, permissoes: new Set(), tem: () => false,
+});
+
+export function useAcessoAdmin(): AcessoAdmin {
+  return useContext(AcessoContext);
+}
+
+export default function AdminGuard({ children }: { children: React.ReactNode | ((a: AcessoAdmin) => React.ReactNode) }) {
   const router = useRouter();
-  const [ok, setOk] = useState(false);
-  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [acesso, setAcesso] = useState<AcessoAdmin | null>(null);
 
   useEffect(() => {
     const unsub = onAuthChange(async (user: User | null) => {
       if (!user) { router.replace('/conta'); return; }
-      const admin = await isAdmin(user.uid);
-      if (!admin) { router.replace('/'); return; }
-      const p = await getPerfil(user.uid);
-      setPerfil(p);
-      setOk(true);
+      const perfil = await getPerfil(user.uid);
+      const { permissoes, role } = await getPermissoesPerfil(perfil);
+      if (permissoes.size === 0) { router.replace('/'); return; }
+      setAcesso({
+        perfil, role, permissoes,
+        superAdmin: perfil?.admin === true,
+        tem: (p) => permissoes.has(p),
+      });
     });
     return unsub;
   }, [router]);
 
-  if (!ok) {
+  if (!acesso) {
     return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="spinner" /></div>;
   }
 
-  return <>{typeof children === 'function' ? (children as (p: Perfil | null) => React.ReactNode)(perfil) : children}</>;
+  return (
+    <AcessoContext.Provider value={acesso}>
+      {typeof children === 'function' ? (children as (a: AcessoAdmin) => React.ReactNode)(acesso) : children}
+    </AcessoContext.Provider>
+  );
 }
