@@ -13,6 +13,7 @@ import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
 import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText } from 'lucide-react';
+import { apiFetch } from '@/lib/api-fetch';
 
 type Tab = 'entrar' | 'registar' | 'recuperar';
 type Metodo = 'email' | 'whatsapp';
@@ -97,7 +98,7 @@ function ContaInner() {
     try {
       await registar(form.nome, form.email, form.password, form.telefone);
       mostrarToast('Conta criada! Verifica o teu email para activar a conta.', 'success');
-      fetch('/api/send-email', {
+      apiFetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tipo: 'bem_vindo', nome: form.nome, email: form.email }),

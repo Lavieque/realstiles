@@ -11,7 +11,7 @@ import type { Taxa } from '@/lib/taxas';
 import type { Produto } from '@/lib/produtos';
 import { estadoPromocao, msParaInput, inputParaMs } from '@/lib/promocao';
 import { correspondePesquisa } from '@/lib/pesquisa';
-import { adminFetch } from '@/lib/admin-fetch';
+import { apiFetch } from '@/lib/api-fetch';
 
 const VAZIO: Partial<Produto> = { nome: '', descricao: '', preco: 0, preco_original: 0, categoria: '', stock: 0, imagens: [], tamanhos: [], cores: [], tags: [], destaque: false, activo: true };
 
@@ -32,8 +32,8 @@ export default function AdminProdutosPage() {
       .catch(() => mostrarToast('Erro ao carregar produtos', 'error'))
       .finally(() => setLoading(false));
     getCategorias().then(setCategorias).catch(() => {});
-    adminFetch('/api/admin/sincronizar-categorias', { method: 'POST' }).catch(() => {});
-    adminFetch('/api/config/taxas').then(r => r.json()).then(d => setTaxas(d.itens || [])).catch(() => {});
+    apiFetch('/api/admin/sincronizar-categorias', { method: 'POST' }).catch(() => {});
+    apiFetch('/api/config/taxas').then(r => r.json()).then(d => setTaxas(d.itens || [])).catch(() => {});
   }, []);
 
   const novo = () => setSeleccionado({ ...VAZIO });

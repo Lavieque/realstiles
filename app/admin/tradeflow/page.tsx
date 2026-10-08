@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { mostrarToast } from '@/components/Toast';
 import { Zap, AlertTriangle, Package, Key, Eye, EyeOff, Check, CreditCard, Clock } from 'lucide-react';
-import { adminFetch } from '@/lib/admin-fetch';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface Plano {
   id: string;
@@ -105,7 +105,7 @@ export default function TradeflowPage() {
     setLoading(true);
     setErro('');
     try {
-      const res = await adminFetch('/api/tradeflow/conta');
+      const res = await apiFetch('/api/tradeflow/conta');
       const data = await res.json();
       if (data.error) { setErro(data.error); return; }
       setConta(data.conta);
@@ -133,7 +133,7 @@ export default function TradeflowPage() {
     try {
       // Determina store_url a partir do hostname atual
       const store_url = window.location.hostname + (window.location.port ? `:${window.location.port}` : '');
-      const res = await adminFetch('/api/tradeflow/conta', {
+      const res = await apiFetch('/api/tradeflow/conta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ license_key, store_url }),
@@ -161,7 +161,7 @@ export default function TradeflowPage() {
       if (planoSeleccionado && planoSeleccionado.preco > 0) {
         // Plano pago → checkout Stripe sem criar conta primeiro
         // A conta é criada/activada pelo webhook após pagamento
-        const checkoutRes = await adminFetch('/api/tradeflow/checkout', {
+        const checkoutRes = await apiFetch('/api/tradeflow/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -180,7 +180,7 @@ export default function TradeflowPage() {
       }
 
       // Plano gratuito (trial) → criar conta imediatamente
-      const res = await adminFetch('/api/tradeflow/conta', {
+      const res = await apiFetch('/api/tradeflow/conta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subForm),
@@ -203,7 +203,7 @@ export default function TradeflowPage() {
     if (!ligarForm.license_key || !ligarForm.store_url) return;
     setLigarLoading(true);
     try {
-      const res = await adminFetch('/api/tradeflow/conta', {
+      const res = await apiFetch('/api/tradeflow/conta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ligarForm),
@@ -224,7 +224,7 @@ export default function TradeflowPage() {
   async function resetCreditos() {
     setAcaoLoading('reset');
     try {
-      const res = await adminFetch('/api/tradeflow/creditos', {
+      const res = await apiFetch('/api/tradeflow/creditos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acao: 'reset' }),
@@ -261,10 +261,10 @@ export default function TradeflowPage() {
     setUpgradeModal(null);
     setAcaoLoading(`plano_${plano_id}`);
     try {
-      const snap = await adminFetch('/api/tradeflow/conta').then(r => r.json());
+      const snap = await apiFetch('/api/tradeflow/conta').then(r => r.json());
       const accountId = snap.conta?.id;
       if (!accountId) throw new Error('Sem conta');
-      const res = await adminFetch('/api/tradeflow/checkout', {
+      const res = await apiFetch('/api/tradeflow/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -286,10 +286,10 @@ export default function TradeflowPage() {
   async function irParaPortal() {
     setPortalLoading(true);
     try {
-      const snap = await adminFetch('/api/tradeflow/conta').then(r => r.json());
+      const snap = await apiFetch('/api/tradeflow/conta').then(r => r.json());
       const accountId = snap.conta?.id;
       if (!accountId) throw new Error('Sem conta');
-      const res = await adminFetch('/api/tradeflow/portal', {
+      const res = await apiFetch('/api/tradeflow/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -309,10 +309,10 @@ export default function TradeflowPage() {
   async function cancelarSubscricao() {
     setCancelarLoading(true);
     try {
-      const snap = await adminFetch('/api/tradeflow/conta').then(r => r.json());
+      const snap = await apiFetch('/api/tradeflow/conta').then(r => r.json());
       const accountId = snap.conta?.id;
       if (!accountId) throw new Error('Sem conta');
-      const res = await adminFetch('/api/tradeflow/cancelar', {
+      const res = await apiFetch('/api/tradeflow/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ account_id: accountId }),
@@ -330,7 +330,7 @@ export default function TradeflowPage() {
 
   async function desligar() {
     if (!confirm('Desligar a conta TradeFlow deste site? A conta continua activa no TradeFlow.')) return;
-    await adminFetch('/api/tradeflow/conta', { method: 'DELETE' });
+    await apiFetch('/api/tradeflow/conta', { method: 'DELETE' });
     mostrarToast('Conta desligada do site', 'success');
     setConta(null);
   }

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import { adminFetch } from '@/lib/admin-fetch';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface ZumboWallet {
   id: string;
@@ -62,7 +62,7 @@ export default function ZumboPayPage() {
     setLoading(true);
     setErro('');
     try {
-      const res = await adminFetch('/api/zumbopay/wallets');
+      const res = await apiFetch('/api/zumbopay/wallets');
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Erro ao carregar wallets');
       const lista: ZumboWallet[] = Array.isArray(body) ? body : (body.data ?? []);

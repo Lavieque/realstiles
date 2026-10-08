@@ -14,6 +14,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
+import { apiFetch } from '@/lib/api-fetch';
 
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
@@ -87,10 +88,10 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     setRetryLoading(true);
     try {
       if (retryMetodo === 'cartao') {
-        const res = await fetch('/api/zumbopay/checkout', {
+        const res = await apiFetch('/api/zumbopay/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ encomenda_id: encomenda.id, amount: encomenda.total }),
+          body: JSON.stringify({ encomenda_id: encomenda.id }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
@@ -98,12 +99,11 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         return;
       }
 
-      const res = await fetch('/api/zumbopay/charges', {
+      const res = await apiFetch('/api/zumbopay/charges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           encomenda_id: encomenda.id,
-          amount: encomenda.total,
           msisdn: retryTelefone,
           metodo: retryMetodo,
           customer_name: user?.displayName || encomenda.cliente_email || 'Cliente',

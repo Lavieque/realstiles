@@ -12,6 +12,7 @@ import { mostrarToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
+import { apiFetch } from '@/lib/api-fetch';
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
@@ -148,10 +149,10 @@ export default function CarrinhoPage() {
       setEncomendaId(encId);
 
       if (metodo === 'cartao') {
-        const res = await fetch('/api/zumbopay/checkout', {
+        const res = await apiFetch('/api/zumbopay/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ encomenda_id: encId, amount: total }),
+          body: JSON.stringify({ encomenda_id: encId }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
@@ -160,12 +161,11 @@ export default function CarrinhoPage() {
       }
 
       // M-Pesa ou e-Mola — STK push
-      const res = await fetch('/api/zumbopay/charges', {
+      const res = await apiFetch('/api/zumbopay/charges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           encomenda_id: encId,
-          amount: total,
           msisdn: pagTelefone,
           metodo,
           customer_name: user?.displayName || form.email || 'Cliente',

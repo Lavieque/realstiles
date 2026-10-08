@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { mostrarToast } from '@/components/Toast';
 import { ClipboardList, X } from 'lucide-react';
-import { adminFetch } from '@/lib/admin-fetch';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface SubSub {
   nome: string;
@@ -73,7 +73,7 @@ export default function AdminCategoriasPage() {
   const guardar = async (novas: Categoria[]) => {
     setSalvando(true);
     try {
-      const res = await adminFetch('/api/config/categorias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categorias: novas }) });
+      const res = await apiFetch('/api/config/categorias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categorias: novas }) });
       if (!res.ok) throw new Error(await res.text());
       setCategorias(novas);
       setSeeded(false);

@@ -3,13 +3,23 @@ import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 import { ZP_BASE, zpHeaders } from '@/lib/zumbopay';
+import { autenticar, encomendaDoCaller } from '@/lib/permissoes-server';
 
 export async function POST(req: NextRequest) {
+  const caller = await autenticar(req);
+  if (caller instanceof NextResponse) return caller;
+
   try {
-    const { encomenda_id, amount, msisdn, metodo, customer_name } = await req.json();
-    if (!encomenda_id || !amount || !msisdn || !metodo) {
+    const { encomenda_id, msisdn, metodo, customer_name } = await req.json();
+    if (!encomenda_id || !msisdn || !metodo) {
       return NextResponse.json({ error: 'Campos obrigatórios em falta' }, { status: 400 });
     }
+
+    // Só se paga uma encomenda própria, e sempre pelo total guardado nela
+    const encomenda = await encomendaDoCaller(caller, String(encomenda_id));
+    if (!encomenda) return NextResponse.json({ error: 'Encomenda não encontrada' }, { status: 404 });
+    const amount = Number(encomenda.total);
+    if (!(amount > 0)) return NextResponse.json({ error: 'Total da encomenda inválido' }, { status: 400 });
 
     const walletId = metodo === 'mpesa'
       ? process.env.ZUMBOPAY_WALLET_MPESA

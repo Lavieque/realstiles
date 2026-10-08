@@ -5,6 +5,7 @@ import { mostrarToast } from '@/components/Toast';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { getConfig, DEFAULTS } from '@/lib/config-site';
 import type { User } from 'firebase/auth';
+import { apiFetch } from '@/lib/api-fetch';
 
 export default function ReclamacaoPage() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -57,7 +58,7 @@ export default function ReclamacaoPage() {
       });
 
       // Notifica admin por email sempre (o admin usa email)
-      fetch('/api/send-email', {
+      apiFetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tipo: 'reclamacao', ...form, reclamacao_id: docRef.id }),
@@ -67,7 +68,7 @@ export default function ReclamacaoPage() {
       if (isWa) {
         const tel = form.telefone.replace(/\D/g, '');
         if (tel) {
-          fetch('/api/notify/messages/send', {
+          apiFetch('/api/notify/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

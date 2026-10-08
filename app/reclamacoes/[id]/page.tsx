@@ -11,6 +11,7 @@ import type { Reclamacao, MensagemReclamacao } from '@/lib/reclamacoes';
 import type { User } from 'firebase/auth';
 import { Lock, ArrowLeft, Frown, Send } from 'lucide-react';
 import { mostrarToast } from '@/components/Toast';
+import { apiFetch } from '@/lib/api-fetch';
 
 export default function ReclamacaoDetalhePage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -55,7 +56,7 @@ export default function ReclamacaoDetalhePage({ params }: { params: { id: string
         texto: conteudo,
         criado_em: serverTimestamp(),
       });
-      fetch('/api/send-email', {
+      apiFetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

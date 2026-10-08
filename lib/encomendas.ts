@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { referenciaEncomenda } from './referencia';
+import { apiFetch } from './api-fetch';
 
 export { referenciaEncomenda } from './referencia';
 
@@ -190,7 +191,7 @@ export async function criarEncomenda({
       const telLimpo = telefoneNotif.replace(/\D/g, '');
       if (telLimpo) {
         const mensagem = `✅ *Encomenda ${referenciaEncomenda(ref)} recebida!*\n\nTotal: *${total.toFixed(2)} MZN*\nEntrega: ${morada}\n\nAcompanha o estado em realstiles.co.mz/encomendas`;
-        await fetch('/api/notify/messages/send', {
+        await apiFetch('/api/notify/messages/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ telefone: telLimpo, mensagem }),
@@ -199,7 +200,7 @@ export async function criarEncomenda({
     } catch (e) { console.warn('WhatsApp não enviado:', e); }
   } else if (emailFinal) {
     try {
-      await fetch('/api/send-email', {
+      await apiFetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -215,7 +216,7 @@ export async function criarEncomenda({
   // Admin recebe sempre email, independentemente do canal do cliente
   if (notifCanal === 'whatsapp') {
     try {
-      await fetch('/api/send-email', {
+      await apiFetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

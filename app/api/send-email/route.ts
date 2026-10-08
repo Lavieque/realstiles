@@ -1,10 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { referenciaEncomendaServer } from '@/lib/referencia-server';
+import { adminDb } from '@/lib/firebase-admin';
+import { autenticar, encomendaDoCaller } from '@/lib/permissoes-server';
+import type { Permissao } from '@/lib/permissoes';
+
+// Emails em nome da loja para o cliente: só o staff com a permissão os dispara
+const TIPOS_STAFF: Record<string, Permissao> = {
+  estado_encomenda: 'encomendas',
+  resposta_reclamacao: 'reclamacoes',
+  reclamacao_resolvida: 'reclamacoes',
+};
 
 export async function POST(req: NextRequest) {
+  const caller = await autenticar(req);
+  if (caller instanceof NextResponse) return caller;
+
   try {
     const body = await req.json();
     const { tipo } = body;
+
+    const permStaff = TIPOS_STAFF[tipo];
+    if (permStaff && !caller.permissoes.has(permStaff)) {
+      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
+    }
+    // Emails de contacto guardados no pedido do próprio cliente, que podem não
+    // ser o da conta (ex.: login por WhatsApp com email de contacto)
+    const emailsDoPedido: string[] = [];
+    if (tipo === 'confirmacao_encomenda') {
+      const encomenda = await encomendaDoCaller(caller, String(body.encomenda_id ?? ''));
+      if (!encomenda) return NextResponse.json({ error: 'Encomenda não encontrada' }, { status: 403 });
+      if (encomenda.cliente_email) emailsDoPedido.push(String(encomenda.cliente_email));
+    }
+    if (tipo === 'reclamacao' && body.reclamacao_id) {
+      const rec = (await adminDb.collection('reclamacoes').doc(String(body.reclamacao_id)).get()).data();
+      if (rec?.cliente_id === caller.uid && rec.email) emailsDoPedido.push(String(rec.email));
+    }
 
     const BREVO_KEY         = process.env.BREVO_API_KEY;
     const ADMIN_EMAIL       = process.env.ADMIN_EMAIL;
@@ -153,8 +183,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, warn: `Tipo de email desconhecido: ${tipo}` });
     }
 
+    // Um cliente só pode fazer enviar emails para si próprio ou para o admin
+    const staff = caller.permissoes.has('encomendas') || caller.permissoes.has('reclamacoes');
+    const permitido = (addr: string) =>
+      staff || addr === ADMIN_EMAIL
+      || [caller.email, ...emailsDoPedido].some(e => e?.toLowerCase() === addr.toLowerCase());
+
     const resultados = await Promise.allSettled(
-      envios.map(e => {
+      envios.filter(e => e.to.every(permitido)).map(e => {
         const m = e.from.match(/^(.*?)\s*<(.+)>$/);
         const senderName  = m ? m[1].trim() : LOJA_NOME;
         const senderEmail = m ? m[2] : e.from;

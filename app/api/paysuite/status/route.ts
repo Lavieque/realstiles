@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { confirmarPagamentoPaysuite } from '@/lib/paysuite';
+import { autenticar, encomendaDoCaller } from '@/lib/permissoes-server';
 
 export async function GET(req: NextRequest) {
+  const caller = await autenticar(req);
+  if (caller instanceof NextResponse) return caller;
+
   const pagamentoId = req.nextUrl.searchParams.get('pagamento_id');
   if (!pagamentoId) {
     return NextResponse.json({ error: 'pagamento_id em falta' }, { status: 400 });
   }
 
   const snap = await adminDb.collection('pagamentos').doc(pagamentoId).get();
-  if (!snap.exists) {
+  if (!snap.exists || !(await encomendaDoCaller(caller, String(snap.data()?.encomenda_id ?? '')))) {
     return NextResponse.json({ error: 'Pagamento não encontrado' }, { status: 404 });
   }
 

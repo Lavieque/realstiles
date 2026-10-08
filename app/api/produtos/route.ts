@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exigirPermissao } from '@/lib/permissoes-server';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -51,6 +52,9 @@ async function deduzirCreditoTemu(accountId: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await exigirPermissao(req, 'produtos');
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const dados = await req.json();
 

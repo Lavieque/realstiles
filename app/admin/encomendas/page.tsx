@@ -8,6 +8,7 @@ import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, b
 import { mostrarToast } from '@/components/Toast';
 import { correspondePesquisa } from '@/lib/pesquisa';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
+import { apiFetch } from '@/lib/api-fetch';
 
 const ESTADOS: EstadoEncomenda[] = ['pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
 
@@ -100,14 +101,14 @@ export default function AdminEncomendasPage() {
             cancelada: 'foi cancelada. Contacta-nos se precisares de ajuda.',
           };
           const mensagem = `${icones[estado] || '📦'} *Encomenda ${referenciaEncomenda(seleccionada)}*\n\nA tua encomenda ${msgs[estado] || `foi actualizada para ${estado}`}.\n\nVer detalhes: realstiles.co.mz/encomenda/${id}`;
-          fetch('/api/notify/messages/send', {
+          apiFetch('/api/notify/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ telefone: tel, mensagem }),
           }).catch(() => {});
         }
       } else if (seleccionada?.cliente_email) {
-        fetch('/api/send-email', {
+        apiFetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
