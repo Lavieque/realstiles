@@ -13,33 +13,13 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
 import { aguardarPagamento, consultarEstadoPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
+import { INFO_METODO, nomeMetodo } from '@/lib/metodos-pagamento';
+import type { MetodoPagamento } from '@/lib/metodos-pagamento';
+import MetodoPagamentoSeletor from '@/components/MetodoPagamentoSeletor';
+import AguardarPinModal from '@/components/AguardarPinModal';
 
 
-type Metodo = 'mpesa' | 'emola' | 'cartao';
-
-const LogoMpesa = () => (
-  // eslint-disable-next-line @next/next/no-img-element
-  <img src="/img/mpesa.png" alt="M-Pesa" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
-);
-const LogoEmola = () => (
-  // eslint-disable-next-line @next/next/no-img-element
-  <img src="/img/emola.png" alt="e-Mola" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
-);
-const LogoCartao = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 58" style={{ height: 28, width: 'auto' }}>
-    <rect width="180" height="58" rx="10" fill="#ffffff"/>
-    <text x="18" y="37" fontFamily="Arial,sans-serif" fontSize="24" fontWeight="700" fontStyle="italic" fill="#1a1f71">VISA</text>
-    <circle cx="120" cy="29" r="17" fill="#eb001b"/>
-    <circle cx="141" cy="29" r="17" fill="#f79e1b" fillOpacity="0.92"/>
-    <path d="M130.5 15.8a17 17 0 0 1 0 26.4 17 17 0 0 1 0-26.4Z" fill="#ff5f00"/>
-  </svg>
-);
-
-const METODOS_RETRY: { id: Metodo; Logo: () => JSX.Element }[] = [
-  { id: 'mpesa',    Logo: LogoMpesa },
-  { id: 'emola',    Logo: LogoEmola },
-  { id: 'cartao',   Logo: LogoCartao },
-];
+type Metodo = MetodoPagamento;
 
 const WHATSAPP_NUM = '258878753754';
 
@@ -294,39 +274,33 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
             </div>
 
             {retryStatus === 'aguardar' ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <Loader2 size={32} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite', marginBottom: 8 }} />
-                <p style={{ fontWeight: 600 }}>Aguarda confirmação no telemóvel</p>
-                <p style={{ fontSize: 13, color: 'var(--gray-400)', marginTop: 4 }}>
-                  Confirma o pagamento de <strong>{encomenda.total?.toFixed(2)} MZN</strong> no {retryMetodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}.
-                </p>
-                <button style={{ marginTop: 12, fontSize: 12, color: 'var(--gray-400)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                  onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setRetryStatus('idle'); }}>
-                  Cancelar
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 0', fontSize: 14, color: 'var(--gray-500)' }}>
+                <Loader2 size={16} strokeWidth={1.8} style={{ animation: 'spin 1s linear infinite' }} /> A aguardar confirmação do pagamento…
+                <AguardarPinModal
+                  metodo={retryMetodo}
+                  telefone={retryTelefone}
+                  montante={Number(encomenda.total) || 0}
+                  onCancelar={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setRetryStatus('idle'); }}
+                />
               </div>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
-                  {METODOS_RETRY.filter(m => !metodosDisp || metodosDisp.includes(m.id)).map(m => (
-                    <button key={m.id} type="button" onClick={() => setRetryMetodo(m.id)} style={{
-                      padding: '10px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
-                      border: `2px solid ${retryMetodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
-                      background: retryMetodo === m.id ? '#f5f5f5' : 'white',
-                      boxShadow: retryMetodo === m.id ? '0 0 0 2px var(--black)' : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <m.Logo />
-                    </button>
-                  ))}
+                <div style={{ marginBottom: 14 }}>
+                  <MetodoPagamentoSeletor
+                    metodos={metodosDisp ?? (Object.keys(INFO_METODO) as Metodo[])}
+                    valor={retryMetodo}
+                    onChange={setRetryMetodo}
+                    compacto
+                  />
                 </div>
                 {retryMetodo !== 'cartao' && (
                   <div className="form-group" style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 13, marginBottom: 6, display: 'block' }}>Número de telemóvel</label>
+                    <label style={{ fontSize: 13, marginBottom: 6, display: 'block' }}>Número {INFO_METODO[retryMetodo].nome}</label>
                     <input
                       value={retryTelefone}
                       onChange={e => setRetryTelefone(e.target.value)}
-                      placeholder="Ex: 84 000 0000"
+                      type="tel"
+                      placeholder={`Ex: ${INFO_METODO[retryMetodo].sub.slice(0, 2)} 000 0000`}
                       style={{ width: '100%' }}
                     />
                   </div>
@@ -336,7 +310,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
                     ? 'A processar...'
                     : retryMetodo === 'cartao'
                       ? 'Pagar com Cartão →'
-                      : `Pagar ${encomenda.total?.toFixed(2)} MZN`}
+                      : `Pagar ${encomenda.total?.toFixed(2)} MZN com ${INFO_METODO[retryMetodo].nome}`}
                 </button>
               </>
             )}
@@ -460,10 +434,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
         const totalComIva = encomenda.total || 0;
         const baseTributavel = totalComIva / (1 + IVA_TAXA);
         const valorIva = totalComIva - baseTributavel;
-        const metodoLabel = encomenda.pagamento_metodo === 'mpesa' ? 'M-Pesa'
-          : encomenda.pagamento_metodo === 'emola' ? 'e-Mola'
-          : encomenda.pagamento_metodo === 'paysuite' ? 'PaySuite'
-          : encomenda.pagamento_metodo === 'cartao' ? 'Cartão' : '—';
+        const metodoLabel = nomeMetodo(encomenda.pagamento_metodo);
 
         return (
           <div className="fatura-print">

@@ -11,36 +11,13 @@ import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import type { User } from 'firebase/auth';
 import { aguardarPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
+import { INFO_METODO } from '@/lib/metodos-pagamento';
+import type { MetodoPagamento } from '@/lib/metodos-pagamento';
+import MetodoPagamentoSeletor from '@/components/MetodoPagamentoSeletor';
+import AguardarPinModal from '@/components/AguardarPinModal';
 
-type Metodo = 'mpesa' | 'emola' | 'cartao';
+type Metodo = MetodoPagamento;
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
-
-
-const LogoMpesa = () => (
-  // eslint-disable-next-line @next/next/no-img-element
-  <img src="/img/mpesa.png" alt="M-Pesa" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
-);
-
-const LogoEmola = () => (
-  // eslint-disable-next-line @next/next/no-img-element
-  <img src="/img/emola.png" alt="e-Mola" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
-);
-
-const LogoCartao = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 58" style={{ height: 32, width: 'auto' }} aria-label="Visa e Mastercard">
-    <rect width="180" height="58" rx="10" fill="#ffffff"/>
-    <text x="18" y="37" fontFamily="Arial, Helvetica, sans-serif" fontSize="24" fontWeight="700" fontStyle="italic" fill="#1a1f71">VISA</text>
-    <circle cx="120" cy="29" r="17" fill="#eb001b"/>
-    <circle cx="141" cy="29" r="17" fill="#f79e1b" fillOpacity="0.92"/>
-    <path d="M130.5 15.8a17 17 0 0 1 0 26.4 17 17 0 0 1 0-26.4Z" fill="#ff5f00"/>
-  </svg>
-);
-
-const METODOS: { id: Metodo; label: string; sub: string; Logo: () => JSX.Element }[] = [
-  { id: 'mpesa',    label: 'M-Pesa',   sub: '84 / 85',   Logo: LogoMpesa },
-  { id: 'emola',    label: 'e-Mola',   sub: '86 / 87',   Logo: LogoEmola },
-  { id: 'cartao',   label: 'Cartão',   sub: 'Visa / MC', Logo: LogoCartao },
-];
 
 export default function CarrinhoPage() {
   const { items, removerItem, actualizarQuantidade, limpar } = useCarrinho();
@@ -62,9 +39,7 @@ export default function CarrinhoPage() {
   const [pagStatus, setPagStatus] = useState<PagamentoStatus>('idle');
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
-  const [aguardarSecs, setAguardarSecs] = useState(180);
   const unsubRef = useRef<(() => void) | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -102,18 +77,15 @@ export default function CarrinhoPage() {
   }, []);
 
   // Pára a espera do pagamento ao desmontar
-  useEffect(() => () => {
-    if (unsubRef.current) unsubRef.current();
-    if (timerRef.current) clearInterval(timerRef.current);
-  }, []);
+  useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
+
+  const cancelarEspera = () => {
+    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+    setPagStatus('idle');
+  };
 
   const aguardarConfirmacao = (encId: string) => {
     setPagStatus('aguardar');
-    setAguardarSecs(180);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setAguardarSecs(s => { if (s <= 1) { if (timerRef.current) clearInterval(timerRef.current!); } return Math.max(0, s - 1); });
-    }, 1000);
 
     // Escuta a encomenda e consulta o gateway até confirmar (máx. 3 minutos)
     unsubRef.current = aguardarPagamento(encId, {
@@ -122,7 +94,6 @@ export default function CarrinhoPage() {
         window.location.href = `/encomenda/${encId}?confirmada=1`;
       },
       onFalhado: (msg) => {
-        if (timerRef.current) clearInterval(timerRef.current);
         setPagStatus('erro');
         setPagErro(msg);
       },
@@ -243,38 +214,15 @@ export default function CarrinhoPage() {
               <span style={{ fontWeight: 700, fontSize: 20 }}>{total.toFixed(2)} MZN</span>
             </div>
 
-            {/* Estado: aguardar pagamento */}
-            {pagStatus === 'aguardar' && (() => {
-              const mins = Math.floor(aguardarSecs / 60);
-              const secs = aguardarSecs % 60;
-              const pct = (aguardarSecs / 180) * 100;
-              const metodoNome = metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola';
-              return (
-                <div style={{ padding: '4px 0 8px' }}>
-                  <div style={{ background: '#fff8f0', border: '1.5px solid #f7b731', borderRadius: 12, padding: '16px 18px', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: '#c67a00' }}>Aguardando confirmação…</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#c67a00', fontVariantNumeric: 'tabular-nums' }}>
-                        {mins}:{secs.toString().padStart(2, '0')}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 13, color: '#555', marginBottom: 10, lineHeight: 1.5 }}>
-                      Enviámos um pedido de confirmação para o número <strong>{pagTelefone}</strong>.<br />
-                      Por favor, confirma o pagamento de <strong>{total.toFixed(2)} MZN</strong> no {metodoNome}.
-                    </p>
-                    <div style={{ height: 6, background: '#ffe4a0', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: '#f7b731', borderRadius: 99, transition: 'width 1s linear' }} />
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-outline btn-full btn-sm"
-                    onClick={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } if (timerRef.current) clearInterval(timerRef.current); setPagStatus('idle'); }}
-                  >
-                    Cancelar
-                  </button>
+            {/* Estado: aguardar PIN no telemóvel */}
+            {pagStatus === 'aguardar' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0', fontSize: 14, color: 'var(--gray-500)' }}>
+                  <Loader2 size={16} strokeWidth={1.8} style={{ animation: 'spin 1s linear infinite' }} /> A aguardar confirmação do pagamento…
                 </div>
-              );
-            })()}
+                <AguardarPinModal metodo={metodo} telefone={pagTelefone} montante={total} onCancelar={cancelarEspera} />
+              </>
+            )}
 
             {/* Estado: erro */}
             {pagStatus === 'erro' && (
@@ -354,45 +302,25 @@ export default function CarrinhoPage() {
                       Pagamentos online indisponíveis de momento. Fala connosco via WhatsApp.
                     </p>
                   )}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {METODOS.filter(m => !metodosDisp || metodosDisp.includes(m.id)).map(m => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setMetodo(m.id)}
-                        style={{
-                          padding: '12px 8px 10px',
-                          borderRadius: 12,
-                          border: `2px solid ${metodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,
-                          background: metodo === m.id ? '#f5f5f5' : 'white',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          transition: 'all 0.15s',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: 6,
-                          boxShadow: metodo === m.id ? '0 0 0 2px var(--black)' : 'none',
-                        }}
-                      >
-                        <m.Logo />
-                      </button>
-                    ))}
-                  </div>
+                  <MetodoPagamentoSeletor
+                    metodos={metodosDisp ?? (Object.keys(INFO_METODO) as Metodo[])}
+                    valor={metodo}
+                    onChange={setMetodo}
+                  />
                   {metodo !== 'cartao' && (
                     <div style={{ marginTop: 12 }}>
                       <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                        Número {metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} para pagamento
+                        Número {INFO_METODO[metodo].nome} para pagamento
                       </label>
                       <input
                         type="tel"
                         value={pagTelefone}
                         onChange={e => setPagTelefone(e.target.value)}
-                        placeholder="Ex: 84 000 0000"
+                        placeholder={`Ex: ${INFO_METODO[metodo].sub.slice(0, 2)} 000 0000`}
                         style={{ width: '100%' }}
                       />
                       <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 6 }}>
-                        Receberás uma notificação neste número para inserir o PIN e confirmar o pagamento.
+                        Receberás uma notificação neste número para inserir o PIN {INFO_METODO[metodo].nome} e confirmar o pagamento.
                       </p>
                     </div>
                   )}
@@ -414,7 +342,7 @@ export default function CarrinhoPage() {
                     ? 'A processar...'
                     : metodo === 'cartao'
                       ? 'Pagar com Cartão →'
-                      : `Pagar ${total.toFixed(2)} MZN com ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'}`}
+                      : `Pagar ${total.toFixed(2)} MZN com ${INFO_METODO[metodo].nome}`}
                 </button>
                 <button type="button" className="btn btn-outline btn-full" style={{ marginTop: 8 }} onClick={() => setCheckoutOpen(false)}>
                   Cancelar

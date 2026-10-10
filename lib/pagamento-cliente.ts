@@ -1,11 +1,13 @@
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 import { apiFetch } from './api-fetch';
+import { METODOS_PAGAMENTO } from './metodos-pagamento';
+import type { MetodoPagamento } from './metodos-pagamento';
 
 // Lado do cliente dos pagamentos online. O gateway (ZumboPay ou ClicPay) é
 // escolhido no servidor, por isso aqui só se fala com /api/pagamentos/*.
 
-export type MetodoPagamento = 'mpesa' | 'emola' | 'cartao';
+export type { MetodoPagamento };
 
 export interface RespostaPagamento {
   status: 'succeeded' | 'pending' | 'redirect';
@@ -22,7 +24,7 @@ export async function getMetodosDisponiveis(): Promise<MetodoPagamento[]> {
     const data = await res.json();
     if (res.ok && Array.isArray(data.metodos)) return data.metodos;
   } catch { /* usa o recurso abaixo */ }
-  return ['mpesa', 'emola', 'cartao'];
+  return METODOS_PAGAMENTO;
 }
 
 export async function iniciarPagamento(dados: {
