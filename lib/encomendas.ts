@@ -54,6 +54,7 @@ export interface Encomenda {
   pagamento_metodo?: 'mpesa' | 'emola' | 'cartao' | 'paysuite';
   pagamento_estado?: string;
   pagamento_ref?: string;
+  pagamento_gateway?: 'zumbopay' | 'clicpay';
   notif_canal?: 'email' | 'whatsapp';
   historico_estados?: HistoricoEstado[];
   numero_sequencial?: number;

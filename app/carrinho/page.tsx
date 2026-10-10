@@ -9,10 +9,8 @@ import type { FormaEntrega } from '@/lib/encomendas';
 import { getConfig, DEFAULTS } from '@/lib/config-site';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
-import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
-import { apiFetch } from '@/lib/api-fetch';
+import { aguardarPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
@@ -59,6 +57,7 @@ export default function CarrinhoPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', morada: '', cidade: '', telefone: '', notas: '' });
   const [metodo, setMetodo] = useState<Metodo>('mpesa');
+  const [metodosDisp, setMetodosDisp] = useState<Metodo[] | null>(null);
   const [pagTelefone, setPagTelefone] = useState('');
   const [pagStatus, setPagStatus] = useState<PagamentoStatus>('idle');
   const [pagErro, setPagErro] = useState('');
@@ -94,8 +93,19 @@ export default function CarrinhoPage() {
       .catch(() => {});
   }, []);
 
-  // Limpa listener Firestore ao desmontar
-  useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
+  // Métodos do gateway activo; se o escolhido não estiver disponível, passa ao primeiro
+  useEffect(() => {
+    getMetodosDisponiveis().then(lista => {
+      setMetodosDisp(lista);
+      setMetodo(m => (lista.includes(m) || !lista.length ? m : lista[0]));
+    });
+  }, []);
+
+  // Pára a espera do pagamento ao desmontar
+  useEffect(() => () => {
+    if (unsubRef.current) unsubRef.current();
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
 
   const aguardarConfirmacao = (encId: string) => {
     setPagStatus('aguardar');
@@ -105,27 +115,21 @@ export default function CarrinhoPage() {
       setAguardarSecs(s => { if (s <= 1) { if (timerRef.current) clearInterval(timerRef.current!); } return Math.max(0, s - 1); });
     }, 1000);
 
-    // Timeout de segurança: 3 minutos
-    const timeout = setTimeout(() => {
-      if (unsubRef.current) unsubRef.current();
-      setPagStatus('erro');
-      setPagErro('Tempo de espera esgotado. Verifica se o pagamento foi concluído.');
-    }, 3 * 60 * 1000);
-
-    // Escuta em tempo real — atualizado pelo webhook quando o utilizador confirma no telemóvel
-    unsubRef.current = onSnapshot(doc(db, 'encomendas', encId), (snap) => {
-      const estado = snap.data()?.estado;
-      if (estado === 'confirmada') {
-        clearTimeout(timeout);
-        if (unsubRef.current) unsubRef.current();
+    // Escuta a encomenda e consulta o gateway até confirmar (máx. 3 minutos)
+    unsubRef.current = aguardarPagamento(encId, {
+      onPago: () => {
         limpar();
         window.location.href = `/encomenda/${encId}?confirmada=1`;
-      } else if (estado === 'cancelada') {
-        clearTimeout(timeout);
-        if (unsubRef.current) unsubRef.current();
+      },
+      onFalhado: (msg) => {
+        if (timerRef.current) clearInterval(timerRef.current);
         setPagStatus('erro');
-        setPagErro('Pagamento cancelado. Tenta novamente.');
-      }
+        setPagErro(msg);
+      },
+      onTimeout: () => {
+        setPagStatus('erro');
+        setPagErro('Tempo de espera esgotado. Verifica se o pagamento foi concluído.');
+      },
     });
   };
 
@@ -148,31 +152,13 @@ export default function CarrinhoPage() {
       });
       setEncomendaId(encId);
 
-      if (metodo === 'cartao') {
-        const res = await apiFetch('/api/zumbopay/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ encomenda_id: encId }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
-        window.location.href = data.checkout_url;
-        return;
-      }
-
-      // M-Pesa ou e-Mola — STK push
-      const res = await apiFetch('/api/zumbopay/charges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          encomenda_id: encId,
-          msisdn: pagTelefone,
-          metodo,
-          customer_name: user?.displayName || form.email || 'Cliente',
-        }),
+      // Cartão → redirect para o checkout; M-Pesa/e-Mola → pedido no telemóvel
+      const data = await iniciarPagamento({
+        encomendaId: encId,
+        metodo,
+        msisdn: metodo === 'cartao' ? undefined : pagTelefone,
+        customerName: user?.displayName || form.email || 'Cliente',
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento');
 
       if (data.status === 'succeeded') {
         limpar();
@@ -363,8 +349,13 @@ export default function CarrinhoPage() {
 
                 <div className="form-group" style={{ marginBottom: 20 }}>
                   <label style={{ marginBottom: 10, display: 'block' }}>Método de pagamento *</label>
+                  {metodosDisp?.length === 0 && (
+                    <p style={{ fontSize: 13, color: 'var(--red)' }}>
+                      Pagamentos online indisponíveis de momento. Fala connosco via WhatsApp.
+                    </p>
+                  )}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {METODOS.map(m => (
+                    {METODOS.filter(m => !metodosDisp || metodosDisp.includes(m.id)).map(m => (
                       <button
                         key={m.id}
                         type="button"
@@ -418,7 +409,7 @@ export default function CarrinhoPage() {
                   </p>
                 )}
 
-                <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
+                <button className="btn btn-primary btn-full" type="submit" disabled={loading || metodosDisp?.length === 0}>
                   {loading
                     ? 'A processar...'
                     : metodo === 'cartao'
