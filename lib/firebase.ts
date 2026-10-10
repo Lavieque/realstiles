@@ -1,6 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import {
+  getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence,
+  browserPopupRedirectResolver,
+} from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,5 +17,23 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
+// A sessão fica no IndexedDB e, se o IndexedDB não estiver disponível ao
+// abrir o site (bloqueado, corrompido, sem espaço), no localStorage — em vez
+// de cair para memória e perder-se ao recarregar. O popupRedirectResolver é
+// preciso para o login com Google (signInWithPopup); o getAuth() incluía-o
+// por omissão, o initializeAuth() não.
+function criarAuth(): Auth {
+  if (typeof window === 'undefined') return getAuth(app);
+  try {
+    return initializeAuth(app, {
+      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+  } catch {
+    // Já inicializado (ex.: hot reload em desenvolvimento)
+    return getAuth(app);
+  }
+}
+
 export const db  = getFirestore(app);
-export const auth = getAuth(app);
+export const auth = criarAuth();
