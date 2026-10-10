@@ -23,15 +23,46 @@ export function eGateway(valor: unknown): valor is Gateway {
   return GATEWAYS.some(g => g.id === valor);
 }
 
+export function eMetodo(valor: unknown): valor is MetodoPagamento {
+  return METODOS.includes(valor as MetodoPagamento);
+}
+
+// Métodos desligados no admin, por gateway. Um método não listado está
+// ligado (desde que configurado no servidor).
+export type MetodosDesativados = Record<Gateway, MetodoPagamento[]>;
+
+export interface ConfigPagamentos {
+  ativo: Gateway;
+  desativados: MetodosDesativados;
+}
+
+export async function getConfigPagamentos(): Promise<ConfigPagamentos> {
+  const dados = (await configRef().get()).data() ?? {};
+  const desativados = {} as MetodosDesativados;
+  for (const g of GATEWAYS) {
+    const lista = dados.metodos_desativados?.[g.id];
+    desativados[g.id] = Array.isArray(lista) ? lista.filter(eMetodo) : [];
+  }
+  return { ativo: eGateway(dados.ativo) ? dados.ativo : GATEWAY_PADRAO, desativados };
+}
+
 export async function getGatewayAtivo(): Promise<Gateway> {
-  const snap = await configRef().get();
-  const ativo = snap.data()?.ativo;
-  return eGateway(ativo) ? ativo : GATEWAY_PADRAO;
+  return (await getConfigPagamentos()).ativo;
 }
 
 export async function setGatewayAtivo(gateway: Gateway, uid: string): Promise<void> {
   await configRef().set({
     ativo: gateway,
+    actualizado_por: uid,
+    actualizado_em: FieldValue.serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function setMetodoAtivo(gateway: Gateway, metodo: MetodoPagamento, ativo: boolean, uid: string): Promise<void> {
+  await configRef().set({
+    metodos_desativados: {
+      [gateway]: ativo ? FieldValue.arrayRemove(metodo) : FieldValue.arrayUnion(metodo),
+    },
     actualizado_por: uid,
     actualizado_em: FieldValue.serverTimestamp(),
   }, { merge: true });
@@ -60,10 +91,16 @@ export function configuracaoGateway(gateway: Gateway): { credenciais: boolean; m
   };
 }
 
-export function metodosDisponiveis(gateway: Gateway): MetodoPagamento[] {
+// Métodos configurados no servidor (credenciais + carteira).
+export function metodosConfigurados(gateway: Gateway): MetodoPagamento[] {
   const cfg = configuracaoGateway(gateway);
   if (!cfg.credenciais) return [];
   return METODOS.filter(m => cfg.metodos[m]);
+}
+
+// Métodos que o site oferece: configurados no servidor e ligados no admin.
+export function metodosDisponiveis(gateway: Gateway, desativados: MetodosDesativados): MetodoPagamento[] {
+  return metodosConfigurados(gateway).filter(m => !desativados[gateway].includes(m));
 }
 
 // Gateway de um doc em `pagamentos`. Os criados antes de existir o campo

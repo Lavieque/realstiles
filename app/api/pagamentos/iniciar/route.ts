@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticar, encomendaDoCaller } from '@/lib/permissoes-server';
-import { getGatewayAtivo, metodosDisponiveis, METODOS } from '@/lib/pagamentos';
+import { getConfigPagamentos, metodosDisponiveis, METODOS } from '@/lib/pagamentos';
 import type { MetodoPagamento, PedidoPagamento, ResultadoPagamento } from '@/lib/pagamentos';
 import { iniciarCobrancaZumbo, criarCheckoutZumbo } from '@/lib/zumbopay';
 import { iniciarCobrancaClicpay, criarCheckoutClicpay } from '@/lib/clicpay';
@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
     const amount = Number(encomenda.total);
     if (!(amount > 0)) return NextResponse.json({ error: 'Total da encomenda inválido' }, { status: 400 });
 
-    const gateway = await getGatewayAtivo();
-    if (!metodosDisponiveis(gateway).includes(metodo)) {
+    const { ativo: gateway, desativados } = await getConfigPagamentos();
+    if (!metodosDisponiveis(gateway, desativados).includes(metodo)) {
       return NextResponse.json({ error: 'Método de pagamento indisponível de momento' }, { status: 503 });
     }
 

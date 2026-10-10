@@ -13,6 +13,7 @@ interface GatewayInfo {
   nome: string;
   credenciais: boolean;
   metodos: Record<Metodo, boolean>;
+  desativados: Metodo[];
 }
 
 interface CarteiraClicpay {
@@ -41,6 +42,29 @@ const VARIAVEIS: Record<GatewayId, { credenciais: string; metodos: Record<Metodo
   },
 };
 
+// Linha de um método: configurado no servidor? + interruptor ligado/desligado
+function LinhaMetodo({ texto, configurado, ligado, dica, aGuardar, onToggle }: {
+  texto: string; configurado: boolean; ligado: boolean; dica: string; aGuardar: boolean; onToggle: () => void;
+}) {
+  const disponivel = configurado && ligado;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: disponivel ? '#1a8c5a' : 'var(--gray-300)' }} />
+      <span style={{ flex: 1, color: disponivel ? 'var(--black)' : 'var(--gray-400)' }}>
+        {texto}
+        {!configurado && <code style={{ fontSize: 10, marginLeft: 6, color: 'var(--gray-400)' }}>{dica}</code>}
+      </span>
+      <label
+        title={configurado ? (ligado ? 'Desligar este método' : 'Ligar este método') : 'Configura a carteira no servidor primeiro'}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: configurado && !aGuardar ? 'pointer' : 'not-allowed', color: 'var(--gray-500)', fontSize: 12 }}
+      >
+        <input type="checkbox" checked={ligado} disabled={!configurado || aGuardar} onChange={onToggle} />
+        {ligado ? 'Ligado' : 'Desligado'}
+      </label>
+    </div>
+  );
+}
+
 function Estado({ ok, texto, dica }: { ok: boolean; texto: string; dica?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: ok ? '#1a8c5a' : 'var(--gray-400)' }} title={dica}>
@@ -56,6 +80,7 @@ export default function PagamentosPage() {
   const [gateways, setGateways] = useState<GatewayInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [aGuardar, setAGuardar] = useState<GatewayId | null>(null);
+  const [aGuardarMetodo, setAGuardarMetodo] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   const [carteiras, setCarteiras] = useState<CarteiraClicpay[] | null>(null);
   const [erroCarteiras, setErroCarteiras] = useState('');
@@ -104,11 +129,41 @@ export default function PagamentosPage() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Erro ao activar gateway');
       setAtivo(body.ativo);
+      setGateways(body.gateways);
       mostrarToast(`${nome} activado`, 'success');
     } catch (e) {
       mostrarToast(e instanceof Error ? e.message : 'Erro ao activar gateway', 'error');
     } finally {
       setAGuardar(null);
+    }
+  };
+
+  const alternarMetodo = async (g: GatewayInfo, metodo: Metodo) => {
+    const ligar = g.desativados.includes(metodo);
+    if (!ligar && ativo === g.id) {
+      const restantes = (Object.keys(METODO_LABEL) as Metodo[])
+        .filter(m => m !== metodo && g.credenciais && g.metodos[m] && !g.desativados.includes(m));
+      const aviso = restantes.length === 0
+        ? `Desligar ${METODO_LABEL[metodo]}? É o último método activo: o site deixa de aceitar pagamentos online.`
+        : `Desligar ${METODO_LABEL[metodo]} no site?`;
+      if (!confirm(aviso)) return;
+    }
+    setAGuardarMetodo(`${g.id}:${metodo}`);
+    try {
+      const res = await apiFetch('/api/admin/gateway', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gateway: g.id, metodo, ativo: ligar }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Erro ao guardar');
+      setAtivo(body.ativo);
+      setGateways(body.gateways);
+      mostrarToast(`${METODO_LABEL[metodo]} ${ligar ? 'ligado' : 'desligado'} no ${g.nome}`, 'success');
+    } catch (e) {
+      mostrarToast(e instanceof Error ? e.message : 'Erro ao guardar', 'error');
+    } finally {
+      setAGuardarMetodo(null);
     }
   };
 
@@ -124,8 +179,8 @@ export default function PagamentosPage() {
         </button>
       </div>
       <p style={{ color: 'var(--gray-500)', fontSize: 14, marginBottom: 24 }}>
-        Escolhe o gateway usado nos pagamentos online do site (M-Pesa, e-Mola e cartão). Os pagamentos já iniciados
-        continuam a ser confirmados pelo gateway onde foram feitos.
+        Escolhe o gateway usado nos pagamentos online do site e, em cada um, que métodos (M-Pesa, e-Mola, cartão)
+        ficam disponíveis no checkout. Os pagamentos já iniciados continuam a ser confirmados pelo gateway onde foram feitos.
       </p>
 
       {erro && (
@@ -143,7 +198,8 @@ export default function PagamentosPage() {
         {gateways.map(g => {
           const eAtivo = ativo === g.id;
           const vars = VARIAVEIS[g.id];
-          const algumMetodo = g.credenciais && Object.values(g.metodos).some(Boolean);
+          const algumMetodo = g.credenciais
+            && (Object.keys(METODO_LABEL) as Metodo[]).some(m => g.metodos[m] && !g.desativados.includes(m));
           return (
             <div key={g.id} style={{
               background: 'white', borderRadius: 16, padding: 20,
@@ -163,7 +219,15 @@ export default function PagamentosPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                 <Estado ok={g.credenciais} texto="Credenciais" dica={vars.credenciais} />
                 {(Object.keys(METODO_LABEL) as Metodo[]).map(m => (
-                  <Estado key={m} ok={g.credenciais && g.metodos[m]} texto={METODO_LABEL[m]} dica={vars.metodos[m]} />
+                  <LinhaMetodo
+                    key={m}
+                    texto={METODO_LABEL[m]}
+                    configurado={g.credenciais && g.metodos[m]}
+                    ligado={!g.desativados.includes(m)}
+                    dica={vars.metodos[m]}
+                    aGuardar={aGuardarMetodo !== null}
+                    onToggle={() => alternarMetodo(g, m)}
+                  />
                 ))}
               </div>
 
@@ -174,7 +238,7 @@ export default function PagamentosPage() {
                   className="btn btn-primary btn-full btn-sm"
                   onClick={() => activar(g.id)}
                   disabled={!algumMetodo || aGuardar !== null}
-                  title={algumMetodo ? undefined : 'Configura as variáveis de ambiente no servidor primeiro'}
+                  title={algumMetodo ? undefined : 'Liga pelo menos um método configurado primeiro'}
                 >
                   {aGuardar === g.id ? 'A activar…' : `Activar ${g.nome}`}
                 </button>
