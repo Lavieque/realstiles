@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { marcarLogoutVoluntario } from './sessao';
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -69,6 +70,7 @@ export async function loginGoogle(): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
+  marcarLogoutVoluntario();
   await signOut(auth);
 }
 

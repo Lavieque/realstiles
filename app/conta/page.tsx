@@ -14,6 +14,7 @@ import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
 import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
+import { caminhoInternoSeguro } from '@/lib/sessao';
 
 type Tab = 'entrar' | 'registar' | 'recuperar';
 type Metodo = 'email' | 'whatsapp';
@@ -31,7 +32,9 @@ function ContaInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as Tab | null;
-  const redirect = searchParams.get('redirect') || '/';
+  // Só caminhos internos: o parâmetro vem do URL (ver lib/sessao.ts)
+  const redirect = caminhoInternoSeguro(searchParams.get('redirect'));
+  const sessaoExpirada = searchParams.get('sessao') === 'expirada';
 
   const [tab, setTab] = useState<Tab>(tabParam || 'entrar');
   const [metodo, setMetodo] = useState<Metodo>('email');
@@ -380,6 +383,13 @@ function ContaInner() {
 
       <div className="auth-lado-form">
         <div className="auth-form-wrap">
+
+          {sessaoExpirada && (
+            <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: 20, borderRadius: 10, background: '#fff8e6', border: '1px solid #f7d58a', color: '#7a5200', fontSize: 13, lineHeight: 1.5 }}>
+              <AlertTriangle size={16} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>A tua sessão terminou. Entra de novo para voltares à página onde estavas.</span>
+            </div>
+          )}
 
           {tab !== 'recuperar' && (
             <>
