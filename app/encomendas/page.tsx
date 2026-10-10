@@ -8,6 +8,8 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Package, MessageCircle } from 'lucide-react';
 import FiltrosSidebar, { FiltroGrupo, FiltroOpcoes } from '@/components/FiltrosSidebar';
+import { consultarEstadoPagamento } from '@/lib/pagamento-cliente';
+import { mostrarToast } from '@/components/Toast';
 
 const ESTADOS = ['', 'pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
 const ESTADO_LABEL: Record<string, string> = {
@@ -36,6 +38,19 @@ export default function EncomendasPage() {
     const unsub = onAuthChange(async (u) => {
       setUser(u);
       if (!u) { setLoading(false); return; }
+
+      // Regresso do checkout de cartão (callback_url ClicPay):
+      // /encomendas?pagamento=<id da encomenda>. Consulta o gateway antes de
+      // listar, para a encomenda já aparecer confirmada se estiver paga.
+      const pagamentoId = new URLSearchParams(window.location.search).get('pagamento');
+      if (pagamentoId) {
+        const r = await consultarEstadoPagamento(pagamentoId);
+        if (r?.pago) mostrarToast('Pagamento confirmado. Obrigado!', 'success');
+        else if (r?.estado === 'falhado') mostrarToast('O pagamento não foi concluído. Podes tentar de novo na encomenda.', 'error');
+        else mostrarToast('Pagamento em verificação. A encomenda é actualizada assim que for confirmado.', 'info');
+        window.history.replaceState(null, '', '/encomendas');
+      }
+
       const enc = await getEncomendasCliente(u.uid);
       setEncomendas(enc);
       setLoading(false);
