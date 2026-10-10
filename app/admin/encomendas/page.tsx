@@ -13,7 +13,7 @@ import { apiFetch } from '@/lib/api-fetch';
 const ESTADOS: EstadoEncomenda[] = ['pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
 
 const METODOS_PAGAMENTO: Record<string, string> = {
-  mpesa: 'M-Pesa', emola: 'e-Mola', cartao: 'Cartão', paysuite: 'PaySuite',
+  mpesa: 'M-Pesa', emola: 'e-Mola', mkesh: 'mKesh', cartao: 'Cartão', paysuite: 'PaySuite',
 };
 
 const GATEWAYS_PAGAMENTO: Record<string, string> = {

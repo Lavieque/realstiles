@@ -62,9 +62,9 @@ export async function consultarPagamentoZumbo(reference: string): Promise<{ ok: 
 // M-Pesa / e-Mola: POST /charges (STK push no telemóvel do cliente).
 export async function iniciarCobrancaZumbo(pedido: PedidoPagamento): Promise<ResultadoPagamento> {
   const { encomendaId, amount, metodo } = pedido;
-  const walletId = metodo === 'mpesa'
-    ? process.env.ZUMBOPAY_WALLET_MPESA
-    : process.env.ZUMBOPAY_WALLET_EMOLA;
+  const walletId = metodo === 'mpesa' ? process.env.ZUMBOPAY_WALLET_MPESA
+    : metodo === 'emola' ? process.env.ZUMBOPAY_WALLET_EMOLA
+    : undefined;
   if (!walletId) return { ok: false, http: 503, error: `Wallet ${metodo} não configurada` };
 
   const msisdnClean = (pedido.msisdn || '').replace(/\D/g, '');

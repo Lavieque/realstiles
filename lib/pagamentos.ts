@@ -1,5 +1,9 @@
 import { adminDb } from './firebase-admin';
 import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
+import { METODOS_PAGAMENTO } from './metodos-pagamento';
+import type { MetodoPagamento } from './metodos-pagamento';
+
+export type { MetodoPagamento };
 
 // Camada comum aos gateways de pagamento (ZumboPay e ClicPay). O gateway
 // activo no site é escolhido no painel (/admin/pagamentos) e guardado em
@@ -7,14 +11,13 @@ import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
 // o Admin SDK (rotas /api) a lê e escreve.
 
 export type Gateway = 'zumbopay' | 'clicpay';
-export type MetodoPagamento = 'mpesa' | 'emola' | 'cartao';
 
 export const GATEWAYS: { id: Gateway; nome: string }[] = [
   { id: 'zumbopay', nome: 'ZumboPay' },
   { id: 'clicpay', nome: 'ClicPay' },
 ];
 
-export const METODOS: MetodoPagamento[] = ['mpesa', 'emola', 'cartao'];
+export const METODOS: MetodoPagamento[] = METODOS_PAGAMENTO;
 
 const GATEWAY_PADRAO: Gateway = 'zumbopay';
 const configRef = () => adminDb.collection('config_pagamentos').doc('gateway');
@@ -77,6 +80,7 @@ export function configuracaoGateway(gateway: Gateway): { credenciais: boolean; m
       metodos: {
         mpesa: Boolean(process.env.CLICPAY_WALLET_MPESA),
         emola: Boolean(process.env.CLICPAY_WALLET_EMOLA),
+        mkesh: Boolean(process.env.CLICPAY_WALLET_MKESH),
         cartao: Boolean(process.env.CLICPAY_WALLET_CARD),
       },
     };
@@ -86,6 +90,8 @@ export function configuracaoGateway(gateway: Gateway): { credenciais: boolean; m
     metodos: {
       mpesa: Boolean(process.env.ZUMBOPAY_WALLET_MPESA),
       emola: Boolean(process.env.ZUMBOPAY_WALLET_EMOLA),
+      // O ZumboPay não suporta mKesh
+      mkesh: false,
       cartao: Boolean(process.env.ZUMBOPAY_WALLET_CARD),
     },
   };

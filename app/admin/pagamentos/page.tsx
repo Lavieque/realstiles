@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { RefreshCw, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
 import { mostrarToast } from '@/components/Toast';
+import { INFO_METODO, METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
+import type { MetodoPagamento as Metodo } from '@/lib/metodos-pagamento';
 
 type GatewayId = 'zumbopay' | 'clicpay';
-type Metodo = 'mpesa' | 'emola' | 'cartao';
 
 interface GatewayInfo {
   id: GatewayId;
@@ -27,18 +28,18 @@ interface CarteiraClicpay {
   balance?: { available?: string; accumulated?: string };
 }
 
-const METODO_LABEL: Record<Metodo, string> = { mpesa: 'M-Pesa', emola: 'e-Mola', cartao: 'Cartão' };
+const METODO_LABEL = Object.fromEntries(METODOS_PAGAMENTO.map(m => [m, INFO_METODO[m].nome])) as Record<Metodo, string>;
 
 // Variáveis de ambiente de cada gateway, para o admin saber o que falta
 // configurar no servidor (os valores nunca saem do servidor).
 const VARIAVEIS: Record<GatewayId, { credenciais: string; metodos: Record<Metodo, string> }> = {
   zumbopay: {
     credenciais: 'ZUMBOPAY_API_KEY + ZUMBOPAY_MERCHANT_ID',
-    metodos: { mpesa: 'ZUMBOPAY_WALLET_MPESA', emola: 'ZUMBOPAY_WALLET_EMOLA', cartao: 'ZUMBOPAY_WALLET_CARD' },
+    metodos: { mpesa: 'ZUMBOPAY_WALLET_MPESA', emola: 'ZUMBOPAY_WALLET_EMOLA', mkesh: 'não suportado', cartao: 'ZUMBOPAY_WALLET_CARD' },
   },
   clicpay: {
     credenciais: 'CLICPAY_API_TOKEN',
-    metodos: { mpesa: 'CLICPAY_WALLET_MPESA', emola: 'CLICPAY_WALLET_EMOLA', cartao: 'CLICPAY_WALLET_CARD' },
+    metodos: { mpesa: 'CLICPAY_WALLET_MPESA', emola: 'CLICPAY_WALLET_EMOLA', mkesh: 'CLICPAY_WALLET_MKESH', cartao: 'CLICPAY_WALLET_CARD' },
   },
 };
 
@@ -179,7 +180,7 @@ export default function PagamentosPage() {
         </button>
       </div>
       <p style={{ color: 'var(--gray-500)', fontSize: 14, marginBottom: 24 }}>
-        Escolhe o gateway usado nos pagamentos online do site e, em cada um, que métodos (M-Pesa, e-Mola, cartão)
+        Escolhe o gateway usado nos pagamentos online do site e, em cada um, que métodos (M-Pesa, e-Mola, mKesh, cartão)
         ficam disponíveis no checkout. Os pagamentos já iniciados continuam a ser confirmados pelo gateway onde foram feitos.
       </p>
 
@@ -258,7 +259,7 @@ export default function PagamentosPage() {
         <div>
           <h3 style={{ fontSize: 16, marginBottom: 4 }}>Carteiras ClicPay</h3>
           <p style={{ color: 'var(--gray-500)', fontSize: 13, marginBottom: 12 }}>
-            Usa o ID de cada carteira nas variáveis CLICPAY_WALLET_MPESA, CLICPAY_WALLET_EMOLA e CLICPAY_WALLET_CARD.
+            Usa o ID de cada carteira nas variáveis CLICPAY_WALLET_MPESA, CLICPAY_WALLET_EMOLA, CLICPAY_WALLET_MKESH e CLICPAY_WALLET_CARD.
           </p>
           {erroCarteiras && <p style={{ color: 'var(--red)', fontSize: 13 }}>{erroCarteiras}</p>}
           {carteiras && carteiras.length === 0 && <p style={{ color: 'var(--gray-400)', fontSize: 13 }}>Nenhuma carteira encontrada.</p>}
