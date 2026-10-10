@@ -50,7 +50,7 @@ export async function iniciarPagamento(dados: {
 
 // Pede ao servidor para consultar o gateway e confirmar a encomenda se o
 // pagamento já estiver feito.
-export async function consultarEstadoPagamento(encomendaId: string): Promise<{ pago: boolean; estado: string } | null> {
+export async function consultarEstadoPagamento(encomendaId: string): Promise<{ pago: boolean; estado: string; mensagem?: string } | null> {
   try {
     const res = await apiFetch('/api/pagamentos/estado', {
       method: 'POST',
@@ -102,7 +102,7 @@ export function aguardarPagamento(
       callbacks.onPago();
     } else if (r.estado === 'falhado') {
       parar();
-      callbacks.onFalhado('O pagamento não foi concluído. Tenta novamente.');
+      callbacks.onFalhado(r.mensagem || 'O pagamento não foi concluído. Tenta novamente.');
     }
   }, INTERVALO_CONSULTA_MS);
 

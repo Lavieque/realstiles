@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Image from '@/components/CloudImage';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -12,11 +12,11 @@ import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
-import { aguardarPagamento, consultarEstadoPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
+import { consultarEstadoPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
 import { INFO_METODO, nomeMetodo } from '@/lib/metodos-pagamento';
 import type { MetodoPagamento } from '@/lib/metodos-pagamento';
 import MetodoPagamentoSeletor from '@/components/MetodoPagamentoSeletor';
-import AguardarPinModal from '@/components/AguardarPinModal';
+import PagamentoMovel from '@/components/PagamentoMovel';
 
 
 type Metodo = MetodoPagamento;
@@ -44,7 +44,6 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   const [retryTelefone, setRetryTelefone] = useState('');
   const [retryLoading, setRetryLoading] = useState(false);
   const [retryStatus, setRetryStatus] = useState<'idle' | 'aguardar'>('idle');
-  const unsubRef = useRef<(() => void) | null>(null);
   const { adicionarItem, abrirDrawer } = useCarrinho();
 
   useEffect(() => {
@@ -74,43 +73,23 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     });
   }, []);
 
-  useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
-
   const handleRetry = async () => {
     if (!encomenda) return;
     setRetryLoading(true);
     try {
-      // Cartão → redirect para o checkout; M-Pesa/e-Mola → pedido no telemóvel
-      const data = await iniciarPagamento({
-        encomendaId: encomenda.id,
-        metodo: retryMetodo,
-        msisdn: retryMetodo === 'cartao' ? undefined : retryTelefone,
-        customerName: user?.displayName || encomenda.cliente_email || 'Cliente',
-      });
-
-      if (data.status === 'succeeded') {
-        window.location.href = `/encomenda/${encomenda.id}?confirmada=1`;
+      // Telemóvel: o popup abre já e é ele que envia o pedido e espera o PIN
+      if (INFO_METODO[retryMetodo].movel) {
+        setRetryStatus('aguardar');
         return;
       }
 
+      // Cartão → redirect para o checkout
+      const data = await iniciarPagamento({ encomendaId: encomenda.id, metodo: retryMetodo });
       if (data.status === 'redirect' && data.checkout_url) {
         window.location.href = data.checkout_url;
         return;
       }
-
-      setRetryStatus('aguardar');
-      // Escuta a encomenda e consulta o gateway até confirmar (máx. 3 minutos)
-      unsubRef.current = aguardarPagamento(encomenda.id, {
-        onPago: () => { window.location.href = `/encomenda/${encomenda.id}?confirmada=1`; },
-        onFalhado: (msg) => {
-          setRetryStatus('idle');
-          mostrarToast(msg, 'error');
-        },
-        onTimeout: () => {
-          setRetryStatus('idle');
-          mostrarToast('Tempo esgotado. Verifica se o pagamento foi concluído.', 'error');
-        },
-      });
+      if (data.status === 'succeeded') window.location.href = `/encomenda/${encomenda.id}?confirmada=1`;
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao processar pagamento.', 'error');
     } finally {
@@ -276,11 +255,19 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
             {retryStatus === 'aguardar' ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 0', fontSize: 14, color: 'var(--gray-500)' }}>
                 <Loader2 size={16} strokeWidth={1.8} style={{ animation: 'spin 1s linear infinite' }} /> A aguardar confirmação do pagamento…
-                <AguardarPinModal
+                <PagamentoMovel
+                  encomendaId={encomenda.id}
                   metodo={retryMetodo}
                   telefone={retryTelefone}
                   montante={Number(encomenda.total) || 0}
-                  onCancelar={() => { if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; } setRetryStatus('idle'); }}
+                  iniciar={() => iniciarPagamento({
+                    encomendaId: encomenda.id,
+                    metodo: retryMetodo,
+                    msisdn: retryTelefone,
+                    customerName: user?.displayName || encomenda.cliente_email || 'Cliente',
+                  })}
+                  onPago={() => { window.location.href = `/encomenda/${encomenda.id}?confirmada=1`; }}
+                  onFechar={() => setRetryStatus('idle')}
                 />
               </div>
             ) : (

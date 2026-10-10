@@ -10,11 +10,11 @@ import { getConfig, DEFAULTS } from '@/lib/config-site';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import type { User } from 'firebase/auth';
-import { aguardarPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
+import { getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
 import { INFO_METODO } from '@/lib/metodos-pagamento';
 import type { MetodoPagamento } from '@/lib/metodos-pagamento';
 import MetodoPagamentoSeletor from '@/components/MetodoPagamentoSeletor';
-import AguardarPinModal from '@/components/AguardarPinModal';
+import PagamentoMovel from '@/components/PagamentoMovel';
 
 type Metodo = MetodoPagamento;
 type PagamentoStatus = 'idle' | 'aguardar' | 'sucesso' | 'erro';
@@ -39,7 +39,6 @@ export default function CarrinhoPage() {
   const [pagStatus, setPagStatus] = useState<PagamentoStatus>('idle');
   const [pagErro, setPagErro] = useState('');
   const [encomendaId, setEncomendaId] = useState('');
-  const unsubRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -76,40 +75,18 @@ export default function CarrinhoPage() {
     });
   }, []);
 
-  // Pára a espera do pagamento ao desmontar
-  useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
-
-  const cancelarEspera = () => {
-    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
-    setPagStatus('idle');
-  };
-
-  const aguardarConfirmacao = (encId: string) => {
-    setPagStatus('aguardar');
-
-    // Escuta a encomenda e consulta o gateway até confirmar (máx. 3 minutos)
-    unsubRef.current = aguardarPagamento(encId, {
-      onPago: () => {
-        limpar();
-        window.location.href = `/encomenda/${encId}?confirmada=1`;
-      },
-      onFalhado: (msg) => {
-        setPagStatus('erro');
-        setPagErro(msg);
-      },
-      onTimeout: () => {
-        setPagStatus('erro');
-        setPagErro('Tempo de espera esgotado. Verifica se o pagamento foi concluído.');
-      },
-    });
-  };
+  // Encomenda já criada para este carrinho: "Tentar de novo" depois de uma
+  // tentativa falhada paga a mesma, em vez de criar outra
+  const assinaturaCarrinho = JSON.stringify([items.map(i => [i.key, i.quantidade, i.preco]), formaEntrega, total]);
+  const encomendaCriadaRef = useRef<{ id: string; assinatura: string } | null>(null);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setPagErro('');
     try {
-      const encId = await criarEncomendaPendente({
+      const reutilizar = encomendaCriadaRef.current?.assinatura === assinaturaCarrinho;
+      const encId = reutilizar ? encomendaCriadaRef.current!.id : await criarEncomendaPendente({
         itens: items,
         // Ponto de recolha não tem morada do cliente
         morada: formaEntrega === 'domicilio' ? form.morada : '',
@@ -121,29 +98,25 @@ export default function CarrinhoPage() {
         forma_entrega: formaEntrega,
         taxa_entrega: taxaEntrega,
       });
+      encomendaCriadaRef.current = { id: encId, assinatura: assinaturaCarrinho };
       setEncomendaId(encId);
 
-      // Cartão → redirect para o checkout; M-Pesa/e-Mola → pedido no telemóvel
-      const data = await iniciarPagamento({
-        encomendaId: encId,
-        metodo,
-        msisdn: metodo === 'cartao' ? undefined : pagTelefone,
-        customerName: user?.displayName || form.email || 'Cliente',
-      });
-
-      if (data.status === 'succeeded') {
-        limpar();
-        window.location.href = `/encomenda/${encId}?confirmada=1`;
+      // Telemóvel: o popup abre já e é ele que envia o pedido e espera o PIN
+      if (INFO_METODO[metodo].movel) {
+        setPagStatus('aguardar');
         return;
       }
 
+      // Cartão → redirect para o checkout
+      const data = await iniciarPagamento({ encomendaId: encId, metodo });
       if (data.status === 'redirect' && data.checkout_url) {
         window.location.href = data.checkout_url;
         return;
       }
-
-      // STK enviado — aguardar confirmação via Firestore
-      aguardarConfirmacao(encId);
+      if (data.status === 'succeeded') {
+        limpar();
+        window.location.href = `/encomenda/${encId}?confirmada=1`;
+      }
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao processar pagamento.', 'error');
     } finally {
@@ -215,12 +188,28 @@ export default function CarrinhoPage() {
             </div>
 
             {/* Estado: aguardar PIN no telemóvel */}
-            {pagStatus === 'aguardar' && (
+            {pagStatus === 'aguardar' && encomendaId && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0', fontSize: 14, color: 'var(--gray-500)' }}>
                   <Loader2 size={16} strokeWidth={1.8} style={{ animation: 'spin 1s linear infinite' }} /> A aguardar confirmação do pagamento…
                 </div>
-                <AguardarPinModal metodo={metodo} telefone={pagTelefone} montante={total} onCancelar={cancelarEspera} />
+                <PagamentoMovel
+                  encomendaId={encomendaId}
+                  metodo={metodo}
+                  telefone={pagTelefone}
+                  montante={total}
+                  iniciar={() => iniciarPagamento({
+                    encomendaId,
+                    metodo,
+                    msisdn: pagTelefone,
+                    customerName: user?.displayName || form.email || 'Cliente',
+                  })}
+                  onPago={() => {
+                    limpar();
+                    window.location.href = `/encomenda/${encomendaId}?confirmada=1`;
+                  }}
+                  onFechar={() => setPagStatus('idle')}
+                />
               </>
             )}
 

@@ -5,6 +5,10 @@ import type { MetodoPagamento, PedidoPagamento, ResultadoPagamento } from '@/lib
 import { iniciarCobrancaZumbo, criarCheckoutZumbo } from '@/lib/zumbopay';
 import { iniciarCobrancaClicpay, criarCheckoutClicpay } from '@/lib/clicpay';
 
+// A ClicPay só responde a /c2b depois de o cliente introduzir o PIN (~60s
+// no pior caso): a função precisa de mais tempo do que o habitual.
+export const maxDuration = 120;
+
 // Inicia o pagamento de uma encomenda no gateway activo (escolhido no admin).
 // M-Pesa/e-Mola: pedido de confirmação no telemóvel → status "pending" (ou
 // "succeeded" se confirmar logo). Cartão: devolve status "redirect" com o

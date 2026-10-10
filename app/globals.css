@@ -1648,3 +1648,20 @@ body:has(.admin-layout) {
 .conf-acoes .btn { min-width: 110px; }
 @media (max-width: 420px) { .conf-acoes .btn { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .conf-overlay, .conf-dialogo { animation: none; } }
+
+/* Popup do PIN: tempo a acabar e ecrãs de desfecho (components/PagamentoMovel.tsx) */
+.pin-estado.urgente { background: #fef2f2; }
+.pin-estado.urgente .pin-estado-titulo { color: var(--red); }
+.pin-resultado { padding-top: 4px; }
+.pin-resultado-icone {
+  width: 56px; height: 56px; border-radius: 50%; margin: 4px auto 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-resultado-icone.aviso { background: #fff8e6; color: #b7791f; }
+.pin-resultado-icone.erro { background: #fef2f2; color: var(--red); }
+.pin-causas {
+  text-align: left; margin: 0 0 14px; padding: 12px 14px 12px 30px; border-radius: 12px;
+  background: var(--gray-100); font-size: 13px; color: var(--gray-600); line-height: 1.7;
+}
+.pin-aviso { font-size: 12px; color: var(--gray-500); line-height: 1.5; margin-bottom: 16px; text-align: left; }
+.pin-resultado-acoes { display: flex; flex-direction: column; gap: 8px; }
