@@ -16,7 +16,7 @@ export interface RespostaPagamento {
   checkout_url?: string;
 }
 
-// Métodos que o gateway activo tem configurados. Em caso de erro devolve
+// Métodos disponíveis no site (cada um no seu gateway). Em caso de erro devolve
 // todos, para não esconder o checkout por uma falha de rede.
 export async function getMetodosDisponiveis(): Promise<MetodoPagamento[]> {
   try {

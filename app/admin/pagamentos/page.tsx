@@ -7,6 +7,7 @@ import { mostrarToast } from '@/components/Toast';
 import { INFO_METODO, METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
 import type { MetodoPagamento as Metodo } from '@/lib/metodos-pagamento';
 import { confirmar } from '@/components/Confirmar';
+import MetodoPagamentoLogo from '@/components/MetodoPagamentoLogo';
 
 type GatewayId = 'zumbopay' | 'clicpay';
 
@@ -15,7 +16,13 @@ interface GatewayInfo {
   nome: string;
   credenciais: boolean;
   metodos: Record<Metodo, boolean>;
-  desativados: Metodo[];
+}
+
+interface MetodoInfo {
+  gateway: GatewayId;
+  ativo: boolean;
+  disponivel: boolean;
+  gateways: { id: GatewayId; configurado: boolean }[];
 }
 
 interface CarteiraClicpay {
@@ -30,6 +37,7 @@ interface CarteiraClicpay {
 }
 
 const METODO_LABEL = Object.fromEntries(METODOS_PAGAMENTO.map(m => [m, INFO_METODO[m].nome])) as Record<Metodo, string>;
+const NOME_GATEWAY: Record<GatewayId, string> = { zumbopay: 'ZumboPay', clicpay: 'ClicPay' };
 
 // Variáveis de ambiente de cada gateway, para o admin saber o que falta
 // configurar no servidor (os valores nunca saem do servidor).
@@ -44,29 +52,6 @@ const VARIAVEIS: Record<GatewayId, { credenciais: string; metodos: Record<Metodo
   },
 };
 
-// Linha de um método: configurado no servidor? + interruptor ligado/desligado
-function LinhaMetodo({ texto, configurado, ligado, dica, aGuardar, onToggle }: {
-  texto: string; configurado: boolean; ligado: boolean; dica: string; aGuardar: boolean; onToggle: () => void;
-}) {
-  const disponivel = configurado && ligado;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: disponivel ? '#1a8c5a' : 'var(--gray-300)' }} />
-      <span style={{ flex: 1, color: disponivel ? 'var(--black)' : 'var(--gray-400)' }}>
-        {texto}
-        {!configurado && <code style={{ fontSize: 10, marginLeft: 6, color: 'var(--gray-400)' }}>{dica}</code>}
-      </span>
-      <label
-        title={configurado ? (ligado ? 'Desligar este método' : 'Ligar este método') : 'Configura a carteira no servidor primeiro'}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: configurado && !aGuardar ? 'pointer' : 'not-allowed', color: 'var(--gray-500)', fontSize: 12 }}
-      >
-        <input type="checkbox" checked={ligado} disabled={!configurado || aGuardar} onChange={onToggle} />
-        {ligado ? 'Ligado' : 'Desligado'}
-      </label>
-    </div>
-  );
-}
-
 function Estado({ ok, texto, dica }: { ok: boolean; texto: string; dica?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: ok ? '#1a8c5a' : 'var(--gray-400)' }} title={dica}>
@@ -77,15 +62,27 @@ function Estado({ ok, texto, dica }: { ok: boolean; texto: string; dica?: string
   );
 }
 
+// Porque é que um método não aparece no site
+function motivoIndisponivel(info: MetodoInfo): string {
+  if (!info.ativo) return 'Desligado';
+  const g = info.gateways.find(x => x.id === info.gateway);
+  if (!g?.configurado) return `Sem carteira no ${NOME_GATEWAY[info.gateway]}`;
+  return 'Indisponível';
+}
+
 export default function PagamentosPage() {
-  const [ativo, setAtivo] = useState<GatewayId | null>(null);
+  const [metodos, setMetodos] = useState<Record<Metodo, MetodoInfo> | null>(null);
   const [gateways, setGateways] = useState<GatewayInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [aGuardar, setAGuardar] = useState<GatewayId | null>(null);
-  const [aGuardarMetodo, setAGuardarMetodo] = useState<string | null>(null);
+  const [aGuardar, setAGuardar] = useState<Metodo | null>(null);
   const [erro, setErro] = useState('');
   const [carteiras, setCarteiras] = useState<CarteiraClicpay[] | null>(null);
   const [erroCarteiras, setErroCarteiras] = useState('');
+
+  const aplicar = (body: { metodos: Record<Metodo, MetodoInfo>; gateways: GatewayInfo[] }) => {
+    setMetodos(body.metodos);
+    setGateways(body.gateways);
+  };
 
   const carregar = async () => {
     setLoading(true);
@@ -94,8 +91,7 @@ export default function PagamentosPage() {
       const res = await apiFetch('/api/admin/gateway');
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Erro ao carregar gateways');
-      setAtivo(body.ativo);
-      setGateways(body.gateways);
+      aplicar(body);
       const clicpay = (body.gateways as GatewayInfo[]).find(g => g.id === 'clicpay');
       if (clicpay?.credenciais) carregarCarteiras();
     } catch (e) {
@@ -118,71 +114,69 @@ export default function PagamentosPage() {
     }
   };
 
-  const activar = async (id: GatewayId) => {
-    const nome = gateways.find(g => g.id === id)?.nome ?? id;
-    if (!(await confirmar({ titulo: `Activar ${nome}?`, mensagem: `Os novos pagamentos do site passam a ser feitos por ${nome}. Os pagamentos já iniciados continuam a ser confirmados no gateway onde foram feitos.`, confirmar: `Activar ${nome}` }))) return;
-    setAGuardar(id);
+  const guardar = async (metodo: Metodo, alteracao: { gateway?: GatewayId; ativo?: boolean }, sucesso: string) => {
+    setAGuardar(metodo);
     try {
       const res = await apiFetch('/api/admin/gateway', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gateway: id }),
+        body: JSON.stringify({ metodo, ...alteracao }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Erro ao activar gateway');
-      setAtivo(body.ativo);
-      setGateways(body.gateways);
-      mostrarToast(`${nome} activado`, 'success');
+      if (!res.ok) throw new Error(body.error || 'Erro ao guardar');
+      aplicar(body);
+      mostrarToast(sucesso, 'success');
     } catch (e) {
-      mostrarToast(e instanceof Error ? e.message : 'Erro ao activar gateway', 'error');
+      mostrarToast(e instanceof Error ? e.message : 'Erro ao guardar', 'error');
     } finally {
       setAGuardar(null);
     }
   };
 
-  const alternarMetodo = async (g: GatewayInfo, metodo: Metodo) => {
-    const ligar = g.desativados.includes(metodo);
-    if (!ligar && ativo === g.id) {
-      const restantes = (Object.keys(METODO_LABEL) as Metodo[])
-        .filter(m => m !== metodo && g.credenciais && g.metodos[m] && !g.desativados.includes(m));
-      const aviso = restantes.length === 0
-        ? 'É o último método activo: o site deixa de aceitar pagamentos online.'
-        : 'Deixa de aparecer no checkout do site.';
-      if (!(await confirmar({ titulo: `Desligar ${METODO_LABEL[metodo]}?`, mensagem: aviso, confirmar: 'Desligar', perigo: restantes.length === 0 }))) return;
+  const mudarGateway = async (metodo: Metodo, gateway: GatewayId) => {
+    if (!metodos || metodos[metodo].gateway === gateway) return;
+    const nome = NOME_GATEWAY[gateway];
+    if (!(await confirmar({
+      titulo: `${METODO_LABEL[metodo]} pelo ${nome}?`,
+      mensagem: `Os novos pagamentos com ${METODO_LABEL[metodo]} passam a ser feitos pelo ${nome}. Os pagamentos já iniciados continuam a ser confirmados no gateway onde foram feitos.`,
+      confirmar: `Usar ${nome}`,
+    }))) return;
+    guardar(metodo, { gateway }, `${METODO_LABEL[metodo]} passa a usar o ${nome}`);
+  };
+
+  const alternar = async (metodo: Metodo) => {
+    if (!metodos) return;
+    const ligar = !metodos[metodo].ativo;
+    if (!ligar && metodos[metodo].disponivel) {
+      const restantes = METODOS_PAGAMENTO.filter(m => m !== metodo && metodos[m].disponivel);
+      if (!(await confirmar({
+        titulo: `Desligar ${METODO_LABEL[metodo]}?`,
+        mensagem: restantes.length === 0
+          ? 'É o último método disponível: o site deixa de aceitar pagamentos online.'
+          : 'Deixa de aparecer no checkout do site.',
+        confirmar: 'Desligar',
+        perigo: restantes.length === 0,
+      }))) return;
     }
-    setAGuardarMetodo(`${g.id}:${metodo}`);
-    try {
-      const res = await apiFetch('/api/admin/gateway', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gateway: g.id, metodo, ativo: ligar }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Erro ao guardar');
-      setAtivo(body.ativo);
-      setGateways(body.gateways);
-      mostrarToast(`${METODO_LABEL[metodo]} ${ligar ? 'ligado' : 'desligado'} no ${g.nome}`, 'success');
-    } catch (e) {
-      mostrarToast(e instanceof Error ? e.message : 'Erro ao guardar', 'error');
-    } finally {
-      setAGuardarMetodo(null);
-    }
+    guardar(metodo, { ativo: ligar }, `${METODO_LABEL[metodo]} ${ligar ? 'ligado' : 'desligado'}`);
   };
 
   useEffect(() => { carregar(); }, []);
 
+  const nenhumDisponivel = metodos && !METODOS_PAGAMENTO.some(m => metodos[m].disponivel);
+
   return (
     <div className="admin-page">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <h2 style={{ margin: 0 }}>Gateway de pagamento</h2>
+        <h2 style={{ margin: 0 }}>Pagamentos online</h2>
         <button className="btn btn-outline btn-sm" onClick={carregar} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
           Atualizar
         </button>
       </div>
       <p style={{ color: 'var(--gray-500)', fontSize: 14, marginBottom: 24 }}>
-        Escolhe o gateway usado nos pagamentos online do site e, em cada um, que métodos (M-Pesa, e-Mola, mKesh, cartão)
-        ficam disponíveis no checkout. Os pagamentos já iniciados continuam a ser confirmados pelo gateway onde foram feitos.
+        Escolhe o gateway de cada método e se fica disponível no checkout — por exemplo M-Pesa e e-Mola pela ClicPay e
+        cartão pelo ZumboPay. Os pagamentos já iniciados continuam a ser confirmados no gateway onde foram feitos.
       </p>
 
       {erro && (
@@ -192,62 +186,108 @@ export default function PagamentosPage() {
         </div>
       )}
 
-      {loading && !gateways.length && (
+      {loading && !metodos && (
         <p style={{ color: 'var(--gray-400)', textAlign: 'center', padding: 40 }}>A carregar...</p>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16, marginBottom: 32 }}>
+      {nenhumDisponivel && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#fff8e6', border: '1px solid #f7d58a', borderRadius: 10, marginBottom: 16, color: '#7a5200', fontSize: 13 }}>
+          <AlertCircle size={16} />
+          <span>Nenhum método está disponível: o site não aceita pagamentos online neste momento.</span>
+        </div>
+      )}
+
+      {metodos && (
+        <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', overflowX: 'auto', marginBottom: 32 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 560 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: 'var(--gray-500)', fontSize: 12 }}>
+                <th style={{ padding: '12px 16px' }}>Método</th>
+                <th style={{ padding: '12px 16px' }}>Gateway</th>
+                <th style={{ padding: '12px 16px' }}>No site</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Ligado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {METODOS_PAGAMENTO.map(m => {
+                const info = metodos[m];
+                const unico = info.gateways.length === 1;
+                return (
+                  <tr key={m} style={{ borderTop: '1px solid var(--gray-100)', opacity: aGuardar === m ? 0.6 : 1 }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <MetodoPagamentoLogo metodo={m} altura={28} />
+                        <span style={{ fontWeight: 600 }}>{METODO_LABEL[m]}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {unico ? (
+                        <span title="Só este gateway suporta este método">{NOME_GATEWAY[info.gateway]}</span>
+                      ) : (
+                        <select
+                          value={info.gateway}
+                          disabled={aGuardar !== null}
+                          onChange={e => mudarGateway(m, e.target.value as GatewayId)}
+                          style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--gray-200)', fontSize: 13, background: 'white' }}
+                        >
+                          {info.gateways.map(g => (
+                            <option key={g.id} value={g.id} disabled={!g.configurado && g.id !== info.gateway}>
+                              {NOME_GATEWAY[g.id]}{g.configurado ? '' : ' (sem carteira)'}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600,
+                        padding: '3px 10px', borderRadius: 20,
+                        background: info.disponivel ? '#e6f9f0' : 'var(--gray-100)',
+                        color: info.disponivel ? '#1a8c5a' : 'var(--gray-500)',
+                      }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: info.disponivel ? '#1a8c5a' : 'var(--gray-300)' }} />
+                        {info.disponivel ? 'Disponível' : motivoIndisponivel(info)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: aGuardar ? 'not-allowed' : 'pointer', fontSize: 12, color: 'var(--gray-500)' }}>
+                        <input type="checkbox" checked={info.ativo} disabled={aGuardar !== null} onChange={() => alternar(m)} />
+                        {info.ativo ? 'Ligado' : 'Desligado'}
+                      </label>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h3 style={{ fontSize: 16, marginBottom: 12 }}>Gateways</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
         {gateways.map(g => {
-          const eAtivo = ativo === g.id;
           const vars = VARIAVEIS[g.id];
-          const algumMetodo = g.credenciais
-            && (Object.keys(METODO_LABEL) as Metodo[]).some(m => g.metodos[m] && !g.desativados.includes(m));
+          const usadoPor = metodos ? METODOS_PAGAMENTO.filter(m => metodos[m].gateway === g.id && metodos[m].disponivel) : [];
           return (
-            <div key={g.id} style={{
-              background: 'white', borderRadius: 16, padding: 20,
-              border: eAtivo ? '2px solid var(--black)' : '1.5px solid var(--gray-200)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div key={g.id} style={{ background: 'white', borderRadius: 16, padding: 20, border: '1.5px solid var(--gray-200)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
                 <div style={{ fontWeight: 800, fontSize: 18 }}>{g.nome}</div>
                 <span style={{
-                  fontSize: 11, padding: '3px 9px', borderRadius: 20, fontWeight: 700,
-                  background: eAtivo ? '#e6f9f0' : 'var(--gray-100)',
-                  color: eAtivo ? '#1a8c5a' : 'var(--gray-500)',
+                  fontSize: 11, padding: '3px 9px', borderRadius: 20, fontWeight: 700, textAlign: 'right',
+                  background: usadoPor.length ? '#e6f9f0' : 'var(--gray-100)',
+                  color: usadoPor.length ? '#1a8c5a' : 'var(--gray-500)',
                 }}>
-                  {eAtivo ? 'Activo no site' : 'Inactivo'}
+                  {usadoPor.length ? `Em uso: ${usadoPor.map(m => METODO_LABEL[m]).join(', ')}` : 'Sem métodos no site'}
                 </span>
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <Estado ok={g.credenciais} texto="Credenciais" dica={vars.credenciais} />
-                {(Object.keys(METODO_LABEL) as Metodo[]).map(m => (
-                  <LinhaMetodo
-                    key={m}
-                    texto={METODO_LABEL[m]}
-                    configurado={g.credenciais && g.metodos[m]}
-                    ligado={!g.desativados.includes(m)}
-                    dica={vars.metodos[m]}
-                    aGuardar={aGuardarMetodo !== null}
-                    onToggle={() => alternarMetodo(g, m)}
-                  />
+                {METODOS_PAGAMENTO.map(m => (
+                  <Estado key={m} ok={g.credenciais && g.metodos[m]} texto={`Carteira ${METODO_LABEL[m]}`} dica={vars.metodos[m]} />
                 ))}
               </div>
-
-              {eAtivo ? (
-                <button className="btn btn-outline btn-full btn-sm" disabled>Em uso</button>
-              ) : (
-                <button
-                  className="btn btn-primary btn-full btn-sm"
-                  onClick={() => activar(g.id)}
-                  disabled={!algumMetodo || aGuardar !== null}
-                  title={algumMetodo ? undefined : 'Liga pelo menos um método configurado primeiro'}
-                >
-                  {aGuardar === g.id ? 'A activar…' : `Activar ${g.nome}`}
-                </button>
-              )}
-
               {g.id === 'zumbopay' && (
-                <Link href="/admin/zumbopay" style={{ display: 'block', textAlign: 'center', fontSize: 12, marginTop: 10, color: 'var(--gray-500)' }}>
+                <Link href="/admin/zumbopay" style={{ display: 'block', textAlign: 'center', fontSize: 12, marginTop: 14, color: 'var(--gray-500)' }}>
                   Ver wallets ZumboPay
                 </Link>
               )}
