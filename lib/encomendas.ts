@@ -51,7 +51,7 @@ export interface Encomenda {
   notas: string;
   notas_admin: string;
   estado: EstadoEncomenda;
-  pagamento_metodo?: 'mpesa' | 'emola' | 'cartao' | 'paysuite';
+  pagamento_metodo?: 'mpesa' | 'emola' | 'mkesh' | 'cartao' | 'paysuite';
   pagamento_estado?: string;
   pagamento_ref?: string;
   pagamento_gateway?: 'zumbopay' | 'clicpay';
@@ -89,7 +89,7 @@ export async function criarEncomendaPendente({
   telefone: string;
   notas?: string;
   guestEmail?: string;
-  pagamento_metodo: 'mpesa' | 'emola' | 'cartao' | 'paysuite';
+  pagamento_metodo: 'mpesa' | 'emola' | 'mkesh' | 'cartao' | 'paysuite';
   forma_entrega?: FormaEntrega;
   taxa_entrega?: number;
 }): Promise<string> {

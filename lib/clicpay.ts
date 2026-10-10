@@ -88,19 +88,28 @@ async function postIdempotente(url: string, chave: string, payload: unknown) {
   throw ultimoErro instanceof Error ? ultimoErro : new Error('Sem resposta da ClicPay');
 }
 
-// M-Pesa / e-Mola: POST /wallets/{id}/c2b/{mpesa|emola} (pedido de
-// confirmação no telemóvel do cliente).
+function carteiraC2B(metodo: 'mpesa' | 'emola' | 'mkesh'): string | undefined {
+  return {
+    mpesa: process.env.CLICPAY_WALLET_MPESA,
+    emola: process.env.CLICPAY_WALLET_EMOLA,
+    mkesh: process.env.CLICPAY_WALLET_MKESH,
+  }[metodo];
+}
+const NOME_C2B = { mpesa: 'M-Pesa', emola: 'e-Mola', mkesh: 'mKesh' };
+
+// M-Pesa / e-Mola / mKesh: POST /wallets/{id}/c2b/{mpesa|emola|mkesh}
+// (pedido de confirmação com PIN no telemóvel do cliente).
 export async function iniciarCobrancaClicpay(pedido: PedidoPagamento): Promise<ResultadoPagamento> {
   const { encomendaId, amount, metodo } = pedido;
   if (metodo === 'cartao') return { ok: false, http: 400, error: 'Método inválido' };
 
-  const walletId = metodo === 'mpesa' ? process.env.CLICPAY_WALLET_MPESA : process.env.CLICPAY_WALLET_EMOLA;
-  if (!walletId) return { ok: false, http: 503, error: `Carteira ${metodo} não configurada` };
+  const walletId = carteiraC2B(metodo);
+  if (!walletId) return { ok: false, http: 503, error: `Carteira ${NOME_C2B[metodo]} não configurada` };
 
   if (amount > CLICPAY_C2B_MAX) {
     return {
       ok: false, http: 400,
-      error: `O ${metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola'} aceita no máximo ${CLICPAY_C2B_MAX.toLocaleString('pt-PT')} MZN por pagamento. Usa o cartão.`,
+      error: `O ${NOME_C2B[metodo]} aceita no máximo ${CLICPAY_C2B_MAX.toLocaleString('pt-PT')} MZN por pagamento. Usa o cartão.`,
     };
   }
 
@@ -194,8 +203,8 @@ export async function criarCheckoutClicpay(pedido: PedidoPagamento): Promise<Res
     amount,
     reference_description: descricao(ref, 100),
     ...(pedido.customerEmail ? { email: pedido.customerEmail } : {}),
-    // O cliente volta à página da encomenda, que consulta o estado ao abrir
-    callback_url: `${loja}/encomenda/${encomendaId}?pagamento=1`,
+    // O cliente volta à lista de encomendas, que consulta o estado desta ao abrir
+    callback_url: `${loja}/encomendas?pagamento=${encodeURIComponent(encomendaId)}`,
     from_app: 'Realstiles',
   };
 
