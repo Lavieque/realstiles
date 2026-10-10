@@ -50,7 +50,7 @@ const NAV: NavItem[] = [
   { href: '/admin/reclamacoes', label: 'Reclamações', icon: <ClipboardList size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/tradeflow', label: 'TradeFlow', icon: <Zap size={18} strokeWidth={1.5} />, section: 'Integrações' },
   { href: '/admin/whatsapp', label: 'WhatsApp Notify', icon: <MessageCircle size={18} strokeWidth={1.5} />, section: 'Integrações' },
-  { href: '/admin/pagamentos', label: 'Gateway de pagamento', icon: <CreditCard size={18} strokeWidth={1.5} />, section: 'Pagamentos' },
+  { href: '/admin/pagamentos', label: 'Pagamentos online', icon: <CreditCard size={18} strokeWidth={1.5} />, section: 'Pagamentos' },
   { href: '/admin/zumbopay', label: 'ZumboPay', icon: <Wallet size={18} strokeWidth={1.5} />, section: 'Pagamentos' },
   { href: '/admin/roles', label: 'Roles e permissões', icon: <ShieldCheck size={18} strokeWidth={1.5} />, section: 'Equipa' },
 ];

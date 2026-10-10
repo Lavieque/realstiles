@@ -67,7 +67,7 @@ export default function CarrinhoPage() {
       .catch(() => {});
   }, []);
 
-  // Métodos do gateway activo; se o escolhido não estiver disponível, passa ao primeiro
+  // Métodos disponíveis no site; se o escolhido não estiver disponível, passa ao primeiro
   useEffect(() => {
     getMetodosDisponiveis().then(lista => {
       setMetodosDisp(lista);

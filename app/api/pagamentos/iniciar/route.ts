@@ -9,7 +9,8 @@ import { iniciarCobrancaClicpay, criarCheckoutClicpay } from '@/lib/clicpay';
 // no pior caso): a função precisa de mais tempo do que o habitual.
 export const maxDuration = 120;
 
-// Inicia o pagamento de uma encomenda no gateway activo (escolhido no admin).
+// Inicia o pagamento de uma encomenda no gateway escolhido para esse método
+// no admin.
 // M-Pesa/e-Mola: pedido de confirmação no telemóvel → status "pending" (ou
 // "succeeded" se confirmar logo). Cartão: devolve status "redirect" com o
 // checkout_url para onde o cliente deve ser enviado.
@@ -35,10 +36,12 @@ export async function POST(req: NextRequest) {
     const amount = Number(encomenda.total);
     if (!(amount > 0)) return NextResponse.json({ error: 'Total da encomenda inválido' }, { status: 400 });
 
-    const { ativo: gateway, desativados } = await getConfigPagamentos();
-    if (!metodosDisponiveis(gateway, desativados).includes(metodo)) {
+    // Cada método tem o seu gateway (ex.: M-Pesa pela ClicPay, cartão pelo ZumboPay)
+    const cfg = await getConfigPagamentos();
+    if (!metodosDisponiveis(cfg).includes(metodo)) {
       return NextResponse.json({ error: 'Método de pagamento indisponível de momento' }, { status: 503 });
     }
+    const gateway = cfg[metodo as MetodoPagamento].gateway;
 
     const pedido: PedidoPagamento = {
       encomendaId: String(encomenda_id),
