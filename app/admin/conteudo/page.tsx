@@ -157,9 +157,17 @@ export default function AdminConteudoPage() {
               min={0}
               step="0.01"
               value={config.entrega_domicilio_taxa}
+              disabled={config.entrega_domicilio_sob_consulta}
               onChange={e => setConfig(c => ({ ...c, entrega_domicilio_taxa: Math.max(0, Number(e.target.value) || 0) }))}
             />
             <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Somada ao total quando o cliente escolhe entrega ao domicílio. O ponto de recolha é grátis.</p>
+          </div>
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={config.entrega_domicilio_sob_consulta} onChange={e => setConfig(c => ({ ...c, entrega_domicilio_sob_consulta: e.target.checked }))} style={{ width: 'auto' }} />
+              Entrega ao domicílio sob consulta
+            </label>
+            <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Ligado: o checkout mostra "Sob consulta" e a entrega não é somada ao total (combina-se o valor com o cliente). Desligado: usa a taxa acima.</p>
           </div>
           <div className="form-group">
             <label>Ponto de recolha — morada e horário</label>

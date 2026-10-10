@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { onAuthChange } from '@/lib/auth';
 import { getConfig } from '@/lib/config-site';
 import type { SiteConfig } from '@/lib/config-site';
-import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
+import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA, textoTaxaEntrega } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
@@ -324,7 +324,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           {encomenda.forma_entrega && (
             <div className="total-row" style={{ borderTop: 'none', paddingTop: 0, paddingBottom: 0 }}>
               <span style={{ fontSize: 14, color: 'var(--gray-600)' }}>{FORMAS_ENTREGA[encomenda.forma_entrega]}</span>
-              <span style={{ fontSize: 14 }}>{encomenda.taxa_entrega ? `${encomenda.taxa_entrega.toFixed(2)} MZN` : 'Grátis'}</span>
+              <span style={{ fontSize: 14 }}>{textoTaxaEntrega(encomenda)}</span>
             </div>
           )}
           <div className="total-row">

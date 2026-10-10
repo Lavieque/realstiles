@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Package, Mail, MapPin, Phone, FileText, Download, CreditCard, Copy, RefreshCw } from 'lucide-react';
 import { auth } from '@/lib/firebase';
-import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
+import { getTodasEncomendas, getEncomenda, actualizarEstado, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA, textoTaxaEntrega } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import { correspondePesquisa } from '@/lib/pesquisa';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
@@ -161,7 +161,7 @@ export default function AdminEncomendasPage() {
         e.estado,
         (e.total || 0).toFixed(2),
         e.forma_entrega ? FORMAS_ENTREGA[e.forma_entrega] : '',
-        (e.taxa_entrega || 0).toFixed(2),
+        e.entrega_sob_consulta ? 'Sob consulta' : (e.taxa_entrega || 0).toFixed(2),
         e.morada_entrega || '',
         e.cidade_entrega || '',
         e.telefone_contacto || '',
@@ -333,7 +333,7 @@ export default function AdminEncomendasPage() {
               {seleccionada.forma_entrega && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontSize: 14, color: 'var(--gray-600)' }}>
                   <span>{FORMAS_ENTREGA[seleccionada.forma_entrega]}</span>
-                  <span>{seleccionada.taxa_entrega ? `${seleccionada.taxa_entrega.toFixed(2)} MZN` : 'Grátis'}</span>
+                  <span>{textoTaxaEntrega(seleccionada)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontWeight: 700 }}>
