@@ -45,6 +45,8 @@ export interface Encomenda {
   subtotal?: number;
   forma_entrega?: FormaEntrega;
   taxa_entrega?: number;
+  // Entrega ao domicílio com preço a combinar (não incluído no total)
+  entrega_sob_consulta?: boolean;
   morada_entrega: string;
   cidade_entrega: string;
   telefone_contacto: string;
@@ -79,9 +81,15 @@ async function criarComNumeroSequencial(dados: Record<string, unknown>): Promise
   return { id: novoRef.id, numero_sequencial };
 }
 
+// Texto do custo de entrega mostrado nas vistas da encomenda
+export function textoTaxaEntrega(e: Pick<Encomenda, 'taxa_entrega' | 'entrega_sob_consulta'>): string {
+  if (e.entrega_sob_consulta) return 'Sob consulta';
+  return e.taxa_entrega ? `${e.taxa_entrega.toFixed(2)} MZN` : 'Grátis';
+}
+
 export async function criarEncomendaPendente({
   itens, morada, cidade, telefone, notas = '', guestEmail = '', pagamento_metodo,
-  forma_entrega = 'domicilio', taxa_entrega = 0,
+  forma_entrega = 'domicilio', taxa_entrega = 0, entrega_sob_consulta = false,
 }: {
   itens: ItemEncomenda[];
   morada: string;
@@ -92,13 +100,15 @@ export async function criarEncomendaPendente({
   pagamento_metodo: 'mpesa' | 'emola' | 'mkesh' | 'cartao' | 'paysuite';
   forma_entrega?: FormaEntrega;
   taxa_entrega?: number;
+  entrega_sob_consulta?: boolean;
 }): Promise<string> {
   const user = auth.currentUser;
   const emailFinal = user?.email || guestEmail || '';
   if (!user && !emailFinal) throw new Error('Email necessário');
 
   const subtotal = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
-  const taxa = forma_entrega === 'domicilio' ? Math.max(0, Number(taxa_entrega) || 0) : 0;
+  const sobConsulta = forma_entrega === 'domicilio' && entrega_sob_consulta;
+  const taxa = forma_entrega === 'domicilio' && !sobConsulta ? Math.max(0, Number(taxa_entrega) || 0) : 0;
   const total = subtotal + taxa;
 
   let clienteNome = user?.displayName || '';
@@ -121,6 +131,7 @@ export async function criarEncomendaPendente({
     itens, subtotal, total,
     forma_entrega,
     taxa_entrega: taxa,
+    ...(sobConsulta ? { entrega_sob_consulta: true } : {}),
     morada_entrega: morada,
     cidade_entrega: cidade,
     telefone_contacto: telefone,

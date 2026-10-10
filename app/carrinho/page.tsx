@@ -25,9 +25,11 @@ export default function CarrinhoPage() {
   const [formaEntrega, setFormaEntrega] = useState<FormaEntrega>('recolha');
   const [entregaConfig, setEntregaConfig] = useState({
     taxa: DEFAULTS.entrega_domicilio_taxa,
+    sobConsulta: DEFAULTS.entrega_domicilio_sob_consulta,
     recolhaInfo: DEFAULTS.entrega_recolha_info,
   });
-  const taxaEntrega = formaEntrega === 'domicilio' ? entregaConfig.taxa : 0;
+  const entregaSobConsulta = formaEntrega === 'domicilio' && entregaConfig.sobConsulta;
+  const taxaEntrega = formaEntrega === 'domicilio' && !entregaConfig.sobConsulta ? entregaConfig.taxa : 0;
   const total = subtotal + taxaEntrega;
   const [user, setUser] = useState<User | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -62,6 +64,7 @@ export default function CarrinhoPage() {
     getConfig()
       .then(c => setEntregaConfig({
         taxa: Math.max(0, Number(c.entrega_domicilio_taxa) || 0),
+        sobConsulta: !!c.entrega_domicilio_sob_consulta,
         recolhaInfo: c.entrega_recolha_info || '',
       }))
       .catch(() => {});
@@ -97,6 +100,7 @@ export default function CarrinhoPage() {
         pagamento_metodo: metodo,
         forma_entrega: formaEntrega,
         taxa_entrega: taxaEntrega,
+        entrega_sob_consulta: entregaSobConsulta,
       });
       encomendaCriadaRef.current = { id: encId, assinatura: assinaturaCarrinho };
       setEncomendaId(encId);
@@ -180,7 +184,7 @@ export default function CarrinhoPage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, fontSize: 14, color: 'var(--gray-600)' }}>
               <span>{FORMAS_ENTREGA[formaEntrega]}</span>
-              <span>{taxaEntrega > 0 ? `${taxaEntrega.toFixed(2)} MZN` : 'Grátis'}</span>
+              <span>{entregaSobConsulta ? 'Sob consulta' : taxaEntrega > 0 ? `${taxaEntrega.toFixed(2)} MZN` : 'Grátis'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid var(--gray-200)', marginBottom: 20 }}>
               <span style={{ fontWeight: 700, fontSize: 16 }}>Total</span>
@@ -247,12 +251,13 @@ export default function CarrinhoPage() {
                   <label style={{ marginBottom: 10, display: 'block' }}>Forma de entrega *</label>
                   <div className="entrega-opcoes">
                     {(Object.keys(FORMAS_ENTREGA) as FormaEntrega[]).map(fe => {
-                      const taxa = fe === 'domicilio' ? entregaConfig.taxa : 0;
+                      const sobConsulta = fe === 'domicilio' && entregaConfig.sobConsulta;
+                      const taxa = fe === 'domicilio' && !sobConsulta ? entregaConfig.taxa : 0;
                       return (
                         <label key={fe} className={`entrega-opcao${formaEntrega === fe ? ' active' : ''}`}>
                           <input type="radio" name="forma_entrega" checked={formaEntrega === fe} onChange={() => setFormaEntrega(fe)} />
                           <span className="entrega-opcao-nome">{FORMAS_ENTREGA[fe]}</span>
-                          <span className="entrega-opcao-preco">{taxa > 0 ? `+${taxa.toFixed(2)} MZN` : 'Grátis'}</span>
+                          <span className="entrega-opcao-preco">{sobConsulta ? 'Sob consulta' : taxa > 0 ? `+${taxa.toFixed(2)} MZN` : 'Grátis'}</span>
                         </label>
                       );
                     })}
