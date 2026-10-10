@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const r = await verificarPagamentosEncomenda(String(encomenda_id), { apenasPendentes: !equipa });
-    return NextResponse.json(equipa ? r : { pago: r.pago, estado: r.estado });
+    return NextResponse.json(equipa ? r : { pago: r.pago, estado: r.estado, mensagem: r.mensagem });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }

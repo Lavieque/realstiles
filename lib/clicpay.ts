@@ -74,7 +74,10 @@ async function postIdempotente(url: string, chave: string, payload: unknown) {
         body: JSON.stringify(payload),
         cache: 'no-store',
       });
-      const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      // Lê como texto: num timeout do proxy da ClicPay a resposta é HTML/vazia
+      const texto = await res.text().catch(() => '');
+      let body: Record<string, unknown> = {};
+      try { body = texto ? JSON.parse(texto) : {}; } catch { body = { _texto: texto.slice(0, 500) }; }
       if (res.status === 409 && tentativa === 0) {
         const espera = Math.min(Number(body.retry_after_seconds ?? res.headers.get('retry-after') ?? 3) || 3, 8);
         await new Promise(r => setTimeout(r, espera * 1000));
@@ -149,21 +152,37 @@ export async function iniciarCobrancaClicpay(pedido: PedidoPagamento): Promise<R
       payloadEnviado,
     ));
   } catch (err) {
-    // Desfecho desconhecido: fica pendente (sem referência) para o admin ver.
+    // Sem resposta: a cobrança pode ter seguido. Fica pendente e a consulta
+    // de estado procura-a no histórico da carteira (ver verificar-pagamentos).
     await pagRef.update({
+      desfecho_desconhecido: true,
       resposta_inicial: { erro_rede: err instanceof Error ? err.message : String(err) },
       actualizado_em: FieldValue.serverTimestamp(),
     });
-    return { ok: false, http: 502, error: 'Sem resposta do serviço de pagamento. Verifica o telemóvel antes de tentar de novo.' };
+    return { ok: true, pagamento_id: pagRef.id, reference: '', status: 'pending' };
   }
 
   const referencia = typeof body.clicpay_reference === 'string' ? body.clicpay_reference : '';
+
+  // A ClicPay só responde a /c2b depois de o cliente introduzir o PIN (ou de
+  // o operador desistir). Uma resposta 5xx/vazia sem referência é quase
+  // sempre o proxy deles a cortar a ligação ao fim de ~60s, com a cobrança
+  // ainda a correr — não é uma recusa. Fica pendente, como no erro de rede.
+  const semDesfecho = !res.ok && !referencia && (res.status >= 500 || !Object.keys(body).length || '_texto' in body);
+  if (semDesfecho) {
+    await pagRef.update({
+      desfecho_desconhecido: true,
+      resposta_inicial: { http_status: res.status, ...body },
+      actualizado_em: FieldValue.serverTimestamp(),
+    });
+    return { ok: true, pagamento_id: pagRef.id, reference: '', status: 'pending' };
+  }
 
   if (!res.ok) {
     await pagRef.update({
       estado: 'falhado',
       referencia_clicpay: referencia || null,
-      resposta_inicial: body,
+      resposta_inicial: { http_status: res.status, ...body },
       actualizado_em: FieldValue.serverTimestamp(),
     });
     return { ok: false, http: res.status, error: erroClicpay(body, 'Erro ao iniciar pagamento') };
@@ -273,6 +292,40 @@ export async function consultarPagamentoClicpay(reference: string): Promise<{ ok
   });
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   return { ok: res.ok, status: res.status, body };
+}
+
+// Procura no histórico da carteira uma cobrança que iniciámos mas cuja
+// resposta não chegou (timeout/erro sem clicpay_reference). Liga-a pela
+// descrição (tem a referência da encomenda), pelo montante e pela hora.
+export async function buscarTransacaoClicpay(dados: {
+  walletId: string;
+  descricao: string;
+  montante: number;
+  desde: Date;
+}): Promise<{ reference: string; status: string } | null> {
+  const dia = new Date(dados.desde.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const qs = new URLSearchParams({
+    'filter[date_from]': dia,
+    'filter[type]': 'C2B',
+    sort: '-created_at',
+    paginator: 'offset',
+    per_page: '50',
+  });
+  const res = await fetch(`${CP_BASE}/wallets/${encodeURIComponent(dados.walletId)}/transactions?${qs}`, {
+    method: 'GET',
+    headers: cpHeaders(),
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => ({}))) as { data?: Record<string, unknown>[] };
+  const limiteInferior = dados.desde.getTime() - 2 * 60 * 1000;
+  const t = (body.data ?? []).find(tx =>
+    tx.description === dados.descricao
+    && Math.abs(Number(tx.amount) - dados.montante) < 0.01
+    && new Date(String(tx.created_at ?? tx.initiated_at ?? 0)).getTime() >= limiteInferior
+    && typeof tx.clicpay_reference === 'string',
+  );
+  return t ? { reference: String(t.clicpay_reference), status: String(t.status ?? '') } : null;
 }
 
 // Carteiras a que o token tem acesso (painel admin).
