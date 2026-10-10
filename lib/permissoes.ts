@@ -13,7 +13,7 @@ export const PERMISSOES = [
   { chave: 'conteudo',     label: 'Conteúdo do site',     descricao: 'Editar textos do site e a barra de anúncios' },
   { chave: 'reclamacoes',  label: 'Reclamações',          descricao: 'Ver e responder a reclamações' },
   { chave: 'integracoes',  label: 'Integrações',          descricao: 'Gerir TradeFlow e WhatsApp Notify' },
-  { chave: 'pagamentos',   label: 'Pagamentos',           descricao: 'Ver a conta ZumboPay' },
+  { chave: 'pagamentos',   label: 'Pagamentos',           descricao: 'Escolher o gateway de pagamento activo e ver as contas ZumboPay e ClicPay' },
   { chave: 'utilizadores', label: 'Roles e utilizadores', descricao: 'Criar roles e atribuí-las a utilizadores (dá controlo sobre os acessos)' },
 ] as const;
 
@@ -36,6 +36,7 @@ const ROTAS: Record<string, Permissao> = {
   '/admin/reclamacoes': 'reclamacoes',
   '/admin/tradeflow': 'integracoes',
   '/admin/whatsapp': 'integracoes',
+  '/admin/pagamentos': 'pagamentos',
   '/admin/zumbopay': 'pagamentos',
   '/admin/roles': 'utilizadores',
 };

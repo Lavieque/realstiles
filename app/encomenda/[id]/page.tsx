@@ -9,12 +9,10 @@ import type { SiteConfig } from '@/lib/config-site';
 import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
-import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
 import { Lock, Frown, CheckCircle2, RotateCcw, MessageCircle, Printer, X, ArrowLeft, Clock, Truck, Package, Loader2, CreditCard } from 'lucide-react';
-import { apiFetch } from '@/lib/api-fetch';
+import { aguardarPagamento, consultarEstadoPagamento, getMetodosDisponiveis, iniciarPagamento } from '@/lib/pagamento-cliente';
 
 
 type Metodo = 'mpesa' | 'emola' | 'cartao';
@@ -62,6 +60,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
   const [cancelando, setCancelando] = useState(false);
   const [confirmarCancel, setConfirmarCancel] = useState(false);
   const [retryMetodo, setRetryMetodo] = useState<Metodo>('mpesa');
+  const [metodosDisp, setMetodosDisp] = useState<Metodo[] | null>(null);
   const [retryTelefone, setRetryTelefone] = useState('');
   const [retryLoading, setRetryLoading] = useState(false);
   const [retryStatus, setRetryStatus] = useState<'idle' | 'aguardar'>('idle');
@@ -72,7 +71,14 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     const unsub = onAuthChange(async (u) => {
       setUser(u);
       if (!u) { setLoading(false); return; }
-      const [enc, cfg] = await Promise.all([getEncomenda(params.id), getConfig()]);
+      const [primeira, cfg] = await Promise.all([getEncomenda(params.id), getConfig()]);
+      let enc = primeira;
+      // Pagamento ainda por confirmar (regresso do checkout de cartão, ou
+      // webhook perdido): pede ao servidor para consultar o gateway.
+      if (enc && enc.estado === 'pendente' && enc.pagamento_estado !== 'pago' && enc.pagamento_ref) {
+        const r = await consultarEstadoPagamento(enc.id);
+        if (r?.pago) enc = await getEncomenda(params.id);
+      }
       setEncomenda(enc);
       setSiteConfig(cfg);
       if (enc?.telefone_contacto) setRetryTelefone(enc.telefone_contacto);
@@ -81,36 +87,26 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     return unsub;
   }, [params.id]);
 
+  useEffect(() => {
+    getMetodosDisponiveis().then(lista => {
+      setMetodosDisp(lista);
+      setRetryMetodo(m => (lista.includes(m) || !lista.length ? m : lista[0]));
+    });
+  }, []);
+
   useEffect(() => () => { if (unsubRef.current) unsubRef.current(); }, []);
 
   const handleRetry = async () => {
     if (!encomenda) return;
     setRetryLoading(true);
     try {
-      if (retryMetodo === 'cartao') {
-        const res = await apiFetch('/api/zumbopay/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ encomenda_id: encomenda.id }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Erro ao criar checkout');
-        window.location.href = data.checkout_url;
-        return;
-      }
-
-      const res = await apiFetch('/api/zumbopay/charges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          encomenda_id: encomenda.id,
-          msisdn: retryTelefone,
-          metodo: retryMetodo,
-          customer_name: user?.displayName || encomenda.cliente_email || 'Cliente',
-        }),
+      // Cartão → redirect para o checkout; M-Pesa/e-Mola → pedido no telemóvel
+      const data = await iniciarPagamento({
+        encomendaId: encomenda.id,
+        metodo: retryMetodo,
+        msisdn: retryMetodo === 'cartao' ? undefined : retryTelefone,
+        customerName: user?.displayName || encomenda.cliente_email || 'Cliente',
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento');
 
       if (data.status === 'succeeded') {
         window.location.href = `/encomenda/${encomenda.id}?confirmada=1`;
@@ -123,19 +119,17 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
       }
 
       setRetryStatus('aguardar');
-      const timeout = setTimeout(() => {
-        if (unsubRef.current) unsubRef.current();
-        setRetryStatus('idle');
-        mostrarToast('Tempo esgotado. Verifica se o pagamento foi concluído.', 'error');
-      }, 3 * 60 * 1000);
-
-      unsubRef.current = onSnapshot(doc(db, 'encomendas', encomenda.id), (snap) => {
-        const estado = snap.data()?.estado;
-        if (estado === 'confirmada') {
-          clearTimeout(timeout);
-          if (unsubRef.current) unsubRef.current();
-          window.location.href = `/encomenda/${encomenda.id}?confirmada=1`;
-        }
+      // Escuta a encomenda e consulta o gateway até confirmar (máx. 3 minutos)
+      unsubRef.current = aguardarPagamento(encomenda.id, {
+        onPago: () => { window.location.href = `/encomenda/${encomenda.id}?confirmada=1`; },
+        onFalhado: (msg) => {
+          setRetryStatus('idle');
+          mostrarToast(msg, 'error');
+        },
+        onTimeout: () => {
+          setRetryStatus('idle');
+          mostrarToast('Tempo esgotado. Verifica se o pagamento foi concluído.', 'error');
+        },
       });
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao processar pagamento.', 'error');
@@ -314,7 +308,7 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
             ) : (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
-                  {METODOS_RETRY.map(m => (
+                  {METODOS_RETRY.filter(m => !metodosDisp || metodosDisp.includes(m.id)).map(m => (
                     <button key={m.id} type="button" onClick={() => setRetryMetodo(m.id)} style={{
                       padding: '10px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
                       border: `2px solid ${retryMetodo === m.id ? 'var(--black)' : 'var(--gray-200)'}`,

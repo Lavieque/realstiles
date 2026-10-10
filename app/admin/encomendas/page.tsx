@@ -16,11 +16,16 @@ const METODOS_PAGAMENTO: Record<string, string> = {
   mpesa: 'M-Pesa', emola: 'e-Mola', cartao: 'Cartão', paysuite: 'PaySuite',
 };
 
-interface TentativaZumbo {
+const GATEWAYS_PAGAMENTO: Record<string, string> = {
+  zumbopay: 'ZumboPay', clicpay: 'ClicPay', paysuite: 'PaySuite',
+};
+
+interface TentativaPagamento {
   reference: string;
+  gateway: string;
   metodo?: string;
   estado_local: string;
-  estado_zumbo: string | null;
+  estado_gateway: string | null;
 }
 
 export default function AdminEncomendasPage() {
@@ -35,7 +40,7 @@ export default function AdminEncomendasPage() {
   const [notas, setNotas] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [verificando, setVerificando] = useState(false);
-  const [tentativas, setTentativas] = useState<TentativaZumbo[] | null>(null);
+  const [tentativas, setTentativas] = useState<TentativaPagamento[] | null>(null);
 
   useEffect(() => { setTentativas(null); }, [seleccionada?.id]);
 
@@ -44,7 +49,7 @@ export default function AdminEncomendasPage() {
     setVerificando(true);
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/zumbopay/status', {
+      const res = await fetch('/api/pagamentos/estado', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
         body: JSON.stringify({ encomenda_id: seleccionada.id }),
@@ -58,9 +63,9 @@ export default function AdminEncomendasPage() {
           setEncomendas(enc => enc.map(e => e.id === fresca.id ? fresca : e));
           setSeleccionada(fresca);
         }
-        mostrarToast('Pagamento confirmado no ZumboPay', 'success');
+        mostrarToast('Pagamento confirmado', 'success');
       } else {
-        mostrarToast(data.tentativas.length ? 'Ainda sem pagamento confirmado' : 'Sem tentativas ZumboPay', 'info');
+        mostrarToast(data.tentativas.length ? 'Ainda sem pagamento confirmado' : 'Sem tentativas de pagamento online', 'info');
       }
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : 'Erro ao verificar', 'error');
@@ -266,7 +271,7 @@ export default function AdminEncomendasPage() {
                 <h3 style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={14} strokeWidth={1.5} /> Pagamento</h3>
                 {seleccionada.pagamento_metodo && seleccionada.pagamento_metodo !== 'paysuite' && (
                   <button className="btn btn-outline btn-sm" onClick={verificarPagamento} disabled={verificando} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <RefreshCw size={13} strokeWidth={1.5} /> {verificando ? 'A verificar…' : 'Verificar no ZumboPay'}
+                    <RefreshCw size={13} strokeWidth={1.5} /> {verificando ? 'A verificar…' : 'Verificar pagamento'}
                   </button>
                 )}
               </div>
@@ -275,7 +280,7 @@ export default function AdminEncomendasPage() {
                 {' · '}Estado: <strong>{seleccionada.pagamento_estado === 'pago' ? 'Pago' : (seleccionada.pagamento_estado || '—')}</strong>
               </p>
               <p style={{ fontSize: 14, color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Referência ZumboPay:{' '}
+                Referência{seleccionada.pagamento_gateway ? ` ${GATEWAYS_PAGAMENTO[seleccionada.pagamento_gateway] ?? seleccionada.pagamento_gateway}` : ''}:{' '}
                 {seleccionada.pagamento_ref ? (
                   <>
                     <code style={{ fontWeight: 700 }}>{seleccionada.pagamento_ref}</code>
@@ -294,7 +299,7 @@ export default function AdminEncomendasPage() {
                   {tentativas.map(t => (
                     <div key={t.reference} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gray-600)', padding: '4px 0' }}>
                       <code>{t.reference}</code>
-                      <span>{t.metodo ? METODOS_PAGAMENTO[t.metodo] ?? t.metodo : ''} · local: {t.estado_local}{t.estado_zumbo ? ` · ZumboPay: ${t.estado_zumbo}` : ''}</span>
+                      <span>{t.metodo ? METODOS_PAGAMENTO[t.metodo] ?? t.metodo : ''} · local: {t.estado_local}{t.estado_gateway ? ` · ${GATEWAYS_PAGAMENTO[t.gateway] ?? t.gateway}: ${t.estado_gateway}` : ''}</span>
                     </div>
                   ))}
                 </div>

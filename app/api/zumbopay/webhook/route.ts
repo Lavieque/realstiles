@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
-import { encontrarPagamentoZumbo, marcarPagamentoZumboPago, estadoZumboPago } from '@/lib/zumbopay';
+import { encontrarPagamentoZumbo, estadoZumboPago } from '@/lib/zumbopay';
+import { marcarPagamentoPago } from '@/lib/pagamentos';
 
 // Formato real (Painel → Programadores → Testes & Validação):
 // { id, type: "payment.succeeded", created_at, merchant_id,
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const resultado = await marcarPagamentoZumboPago(pagSnap, {
+  const resultado = await marcarPagamentoPago(pagSnap, {
     reference: reference ?? pagSnap.data()?.referencia_zumbopay,
     amount: data.amount,
     payload: data,
