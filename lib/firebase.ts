@@ -17,16 +17,19 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-// A sessão fica no IndexedDB e, se o IndexedDB não estiver disponível ao
-// abrir o site (bloqueado, corrompido, sem espaço), no localStorage — em vez
-// de cair para memória e perder-se ao recarregar. O popupRedirectResolver é
-// preciso para o login com Google (signInWithPopup); o getAuth() incluía-o
-// por omissão, o initializeAuth() não.
+// A sessão fica no localStorage, e só no IndexedDB se o localStorage não
+// estiver disponível. Num perfil com o IndexedDB avariado, o Firebase dava a
+// sessão como terminada a meio da navegação; o localStorage é síncrono e não
+// tem esse problema. Sessões já guardadas no IndexedDB são migradas pelo
+// Firebase ao abrir o site (procura o utilizador em todas as persistências
+// da lista), por isso ninguém perde o login com esta mudança.
+// O popupRedirectResolver é preciso para o login com Google
+// (signInWithPopup); o getAuth() incluía-o por omissão, o initializeAuth() não.
 function criarAuth(): Auth {
   if (typeof window === 'undefined') return getAuth(app);
   try {
     return initializeAuth(app, {
-      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+      persistence: [browserLocalPersistence, indexedDBLocalPersistence],
       popupRedirectResolver: browserPopupRedirectResolver,
     });
   } catch {
