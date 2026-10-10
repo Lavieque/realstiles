@@ -8,6 +8,7 @@ import { PERMISSOES } from '@/lib/permissoes';
 import { getRoles, criarRole, actualizarRole, apagarRole } from '@/lib/roles';
 import type { Role } from '@/lib/roles';
 import type { Permissao } from '@/lib/permissoes';
+import { confirmar } from '@/components/Confirmar';
 
 interface Formulario {
   id: string | null;
@@ -76,9 +77,9 @@ export default function AdminRolesPage() {
   const remover = async (r: Role) => {
     const n = membros[r.id] || 0;
     const aviso = n > 0
-      ? `A role "${r.nome}" está atribuída a ${n} utilizador(es), que vão perder o acesso ao painel. Apagar mesmo assim?`
-      : `Apagar a role "${r.nome}"?`;
-    if (!confirm(aviso)) return;
+      ? `Está atribuída a ${n} utilizador(es), que vão perder o acesso ao painel.`
+      : undefined;
+    if (!(await confirmar({ titulo: `Apagar a role "${r.nome}"?`, mensagem: aviso, confirmar: 'Apagar', perigo: true }))) return;
     try {
       await apagarRole(r.id);
       mostrarToast('Role apagada', 'success');

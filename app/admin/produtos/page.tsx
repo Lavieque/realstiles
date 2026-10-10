@@ -12,6 +12,7 @@ import type { Produto } from '@/lib/produtos';
 import { estadoPromocao, msParaInput, inputParaMs } from '@/lib/promocao';
 import { correspondePesquisa } from '@/lib/pesquisa';
 import { apiFetch } from '@/lib/api-fetch';
+import { confirmar } from '@/components/Confirmar';
 
 const VAZIO: Partial<Produto> = { nome: '', descricao: '', preco: 0, preco_original: 0, categoria: '', stock: 0, imagens: [], tamanhos: [], cores: [], tags: [], destaque: false, activo: true };
 
@@ -68,7 +69,7 @@ export default function AdminProdutosPage() {
   };
 
   const apagar = async (id: string) => {
-    if (!confirm('Tens a certeza?')) return;
+    if (!(await confirmar({ titulo: 'Apagar este produto?', mensagem: 'Esta acção não pode ser desfeita.', confirmar: 'Apagar', perigo: true }))) return;
     await apagarProduto(id);
     setProdutos(p => p.filter(x => x.id !== id));
     if ((seleccionado as Produto)?.id === id) setSeleccionado(null);

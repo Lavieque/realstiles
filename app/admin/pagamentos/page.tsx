@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api-fetch';
 import { mostrarToast } from '@/components/Toast';
 import { INFO_METODO, METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
 import type { MetodoPagamento as Metodo } from '@/lib/metodos-pagamento';
+import { confirmar } from '@/components/Confirmar';
 
 type GatewayId = 'zumbopay' | 'clicpay';
 
@@ -119,7 +120,7 @@ export default function PagamentosPage() {
 
   const activar = async (id: GatewayId) => {
     const nome = gateways.find(g => g.id === id)?.nome ?? id;
-    if (!confirm(`Activar ${nome} como gateway de pagamento do site? Os novos pagamentos passam a ser feitos por ${nome}.`)) return;
+    if (!(await confirmar({ titulo: `Activar ${nome}?`, mensagem: `Os novos pagamentos do site passam a ser feitos por ${nome}. Os pagamentos já iniciados continuam a ser confirmados no gateway onde foram feitos.`, confirmar: `Activar ${nome}` }))) return;
     setAGuardar(id);
     try {
       const res = await apiFetch('/api/admin/gateway', {
@@ -145,9 +146,9 @@ export default function PagamentosPage() {
       const restantes = (Object.keys(METODO_LABEL) as Metodo[])
         .filter(m => m !== metodo && g.credenciais && g.metodos[m] && !g.desativados.includes(m));
       const aviso = restantes.length === 0
-        ? `Desligar ${METODO_LABEL[metodo]}? É o último método activo: o site deixa de aceitar pagamentos online.`
-        : `Desligar ${METODO_LABEL[metodo]} no site?`;
-      if (!confirm(aviso)) return;
+        ? 'É o último método activo: o site deixa de aceitar pagamentos online.'
+        : 'Deixa de aparecer no checkout do site.';
+      if (!(await confirmar({ titulo: `Desligar ${METODO_LABEL[metodo]}?`, mensagem: aviso, confirmar: 'Desligar', perigo: restantes.length === 0 }))) return;
     }
     setAGuardarMetodo(`${g.id}:${metodo}`);
     try {

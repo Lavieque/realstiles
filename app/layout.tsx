@@ -8,6 +8,7 @@ const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'], variabl
 import Footer from '@/components/Footer';
 import CarrinhoDrawer from '@/components/CarrinhoDrawer';
 import Toast from '@/components/Toast';
+import Confirmar from '@/components/Confirmar';
 import CookieConsent from '@/components/CookieConsent';
 import AvisoPagamentos from '@/components/AvisoPagamentos';
 import { getConfigSSR } from '@/lib/config-site-ssr';
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Footer />
         <CarrinhoDrawer />
         <Toast />
+        <Confirmar />
         <CookieConsent texto={config.cookies_texto} />
         <a
           href="https://wa.me/258878753754"

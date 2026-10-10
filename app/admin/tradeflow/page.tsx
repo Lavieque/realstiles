@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { mostrarToast } from '@/components/Toast';
 import { Zap, AlertTriangle, Package, Key, Eye, EyeOff, Check, CreditCard, Clock } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
+import { confirmar } from '@/components/Confirmar';
 
 interface Plano {
   id: string;
@@ -329,7 +330,7 @@ export default function TradeflowPage() {
   }
 
   async function desligar() {
-    if (!confirm('Desligar a conta TradeFlow deste site? A conta continua activa no TradeFlow.')) return;
+    if (!(await confirmar({ titulo: 'Desligar a conta TradeFlow?', mensagem: 'A conta continua activa no TradeFlow.', confirmar: 'Desligar', perigo: true }))) return;
     await apiFetch('/api/tradeflow/conta', { method: 'DELETE' });
     mostrarToast('Conta desligada do site', 'success');
     setConta(null);
