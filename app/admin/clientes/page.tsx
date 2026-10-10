@@ -10,6 +10,7 @@ import { correspondePesquisa } from '@/lib/pesquisa';
 import { getRoles, atribuirRole, definirSuperAdmin } from '@/lib/roles';
 import type { Perfil } from '@/lib/auth';
 import type { Role } from '@/lib/roles';
+import { confirmar } from '@/components/Confirmar';
 
 export default function AdminClientesPage() {
   const acesso = useAcessoAdmin();
@@ -32,7 +33,7 @@ export default function AdminClientesPage() {
 
   const toggleSuperAdmin = async (cliente: Perfil) => {
     const novoAdmin = !cliente.admin;
-    if (!novoAdmin && cliente.id === acesso.perfil?.id && !confirm('Vais remover o teu próprio acesso de administrador. Continuar?')) return;
+    if (!novoAdmin && cliente.id === acesso.perfil?.id && !(await confirmar({ titulo: 'Remover o teu acesso de administrador?', mensagem: 'Vais deixar de conseguir entrar no painel com esta conta.', confirmar: 'Remover', perigo: true }))) return;
     try {
       await definirSuperAdmin(cliente.id, novoAdmin);
       actualizarLocal(cliente.id, { admin: novoAdmin });

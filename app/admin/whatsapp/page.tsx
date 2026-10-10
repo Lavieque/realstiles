@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { mostrarToast } from '@/components/Toast';
 import { Lock, Package, Smartphone, AlertTriangle, CreditCard, Play, RefreshCw } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
+import { confirmar } from '@/components/Confirmar';
 
 type Status = {
   status: 'ligado' | 'desligado' | 'aguarda_qr';
@@ -115,7 +116,7 @@ export default function WhatsAppAdmin() {
   };
 
   const cancelarServico = async () => {
-    if (!confirm('Tens a certeza que queres cancelar o serviço WhatsApp? O login por WhatsApp ficará desactivado para os clientes.')) return;
+    if (!(await confirmar({ titulo: 'Cancelar o serviço WhatsApp?', mensagem: 'O login por WhatsApp fica desactivado para os clientes.', confirmar: 'Cancelar serviço', cancelar: 'Manter', perigo: true }))) return;
     localStorage.removeItem(STORAGE_KEY);
     await apiFetch('/api/config/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsapp_login: false }) }).catch(() => {});
     setAderido(false);
@@ -141,7 +142,7 @@ export default function WhatsAppAdmin() {
   };
 
   const desconectar = async () => {
-    if (!confirm('Tens a certeza que queres desligar o WhatsApp?')) return;
+    if (!(await confirmar({ titulo: 'Desligar o WhatsApp?', confirmar: 'Desligar', perigo: true }))) return;
     try {
       const res = await apiFetch('/api/notify/disconnect', { method: 'POST' });
       const data = await res.json();

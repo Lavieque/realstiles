@@ -8,6 +8,7 @@ import { getProduto } from '@/lib/produtos';
 import { formatarData } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import Estrelas from '@/components/Estrelas';
+import { confirmar } from '@/components/Confirmar';
 
 interface Linha extends ComentarioProduto {
   produto_nome: string;
@@ -50,7 +51,7 @@ export default function AdminComentariosPage() {
   };
 
   const rejeitar = async (c: Linha) => {
-    if (!confirm('Rejeitar e apagar esta avaliação?')) return;
+    if (!(await confirmar({ titulo: 'Rejeitar esta avaliação?', mensagem: 'A avaliação é apagada e não pode ser recuperada.', confirmar: 'Rejeitar e apagar', perigo: true }))) return;
     setAProcessar(c.id);
     try {
       await rejeitarComentario(c.produto_id, c.cliente_id);

@@ -5,6 +5,7 @@ import { getConfig, saveConfig, membrosEquipa, DEFAULTS } from '@/lib/config-sit
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
 import type { SiteConfig, MembroEquipa } from '@/lib/config-site';
+import { confirmar } from '@/components/Confirmar';
 
 const MEMBRO_VAZIO: MembroEquipa = { nome: '', cargo: '', foto: '', bio: '' };
 
@@ -30,8 +31,8 @@ export default function AdminConteudoPage() {
 
   const adicionarMembro = () => setConfig(c => ({ ...c, qs_equipa_membros: [...c.qs_equipa_membros, { ...MEMBRO_VAZIO }] }));
 
-  const removerMembroEquipa = (indice: number) => {
-    if (!confirm('Remover este membro da equipa?')) return;
+  const removerMembroEquipa = async (indice: number) => {
+    if (!(await confirmar({ titulo: 'Remover este membro da equipa?', confirmar: 'Remover', perigo: true }))) return;
     setConfig(c => ({ ...c, qs_equipa_membros: c.qs_equipa_membros.filter((_, i) => i !== indice) }));
   };
 

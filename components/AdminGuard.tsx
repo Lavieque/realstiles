@@ -42,8 +42,11 @@ export default function AdminGuard({ children }: { children: React.ReactNode | (
           teveSessao.current = false;
           setAcesso(null);
           const voluntario = logoutRecente();
-          // Regista o motivo antes de sair da página (máx. ~3s, ver lib/sessao.ts)
-          await registarFimSessao(pagina).catch(() => {});
+          // Regista o motivo antes de sair da página; nunca espera mais de 3,5s
+          await Promise.race([
+            registarFimSessao(pagina).catch(() => {}),
+            new Promise(r => setTimeout(r, 3500)),
+          ]);
           if (!voluntario) params.set('sessao', 'expirada');
         }
         router.replace(`/conta?${params.toString()}`);
