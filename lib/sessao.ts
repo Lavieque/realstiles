@@ -78,10 +78,24 @@ function sessaoNoLocalStorage(): boolean | null {
   }
 }
 
+// Resolve com `recurso` se a promessa não terminar a tempo. Com o
+// armazenamento avariado, chamadas como navigator.storage.estimate() podem
+// nunca responder — e o diagnóstico não pode prender a página.
+function comLimite<T>(promessa: Promise<T>, ms: number, recurso: T): Promise<T> {
+  return new Promise(resolve => {
+    const t = setTimeout(() => resolve(recurso), ms);
+    promessa.then(v => { clearTimeout(t); resolve(v); }, () => { clearTimeout(t); resolve(recurso); });
+  });
+}
+
 export async function registarFimSessao(pagina: string) {
   const [idb, armazenamento] = await Promise.all([
-    estadoIndexedDb(),
-    navigator.storage?.estimate?.().then(e => ({ usado: e.usage, quota: e.quota })).catch(() => null) ?? Promise.resolve(null),
+    comLimite(estadoIndexedDb(), 3000, { estado: 'erro' as EstadoIdb, erro: 'timeout' }),
+    comLimite(
+      navigator.storage?.estimate?.().then(e => ({ usado: e.usage, quota: e.quota })) ?? Promise.resolve(null),
+      1500,
+      null,
+    ),
   ]);
 
   const voluntario = logoutRecente();
