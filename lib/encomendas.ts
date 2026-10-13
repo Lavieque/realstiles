@@ -1,8 +1,8 @@
 import {
   collection, updateDoc, doc,
-  query, where, orderBy, limit, getDocs, getDoc, serverTimestamp, runTransaction,
+  query, where, orderBy, limit, getDocs, getDoc, serverTimestamp,
 } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import { db } from './firebase';
 import { referenciaEncomenda } from './referencia';
 import { apiFetch } from './api-fetch';
 
@@ -64,184 +64,58 @@ export interface Encomenda {
   actualizado_em?: unknown;
 }
 
-// Cria o documento da encomenda com um id novo e um número sequencial
-// atribuído atomicamente (contador em config/contador_encomendas) — os dois
-// juntos formam a referência ENC (ver lib/referencia.ts).
-async function criarComNumeroSequencial(dados: Record<string, unknown>): Promise<{ id: string; numero_sequencial: number }> {
-  const novoRef = doc(collection(db, 'encomendas'));
-  const contadorRef = doc(db, 'config', 'contador_encomendas');
-  const numero_sequencial = await runTransaction(db, async (tx) => {
-    const snap = await tx.get(contadorRef);
-    const atual = snap.exists() ? (snap.data().atual as number) : 0;
-    const proximo = atual + 1;
-    tx.set(contadorRef, { atual: proximo }, { merge: true });
-    tx.set(novoRef, { ...dados, numero_sequencial: proximo });
-    return proximo;
-  });
-  return { id: novoRef.id, numero_sequencial };
-}
-
 // Texto do custo de entrega mostrado nas vistas da encomenda
 export function textoTaxaEntrega(e: Pick<Encomenda, 'taxa_entrega' | 'entrega_sob_consulta'>): string {
   if (e.entrega_sob_consulta) return 'Sob consulta';
   return e.taxa_entrega ? `${e.taxa_entrega.toFixed(2)} MZN` : 'Grátis';
 }
 
-export async function criarEncomendaPendente({
-  itens, morada, cidade, telefone, notas = '', guestEmail = '', pagamento_metodo,
-  forma_entrega = 'domicilio', taxa_entrega = 0, entrega_sob_consulta = false,
-}: {
-  itens: ItemEncomenda[];
-  morada: string;
-  cidade: string;
-  telefone: string;
-  notas?: string;
-  guestEmail?: string;
-  pagamento_metodo: 'mpesa' | 'emola' | 'mkesh' | 'cartao' | 'paysuite';
-  forma_entrega?: FormaEntrega;
-  taxa_entrega?: number;
-  entrega_sob_consulta?: boolean;
-}): Promise<string> {
-  const user = auth.currentUser;
-  const emailFinal = user?.email || guestEmail || '';
-  if (!user && !emailFinal) throw new Error('Email necessário');
-
-  const subtotal = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
-  const sobConsulta = forma_entrega === 'domicilio' && entrega_sob_consulta;
-  const taxa = forma_entrega === 'domicilio' && !sobConsulta ? Math.max(0, Number(taxa_entrega) || 0) : 0;
-  const total = subtotal + taxa;
-
-  let clienteNome = user?.displayName || '';
-  let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
-  if (user) {
-    try {
-      const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
-      const perfil = perfilSnap.data();
-      const canal = perfil?.notif_canal;
-      if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
-      clienteNome = perfil?.nome || user.displayName || '';
-    } catch { /* mantém default */ }
-  }
-
-  const ref = await criarComNumeroSequencial({
-    cliente_id: user?.uid || 'guest',
-    cliente_nome: clienteNome || undefined,
-    cliente_email: emailFinal,
-    guest: !user,
-    itens, subtotal, total,
-    forma_entrega,
-    taxa_entrega: taxa,
-    ...(sobConsulta ? { entrega_sob_consulta: true } : {}),
-    morada_entrega: morada,
-    cidade_entrega: cidade,
-    telefone_contacto: telefone,
-    notas, notas_admin: '',
-    estado: 'pendente',
-    pagamento_metodo,
-    pagamento_estado: 'pendente',
-    notif_canal: notifCanal,
-    criado_em: serverTimestamp(),
-  });
-
-  return ref.id;
+export interface EncomendaCriada {
+  id: string;
+  numero_sequencial: number;
+  subtotal: number;
+  taxa_entrega: number;
+  total: number;
+  entrega_sob_consulta: boolean;
 }
 
-export async function criarEncomenda({
-  itens, morada, cidade, telefone, notas = '', guestEmail = '',
+// Cria a encomenda através de /api/encomendas. O cliente envia o que escolheu
+// (produto, variante, quantidade e dados de entrega) e o servidor recalcula
+// preços, taxa de entrega e total — as firestore.rules negam-lhe o `create`
+// em `encomendas`, por isso este é o único caminho.
+export async function criarEncomendaPendente({
+  itens, morada, cidade, telefone, notas = '', pagamento_metodo,
+  forma_entrega = 'domicilio',
 }: {
   itens: ItemEncomenda[];
   morada: string;
   cidade: string;
   telefone: string;
   notas?: string;
-  guestEmail?: string;
-}): Promise<string> {
-  const user = auth.currentUser;
-  const emailFinal = user?.email || guestEmail || '';
-  // Guests sem email não podem encomendar; utilizadores autenticados (incluindo WhatsApp) podem
-  if (!user && !emailFinal) throw new Error('Email necessário');
-
-  const total = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
-
-  // Determina canal de notificação e telefone do perfil do utilizador
-  let notifCanal: 'email' | 'whatsapp' = emailFinal ? 'email' : 'whatsapp';
-  let telefoneNotif = telefone;
-  let clienteNome = user?.displayName || '';
-  if (user) {
-    try {
-      const perfilSnap = await getDoc(doc(db, 'clientes', user.uid));
-      const perfil = perfilSnap.data();
-      const canal = perfil?.notif_canal;
-      if (canal === 'whatsapp' || canal === 'email') notifCanal = canal;
-      if (notifCanal === 'whatsapp' && user.uid.startsWith('wa_')) {
-        telefoneNotif = user.uid.replace('wa_', '');
-      } else if (perfil?.telefone) {
-        telefoneNotif = perfil.telefone;
-      }
-      clienteNome = perfil?.nome || user.displayName || '';
-    } catch { /* mantém o default */ }
-  }
-
-  const ref = await criarComNumeroSequencial({
-    cliente_id: user?.uid || 'guest',
-    cliente_nome: clienteNome || undefined,
-    cliente_email: emailFinal,
-    guest: !user,
-    itens, total,
-    morada_entrega: morada,
-    cidade_entrega: cidade,
-    telefone_contacto: telefone,
-    notas, notas_admin: '',
-    estado: 'pendente',
-    notif_canal: notifCanal,
-    criado_em: serverTimestamp(),
+  pagamento_metodo: 'mpesa' | 'emola' | 'mkesh' | 'cartao' | 'paysuite';
+  forma_entrega?: FormaEntrega;
+}): Promise<EncomendaCriada> {
+  const res = await apiFetch('/api/encomendas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      itens: itens.map(i => ({
+        produto_id: i.produto_id,
+        quantidade: i.quantidade,
+        tamanho: i.tamanho,
+        cor: i.cor,
+      })),
+      morada, cidade, telefone, notas,
+      pagamento_metodo,
+      forma_entrega,
+    }),
   });
 
-  // Notificação ao cliente pelo canal registado
-  if (notifCanal === 'whatsapp') {
-    try {
-      const telLimpo = telefoneNotif.replace(/\D/g, '');
-      if (telLimpo) {
-        const mensagem = `✅ *Encomenda ${referenciaEncomenda(ref)} recebida!*\n\nTotal: *${total.toFixed(2)} MZN*\nEntrega: ${morada}\n\nAcompanha o estado em realstiles.co.mz/encomendas`;
-        await apiFetch('/api/notify/messages/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telefone: telLimpo, mensagem }),
-        });
-      }
-    } catch (e) { console.warn('WhatsApp não enviado:', e); }
-  } else if (emailFinal) {
-    try {
-      await apiFetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'confirmacao_encomenda',
-          encomenda_id: ref.id,
-          cliente_email: emailFinal,
-          itens, total, morada,
-        }),
-      });
-    } catch (e) { console.warn('Email não enviado:', e); }
+  const dados = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(dados?.error || 'Não foi possível criar a encomenda.');
   }
-
-  // Admin recebe sempre email, independentemente do canal do cliente
-  if (notifCanal === 'whatsapp') {
-    try {
-      await apiFetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'confirmacao_encomenda',
-          encomenda_id: ref.id,
-          cliente_email: '',
-          itens, total, morada,
-        }),
-      });
-    } catch (e) { console.warn('Email admin não enviado:', e); }
-  }
-
-  return ref.id;
+  return dados as EncomendaCriada;
 }
 
 export async function getEncomendasCliente(clienteId: string): Promise<Encomenda[]> {

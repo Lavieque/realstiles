@@ -89,19 +89,18 @@ export default function CarrinhoPage() {
     setPagErro('');
     try {
       const reutilizar = encomendaCriadaRef.current?.assinatura === assinaturaCarrinho;
-      const encId = reutilizar ? encomendaCriadaRef.current!.id : await criarEncomendaPendente({
+      // O total cobrado é o que o servidor calcular a partir dos produtos e da
+      // configuração do site — o que se mostra aqui é só a estimativa
+      const encId = reutilizar ? encomendaCriadaRef.current!.id : (await criarEncomendaPendente({
         itens: items,
         // Ponto de recolha não tem morada do cliente
         morada: formaEntrega === 'domicilio' ? form.morada : '',
         cidade: formaEntrega === 'domicilio' ? form.cidade : '',
         telefone: form.telefone,
         notas: form.notas,
-        guestEmail: form.email,
         pagamento_metodo: metodo,
         forma_entrega: formaEntrega,
-        taxa_entrega: taxaEntrega,
-        entrega_sob_consulta: entregaSobConsulta,
-      });
+      })).id;
       encomendaCriadaRef.current = { id: encId, assinatura: assinaturaCarrinho };
       setEncomendaId(encId);
 
