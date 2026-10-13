@@ -66,13 +66,20 @@ export async function libertar(chave: string): Promise<void> {
   } catch { /* não é crítico */ }
 }
 
-// IP do cliente atrás do proxy do Netlify. Como o cabeçalho pode ser forjado
-// quando a app corre fora do Netlify, o IP é sempre um limite secundário —
-// nunca a única defesa.
+// IP do cliente atrás do proxy da plataforma. Na Vercel, `x-real-ip` e
+// `x-forwarded-for` são escritos pelo proxy e não pelo cliente; fora dela
+// qualquer destes cabeçalhos pode ser forjado, por isso o limite por IP é
+// sempre secundário — o que conta é o limite por número ou por conta.
 export function ipDoPedido(req: Request): string {
-  const nf = req.headers.get('x-nf-client-connection-ip');
-  if (nf) return nf;
-  const xff = req.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0].trim();
+  const cabecalhos = [
+    'x-real-ip',                    // Vercel
+    'x-vercel-forwarded-for',       // Vercel
+    'x-nf-client-connection-ip',    // Netlify
+    'x-forwarded-for',
+  ];
+  for (const nome of cabecalhos) {
+    const valor = req.headers.get(nome);
+    if (valor) return valor.split(',')[0].trim();
+  }
   return 'desconhecido';
 }
