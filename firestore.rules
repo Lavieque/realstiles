@@ -86,11 +86,10 @@ service cloud.firestore {
     }
 
     // Config do site — leitura pública (textos, títulos, etc.); escrita só
-    // para a equipa. O contador de encomendas é incrementado pelo próprio
-    // cliente ao fazer checkout (transacção em lib/encomendas.ts).
-    match /config/contador_encomendas {
-      allow write: if request.auth != null;
-    }
+    // para a equipa. O contador de encomendas (config/contador_encomendas) é
+    // incrementado pela transacção do Admin SDK em lib/encomendas-server.ts,
+    // que não passa por estas regras: o cliente não lhe escreve, para não
+    // poder forjar o número sequencial que compõe a referência ENC.
     match /config/{document=**} {
       allow read: if true;
       allow write: if isEquipa();
@@ -104,19 +103,22 @@ service cloud.firestore {
     }
 
     // Perfis — cada utilizador gere o seu, mas nunca os campos de acesso
-    // (admin/role). Quem gere utilizadores só pode mudar a role; promover
-    // a administrador fica reservado ao super admin.
+    // (admin/role) nem `telefone_verificado`, que é escrito só pelo servidor
+    // depois de um OTP acertar e é a prova de posse do número usada por
+    // /api/notify/messages/send. Quem gere utilizadores só pode mudar a role;
+    // promover a administrador fica reservado ao super admin.
     match /clientes/{uid} {
       allow read: if request.auth != null && (request.auth.uid == uid || isEquipa());
       allow create: if request.auth != null
         && request.auth.uid == uid
         && request.resource.data.get('admin', false) == false
-        && request.resource.data.get('role', null) == null;
+        && request.resource.data.get('role', null) == null
+        && request.resource.data.get('telefone_verificado', null) == null;
       allow update: if isSuper()
         || (temPerm('utilizadores') && resource.data.get('admin', false) != true
             && camposAlterados().hasOnly(['role']))
         || (request.auth != null && request.auth.uid == uid
-            && !camposAlterados().hasAny(['admin', 'role']));
+            && !camposAlterados().hasAny(['admin', 'role', 'telefone_verificado']));
       allow delete: if isSuper();
 
       match /{sub=**} {
@@ -124,13 +126,19 @@ service cloud.firestore {
       }
     }
 
-    // Encomendas — o cliente cria e vê as suas e só pode cancelá-las;
-    // a equipa com 'encomendas' gere tudo ('dashboard' só lê).
+    // Encomendas — o cliente vê as suas e só pode cancelá-las; a equipa com
+    // 'encomendas' gere tudo ('dashboard' só lê).
+    //
+    // A criação passa obrigatoriamente por POST /api/encomendas: é lá que os
+    // preços, a taxa de entrega e o total são calculados a partir dos
+    // produtos e de config/site. Permitir o `create` ao cliente deixava-o
+    // escolher o valor que ia pagar, e também escrever de início campos como
+    // pagamento_estado ou cliente_id.
     match /encomendas/{encomendaId} {
       allow read: if request.auth != null
         && (resource.data.cliente_id == request.auth.uid
             || temPerm('encomendas') || temPerm('dashboard'));
-      allow create: if request.auth != null;
+      allow create: if false;
       allow update: if temPerm('encomendas')
         || (request.auth != null
             && resource.data.cliente_id == request.auth.uid
@@ -163,6 +171,10 @@ service cloud.firestore {
         allow update, delete: if temPerm('reclamacoes');
       }
     }
+
+    // Nota: `rate_limits` (limites de OTP e de criação de encomendas) e
+    // `pagamentos` não têm bloco aqui de propósito — são escritas só pelo
+    // Admin SDK, que não passa por estas regras, e ficam negadas ao cliente.
 
     // Qualquer outra colecção não prevista acima fica negada por omissão
     // (comportamento seguro por defeito). Se criares uma colecção nova,
