@@ -23,17 +23,31 @@ export async function POST(req: NextRequest) {
     if (permStaff && !caller.permissoes.has(permStaff)) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
     }
-    // Emails de contacto guardados no pedido do próprio cliente, que podem não
-    // ser o da conta (ex.: login por WhatsApp com email de contacto)
+    // Documentos de onde sai o conteúdo dos emails de cliente. O corpo do
+    // pedido serve só para dizer QUAL encomenda ou reclamação — os textos, os
+    // valores e o destinatário vêm daqui, para o cliente não poder compor um
+    // email arbitrário assinado pelo domínio da loja.
     const emailsDoPedido: string[] = [];
+
+    let encomendaDoPedido: Record<string, unknown> | null = null;
     if (tipo === 'confirmacao_encomenda') {
-      const encomenda = await encomendaDoCaller(caller, String(body.encomenda_id ?? ''));
-      if (!encomenda) return NextResponse.json({ error: 'Encomenda não encontrada' }, { status: 403 });
-      if (encomenda.cliente_email) emailsDoPedido.push(String(encomenda.cliente_email));
+      encomendaDoPedido = await encomendaDoCaller(caller, String(body.encomenda_id ?? ''));
+      if (!encomendaDoPedido) return NextResponse.json({ error: 'Encomenda não encontrada' }, { status: 403 });
+      if (encomendaDoPedido.cliente_email) emailsDoPedido.push(String(encomendaDoPedido.cliente_email));
     }
-    if (tipo === 'reclamacao' && body.reclamacao_id) {
-      const rec = (await adminDb.collection('reclamacoes').doc(String(body.reclamacao_id)).get()).data();
-      if (rec?.cliente_id === caller.uid && rec.email) emailsDoPedido.push(String(rec.email));
+
+    const staffReclamacoes = caller.permissoes.has('reclamacoes');
+    let reclamacaoDoPedido: Record<string, unknown> | null = null;
+    if (tipo === 'reclamacao' || tipo === 'mensagem_reclamacao_cliente') {
+      const rec = (await adminDb.collection('reclamacoes').doc(String(body.reclamacao_id ?? '')).get()).data();
+      if (!rec || (rec.cliente_id !== caller.uid && !staffReclamacoes)) {
+        return NextResponse.json({ error: 'Reclamação não encontrada' }, { status: 403 });
+      }
+      reclamacaoDoPedido = rec;
+      // O email escrito no formulário da reclamação só vale como destinatário
+      // quando é a equipa a disparar o envio: o cliente indica-o livremente, e
+      // dava-lhe um acuse de recepção enviado para onde quisesse.
+      if (staffReclamacoes && rec.email) emailsDoPedido.push(String(rec.email));
     }
 
     const BREVO_KEY         = process.env.BREVO_API_KEY;
@@ -52,12 +66,18 @@ export async function POST(req: NextRequest) {
 
     // ── Confirmação de encomenda → cliente + admin ──────────────────────────
     if (tipo === 'confirmacao_encomenda') {
-      const { encomenda_id, cliente_email, itens, total, morada } = body;
-      const ref = await referenciaEncomendaServer(encomenda_id);
-      if (cliente_email) {
+      const enc = encomendaDoPedido!;
+      const ref = await referenciaEncomendaServer(String(body.encomenda_id));
+      const morada = [enc.morada_entrega, enc.cidade_entrega].filter(Boolean).join(', ');
+      const itens = (Array.isArray(enc.itens) ? enc.itens : []) as ItemEmail[];
+      const total = Number(enc.total) || 0;
+      // Quem recebe notificações por WhatsApp não recebe este email
+      const emailCliente = enc.notif_canal === 'whatsapp' ? '' : String(enc.cliente_email || '');
+
+      if (emailCliente) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
-          to: [cliente_email],
+          to: [emailCliente],
           subject: `✅ Encomenda ${ref} recebida — ${LOJA_NOME}`,
           html: gerarEmailConfirmacao(ref, itens, total, morada, LOJA_NOME, LOJA_URL),
         });
@@ -66,12 +86,12 @@ export async function POST(req: NextRequest) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
           to: [ADMIN_EMAIL],
-          subject: `🛍️ Nova encomenda ${ref} de ${cliente_email}`,
+          subject: `🛍️ Nova encomenda ${ref}`,
           html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
             <h2>Nova encomenda recebida</h2>
-            <p><strong>Cliente:</strong> ${cliente_email}</p>
-            <p><strong>Total:</strong> ${Number(total)?.toFixed(2)} MZN</p>
-            <p><strong>Morada:</strong> ${morada}</p>
+            <p><strong>Cliente:</strong> ${esc(enc.cliente_email)}</p>
+            <p><strong>Total:</strong> ${total.toFixed(2)} MZN</p>
+            <p><strong>Morada:</strong> ${esc(morada)}</p>
             <p style="margin-top:20px;">
               <a href="${LOJA_URL}/admin/encomendas" style="background:#0d1347;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
                 Ver no painel admin
@@ -83,8 +103,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Reclamação → admin (notificação) + cliente (acuse de recepção) ───────
+    // Os dados vêm do documento da reclamação, não do corpo do pedido
     if (tipo === 'reclamacao') {
-      const { nome, email, telefone, assunto, descricao, reclamacao_id } = body;
+      const rec = reclamacaoDoPedido!;
+      const reclamacao_id = String(body.reclamacao_id);
+      const nome = String(rec.nome ?? '');
+      const email = String(rec.email ?? '');
+      const telefone = String(rec.telefone ?? '');
+      const assunto = String(rec.assunto ?? '');
+      const descricao = String(rec.descricao ?? '');
       if (ADMIN_EMAIL) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_RECLAMACOES}>`,
@@ -93,10 +120,13 @@ export async function POST(req: NextRequest) {
           html: gerarEmailReclamacaoAdmin(nome, email, telefone, assunto, descricao, LOJA_NOME, LOJA_URL),
         });
       }
-      if (email) {
+      // Acuse de recepção: para o email da conta do cliente, ou para o do
+      // formulário quando é a equipa a enviar
+      const emailAck = staffReclamacoes ? email : (caller.email || '');
+      if (emailAck) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_RECLAMACOES}>`,
-          to: [email],
+          to: [emailAck],
           subject: `✅ Reclamação recebida — ${LOJA_NOME}`,
           html: gerarEmailReclamacaoCliente(nome, assunto, reclamacao_id, LOJA_NOME, LOJA_URL),
         });
@@ -105,7 +135,11 @@ export async function POST(req: NextRequest) {
 
     // ── Nova mensagem do cliente numa reclamação → admin ────────────────────
     if (tipo === 'mensagem_reclamacao_cliente') {
-      const { nome, assunto, mensagem } = body;
+      const rec = reclamacaoDoPedido!;
+      const nome = String(rec.nome ?? '');
+      const assunto = String(rec.assunto ?? '');
+      // A mensagem é o texto que o cliente acabou de escrever; vai escapada
+      const mensagem = String(body.mensagem ?? '').slice(0, 5000);
       if (ADMIN_EMAIL) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_RECLAMACOES}>`,
@@ -113,9 +147,9 @@ export async function POST(req: NextRequest) {
           subject: `💬 Nova mensagem de ${nome} — ${assunto}`,
           html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
             <h2>Nova mensagem numa reclamação</h2>
-            <p><strong>Cliente:</strong> ${nome}</p>
-            <p><strong>Assunto:</strong> ${assunto}</p>
-            <div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;font-size:14px;line-height:1.7;">${(mensagem || '').replace(/\n/g, '<br>')}</div>
+            <p><strong>Cliente:</strong> ${esc(nome)}</p>
+            <p><strong>Assunto:</strong> ${esc(assunto)}</p>
+            <div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;font-size:14px;line-height:1.7;">${escMultilinha(mensagem)}</div>
             <p style="margin-top:20px;">
               <a href="${LOJA_URL}/admin/reclamacoes" style="background:#0d1347;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
                 Ver e responder
@@ -224,6 +258,30 @@ export async function POST(req: NextRequest) {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Todo o valor que venha de um utilizador (nome, morada, assunto, descrição,
+// nome de artigo) passa por aqui antes de entrar no HTML do email.
+function esc(v: unknown): string {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Texto de várias linhas: escapado primeiro, só depois com os <br>
+function escMultilinha(v: unknown): string {
+  return esc(v).replace(/\r?\n/g, '<br>');
+}
+
+interface ItemEmail {
+  nome?: string;
+  tamanho?: string;
+  cor?: string;
+  preco?: number;
+  quantidade?: number;
+}
+
 function estadoLabel(estado: string) {
   const labels: Record<string, string> = {
     pendente: 'Pendente', confirmada: 'Confirmada',
@@ -258,14 +316,14 @@ function wrap(lojaNome: string, lojaUrl: string, inner: string) {
 
 function gerarEmailConfirmacao(
   ref: string,
-  itens: { nome: string; tamanho?: string; cor?: string; preco: number; quantidade: number }[],
+  itens: ItemEmail[],
   total: number, morada: string, lojaNome: string, lojaUrl: string
 ) {
   const itensHtml = itens.map(i => `
     <tr>
-      <td style="padding:10px 8px;border-bottom:1px solid #eee;">${i.nome}${i.tamanho ? ` <span style="color:#888;font-size:12px">(${i.tamanho})</span>` : ''}${i.cor ? ` <span style="color:#888;font-size:12px">· ${i.cor}</span>` : ''}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:center;">${i.quantidade}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${(i.preco * i.quantidade).toFixed(2)} MZN</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #eee;">${esc(i.nome)}${i.tamanho ? ` <span style="color:#888;font-size:12px">(${esc(i.tamanho)})</span>` : ''}${i.cor ? ` <span style="color:#888;font-size:12px">· ${esc(i.cor)}</span>` : ''}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:center;">${Number(i.quantidade) || 0}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${((Number(i.preco) || 0) * (Number(i.quantidade) || 0)).toFixed(2)} MZN</td>
     </tr>`).join('');
 
   return wrap(lojaNome, lojaUrl, `
@@ -285,7 +343,7 @@ function gerarEmailConfirmacao(
     </table>
     <div style="margin-top:24px;padding:16px;background:#f8f8f8;border-radius:8px;">
       <p style="margin:0 0 4px;font-size:12px;color:#888;">MORADA DE ENTREGA</p>
-      <p style="margin:0;font-size:14px;">${morada}</p>
+      <p style="margin:0;font-size:14px;">${esc(morada)}</p>
     </div>
     <div style="margin-top:24px;text-align:center;">
       <a href="${lojaUrl}/encomendas" style="display:inline-block;background:#0d1347;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Ver as minhas encomendas</a>
@@ -299,14 +357,14 @@ function gerarEmailReclamacaoAdmin(
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;color:#c0392b;">📣 Nova reclamação recebida</h2>
     <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-      <tr><td style="padding:8px 0;font-size:13px;color:#888;width:100px;">Nome</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${nome}</td></tr>
-      <tr><td style="padding:8px 0;font-size:13px;color:#888;">Email</td><td style="padding:8px 0;font-size:14px;">${email}</td></tr>
-      ${telefone ? `<tr><td style="padding:8px 0;font-size:13px;color:#888;">Telefone</td><td style="padding:8px 0;font-size:14px;">${telefone}</td></tr>` : ''}
-      <tr><td style="padding:8px 0;font-size:13px;color:#888;">Assunto</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${assunto}</td></tr>
+      <tr><td style="padding:8px 0;font-size:13px;color:#888;width:100px;">Nome</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${esc(nome)}</td></tr>
+      <tr><td style="padding:8px 0;font-size:13px;color:#888;">Email</td><td style="padding:8px 0;font-size:14px;">${esc(email)}</td></tr>
+      ${telefone ? `<tr><td style="padding:8px 0;font-size:13px;color:#888;">Telefone</td><td style="padding:8px 0;font-size:14px;">${esc(telefone)}</td></tr>` : ''}
+      <tr><td style="padding:8px 0;font-size:13px;color:#888;">Assunto</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${esc(assunto)}</td></tr>
     </table>
     <div style="background:#f8f8f8;border-radius:8px;padding:16px;margin-bottom:24px;">
       <p style="margin:0 0 8px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Descrição</p>
-      <p style="margin:0;font-size:14px;line-height:1.7;color:#333;">${descricao}</p>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#333;">${escMultilinha(descricao)}</p>
     </div>
     <a href="${lojaUrl}/admin/reclamacoes" style="display:inline-block;background:#0d1347;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
       Responder no painel admin
@@ -316,9 +374,9 @@ function gerarEmailReclamacaoAdmin(
 function gerarEmailReclamacaoCliente(nome: string, assunto: string, reclamacaoId: string | undefined, lojaNome: string, lojaUrl: string) {
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;">✅ Reclamação recebida</h2>
-    <p style="font-size:15px;">Olá <strong>${nome}</strong>,</p>
+    <p style="font-size:15px;">Olá <strong>${esc(nome)}</strong>,</p>
     <p style="font-size:14px;color:#555;line-height:1.7;">
-      Recebemos a sua reclamação relativa a <strong>${assunto}</strong>.<br>
+      Recebemos a sua reclamação relativa a <strong>${esc(assunto)}</strong>.<br>
       A nossa equipa irá analisar o caso e responder-lhe no prazo de <strong>3 dias úteis</strong>.
     </p>
     <div style="background:#f0f7f0;border-left:4px solid #27ae60;border-radius:4px;padding:16px;margin:20px 0;">
@@ -359,7 +417,7 @@ function gerarEmailEstado(
     </div>
     ${notas ? `<div style="background:#fffbf0;border-left:4px solid #f39c12;border-radius:4px;padding:16px;margin-bottom:20px;">
       <p style="margin:0 0 6px;font-size:12px;color:#f39c12;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Nota da loja</p>
-      <p style="margin:0;font-size:14px;color:#333;">${notas}</p>
+      <p style="margin:0;font-size:14px;color:#333;">${escMultilinha(notas)}</p>
     </div>` : ''}
     <div style="text-align:center;">
       <a href="${lojaUrl}/encomendas" style="display:inline-block;background:#0d1347;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Ver encomenda</a>
@@ -369,7 +427,7 @@ function gerarEmailEstado(
 function gerarEmailBemVindo(nome: string, lojaNome: string, lojaUrl: string) {
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;">🎉 Bem-vindo(a) à ${lojaNome}!</h2>
-    <p style="font-size:15px;">Olá <strong>${nome || 'Cliente'}</strong>,</p>
+    <p style="font-size:15px;">Olá <strong>${esc(nome || 'Cliente')}</strong>,</p>
     <p style="font-size:14px;color:#555;line-height:1.7;">
       A tua conta foi criada com sucesso. Já podes explorar a nossa coleção e fazer encomendas de forma rápida e segura.
     </p>
@@ -387,7 +445,7 @@ function gerarEmailReclamacaoResolvida(assunto: string, estado: string, reclamac
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;">✅ Reclamação resolvida</h2>
     <p style="font-size:14px;color:#555;line-height:1.7;">
-      A sua reclamação relativa a <strong>${assunto}</strong> foi marcada como <strong>${estado}</strong> pela nossa equipa.
+      A sua reclamação relativa a <strong>${esc(assunto)}</strong> foi marcada como <strong>${esc(estado)}</strong> pela nossa equipa.
     </p>
     <div style="background:#f0f7f0;border-left:4px solid #27ae60;border-radius:4px;padding:16px;margin:20px 0;">
       <p style="margin:0;font-size:13px;color:#27ae60;font-weight:600;">Caso considere que o assunto não ficou resolvido, pode consultar a conversa completa na área do cliente.</p>
@@ -402,9 +460,9 @@ function gerarEmailRespostaReclamacao(
 ) {
   return wrap(lojaNome, lojaUrl, `
     <h2 style="margin-top:0;">✉️ Resposta à sua reclamação</h2>
-    <p style="font-size:13px;color:#888;margin-bottom:20px;">Assunto: <strong>${assunto}</strong></p>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;">Assunto: <strong>${esc(assunto)}</strong></p>
     <div style="background:#f8f8f8;border-radius:8px;padding:20px;font-size:14px;line-height:1.8;color:#333;">
-      ${resposta.replace(/\n/g, '<br>')}
+      ${escMultilinha(resposta)}
     </div>
     <p style="font-size:13px;color:#888;margin-top:20px;margin-bottom:20px;">
       Para continuar esta conversa, responda na área do cliente — este email não é monitorizado.

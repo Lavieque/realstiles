@@ -57,11 +57,12 @@ export default function ReclamacaoPage() {
         criado_em: serverTimestamp(),
       });
 
-      // Notifica admin por email sempre (o admin usa email)
+      // Notifica admin por email sempre (o admin usa email). Os dados do email
+      // são lidos no servidor a partir da reclamação guardada.
       apiFetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'reclamacao', ...form, reclamacao_id: docRef.id }),
+        body: JSON.stringify({ tipo: 'reclamacao', reclamacao_id: docRef.id }),
       }).catch(() => {});
 
       // Acuse de recepção ao cliente pelo canal correto

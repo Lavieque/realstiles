@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { exigirPermissao } from '@/lib/permissoes-server';
+import { urlCallback } from '@/lib/tradeflow-callback';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 
 async function ensureStore(accountId: string, storeUrl: string) {
   try {
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/tradeflow/confirm`;
+    const callbackUrl = urlCallback(process.env.NEXT_PUBLIC_APP_URL || '');
     const stores: { id: string; site_url: string }[] = await tfFetch(`/admin/accounts/${accountId}/stores`);
     const exists = stores.some(s => s.site_url === storeUrl);
     if (!exists) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exigirPermissao } from '@/lib/permissoes-server';
+import { urlCallback } from '@/lib/tradeflow-callback';
 
 const TF_URL = () => process.env.TRADEFLOW_API_URL || 'http://localhost:3000';
 const TF_TOKEN = () => process.env.TRADEFLOW_ADMIN_TOKEN || '';
@@ -11,8 +12,10 @@ export async function POST(req: NextRequest) {
   try {
     const { account_id, plano_id, email, nome, store_url, success_url, cancel_url } = await req.json();
 
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || '';
-    const callback_url = `${origin}/api/tradeflow/confirm`;
+    // O callback leva o segredo partilhado: /api/tradeflow/confirm recusa
+    // pedidos sem ele (ver lib/tradeflow-callback.ts)
+    const origin = process.env.NEXT_PUBLIC_APP_URL || req.headers.get('origin') || '';
+    const callback_url = urlCallback(origin);
 
     const res = await fetch(`${TF_URL()}/stripe/checkout`, {
       method: 'POST',

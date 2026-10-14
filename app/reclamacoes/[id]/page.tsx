@@ -61,8 +61,8 @@ export default function ReclamacaoDetalhePage({ params }: { params: { id: string
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'mensagem_reclamacao_cliente',
-          nome: reclamacao.nome,
-          assunto: reclamacao.assunto,
+          // O nome e o assunto são lidos no servidor, a partir da reclamação
+          reclamacao_id: reclamacao.id,
           mensagem: conteudo,
         }),
       }).catch(() => {});
