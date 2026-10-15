@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
     const FROM_RECLAMACOES  = process.env.FROM_EMAIL_RECLAMACOES || 'reclamacoes@realstiles.co.mz';
     const FROM_NOREPLY      = process.env.FROM_EMAIL_NOREPLY     || 'noreply@realstiles.co.mz';
 
+    // As notificações internas vão para a caixa do próprio endereço de serviço:
+    // encomendas@ e reclamacoes@ são grupos, logo chegam a toda a equipa respetiva
+    const ADMIN_ENCOMENDAS  = FROM_ENCOMENDAS;
+    const ADMIN_RECLAMACOES = FROM_RECLAMACOES;
+
     if (!BREVO_KEY) {
       return NextResponse.json({ ok: false, warn: 'BREVO_API_KEY em falta' });
     }
@@ -82,10 +87,10 @@ export async function POST(req: NextRequest) {
           html: gerarEmailConfirmacao(ref, itens, total, morada, LOJA_NOME, LOJA_URL),
         });
       }
-      if (ADMIN_EMAIL) {
+      if (ADMIN_ENCOMENDAS) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
-          to: [ADMIN_EMAIL],
+          to: [ADMIN_ENCOMENDAS],
           subject: `🛍️ Nova encomenda ${ref}`,
           html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
             <h2>Nova encomenda recebida</h2>
@@ -112,10 +117,10 @@ export async function POST(req: NextRequest) {
       const telefone = String(rec.telefone ?? '');
       const assunto = String(rec.assunto ?? '');
       const descricao = String(rec.descricao ?? '');
-      if (ADMIN_EMAIL) {
+      if (ADMIN_RECLAMACOES) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_RECLAMACOES}>`,
-          to: [ADMIN_EMAIL],
+          to: [ADMIN_RECLAMACOES],
           subject: `📣 Nova reclamação: ${assunto}`,
           html: gerarEmailReclamacaoAdmin(nome, email, telefone, assunto, descricao, LOJA_NOME, LOJA_URL),
         });
@@ -140,10 +145,10 @@ export async function POST(req: NextRequest) {
       const assunto = String(rec.assunto ?? '');
       // A mensagem é o texto que o cliente acabou de escrever; vai escapada
       const mensagem = String(body.mensagem ?? '').slice(0, 5000);
-      if (ADMIN_EMAIL) {
+      if (ADMIN_RECLAMACOES) {
         envios.push({
           from: `${LOJA_NOME} <${FROM_RECLAMACOES}>`,
-          to: [ADMIN_EMAIL],
+          to: [ADMIN_RECLAMACOES],
           subject: `💬 Nova mensagem de ${nome} — ${assunto}`,
           html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
             <h2>Nova mensagem numa reclamação</h2>
@@ -219,8 +224,9 @@ export async function POST(req: NextRequest) {
 
     // Um cliente só pode fazer enviar emails para si próprio ou para o admin
     const staff = caller.permissoes.has('encomendas') || caller.permissoes.has('reclamacoes');
+    const caixasAdmin = [FROM_ENCOMENDAS, FROM_RECLAMACOES, ADMIN_EMAIL].filter(Boolean) as string[];
     const permitido = (addr: string) =>
-      staff || addr === ADMIN_EMAIL
+      staff || caixasAdmin.some(a => a.toLowerCase() === addr.toLowerCase())
       || [caller.email, ...emailsDoPedido].some(e => e?.toLowerCase() === addr.toLowerCase());
 
     const resultados = await Promise.allSettled(
