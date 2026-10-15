@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const emailsDoPedido: string[] = [];
 
     let encomendaDoPedido: Record<string, unknown> | null = null;
-    if (tipo === 'confirmacao_encomenda') {
+    if (tipo === 'confirmacao_encomenda' || tipo === 'cancelamento_cliente') {
       encomendaDoPedido = await encomendaDoCaller(caller, String(body.encomenda_id ?? ''));
       if (!encomendaDoPedido) return NextResponse.json({ error: 'Encomenda não encontrada' }, { status: 403 });
       if (encomendaDoPedido.cliente_email) emailsDoPedido.push(String(encomendaDoPedido.cliente_email));
@@ -97,6 +97,31 @@ export async function POST(req: NextRequest) {
             <p><strong>Cliente:</strong> ${esc(enc.cliente_email)}</p>
             <p><strong>Total:</strong> ${total.toFixed(2)} MZN</p>
             <p><strong>Morada:</strong> ${esc(morada)}</p>
+            <p style="margin-top:20px;">
+              <a href="${LOJA_URL}/admin/encomendas" style="background:#0d1347;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+                Ver no painel admin
+              </a>
+            </p>
+          </div>`,
+        });
+      }
+    }
+
+    // ── Cliente cancelou a encomenda → equipa ─────────────────────────
+    // Sem isto o cancelamento só aparece a quem abrir o painel
+    if (tipo === 'cancelamento_cliente') {
+      const enc = encomendaDoPedido!;
+      const ref = await referenciaEncomendaServer(String(body.encomenda_id));
+      const total = Number(enc.total) || 0;
+      if (ADMIN_ENCOMENDAS) {
+        envios.push({
+          from: `${LOJA_NOME} <${FROM_ENCOMENDAS}>`,
+          to: [ADMIN_ENCOMENDAS],
+          subject: `❌ Encomenda ${ref} cancelada pelo cliente`,
+          html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
+            <h2>Encomenda cancelada pelo cliente</h2>
+            <p><strong>Cliente:</strong> ${esc(enc.cliente_email)}</p>
+            <p><strong>Total:</strong> ${total.toFixed(2)} MZN</p>
             <p style="margin-top:20px;">
               <a href="${LOJA_URL}/admin/encomendas" style="background:#0d1347;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
                 Ver no painel admin

@@ -8,6 +8,7 @@ import { getConfig } from '@/lib/config-site';
 import type { SiteConfig } from '@/lib/config-site';
 import { getEncomenda, cancelarEncomenda, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda, FORMAS_ENTREGA, textoTaxaEntrega } from '@/lib/encomendas';
 import { useCarrinho } from '@/store/carrinho';
+import { apiFetch } from '@/lib/api-fetch';
 import { mostrarToast } from '@/components/Toast';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
@@ -102,6 +103,12 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
     setCancelando(true);
     try {
       await cancelarEncomenda(encomenda.id);
+      // Avisa a equipa; os dados do email são lidos no servidor a partir da encomenda
+      apiFetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'cancelamento_cliente', encomenda_id: encomenda.id }),
+      }).catch(() => {});
       setEncomenda(e => e ? { ...e, estado: 'cancelada' } : e);
       mostrarToast('Encomenda cancelada.', 'success');
     } catch {
