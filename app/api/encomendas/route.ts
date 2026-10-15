@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { autenticar } from '@/lib/permissoes-server';
 import { criarEncomendaServidor, ErroEncomenda } from '@/lib/encomendas-server';
 import { consumir } from '@/lib/rate-limit';
+import { notificarEncomendaCriada } from '@/lib/email';
+import { adminDb } from '@/lib/firebase-admin';
 
 // Criação de encomendas. O cliente não escreve em `encomendas` (as
 // firestore.rules negam-lhe o `create`): envia o pedido aqui e o servidor
@@ -31,6 +33,15 @@ export async function POST(req: NextRequest) {
       pagamento_metodo: body?.pagamento_metodo,
       forma_entrega: body?.forma_entrega,
     });
+    // Avisa o cliente de que falta pagar. O email não pode fazer a criação
+    // falhar, por isso os erros ficam no log e a resposta segue na mesma.
+    try {
+      const snap = await adminDb.collection('encomendas').doc(encomenda.id).get();
+      if (snap.exists) await notificarEncomendaCriada(encomenda.id, snap.data()!);
+    } catch (e) {
+      console.error('[encomendas] aviso de encomenda criada falhou', e);
+    }
+
     return NextResponse.json(encomenda, { status: 201 });
   } catch (err) {
     if (err instanceof ErroEncomenda) {

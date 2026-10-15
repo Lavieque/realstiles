@@ -2,6 +2,7 @@ import { adminDb } from './firebase-admin';
 import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { METODOS_PAGAMENTO } from './metodos-pagamento';
 import type { MetodoPagamento } from './metodos-pagamento';
+import { notificarEncomendaPaga } from './email';
 
 export type { MetodoPagamento };
 
@@ -194,6 +195,17 @@ export async function marcarPagamentoPago(
     });
   }
   await batch.commit();
+
+  // Depois do commit: só se avisa quando o estado já está gravado. A guarda
+  // de idempotência no topo evita que webhook e polling mandem dois emails.
+  if (encSnap.exists) {
+    try {
+      await notificarEncomendaPaga(pagamento.encomenda_id, encSnap.data()!);
+    } catch (e) {
+      console.error('[pagamentos] aviso de encomenda paga falhou', e);
+    }
+  }
+
   return { ok: true };
 }
 
