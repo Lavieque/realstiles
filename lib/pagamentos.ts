@@ -115,7 +115,9 @@ export function metodosDisponiveis(cfg: ConfigPagamentos): MetodoPagamento[] {
 }
 
 // Gateway de um doc em `pagamentos`. Os criados antes de existir o campo
-// `gateway` são todos do ZumboPay (os do PaySuite têm referencia_paysuite).
+// `gateway` são todos do ZumboPay. A PaySuite já não é oferecida, mas há
+// pagamentos antigos dela em Firestore: são reconhecidos para poderem ser
+// excluídos da verificação, que não os sabe consultar.
 export function gatewayDoPagamento(p: Record<string, unknown>): Gateway | 'paysuite' {
   if (p.gateway === 'clicpay' || p.gateway === 'zumbopay') return p.gateway;
   if (p.gateway === 'paysuite' || p.referencia_paysuite) return 'paysuite';

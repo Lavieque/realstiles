@@ -12,6 +12,8 @@ import { apiFetch } from '@/lib/api-fetch';
 
 const ESTADOS: EstadoEncomenda[] = ['pendente', 'confirmada', 'enviada', 'entregue', 'cancelada'];
 
+// 'paysuite' já não é oferecida; fica nos mapas para as encomendas antigas
+// continuarem a mostrar um nome legível em vez do identificador cru.
 const METODOS_PAGAMENTO: Record<string, string> = {
   mpesa: 'M-Pesa', emola: 'e-Mola', mkesh: 'mKesh', cartao: 'Cartão', paysuite: 'PaySuite',
 };
