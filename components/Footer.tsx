@@ -49,6 +49,12 @@ export default async function Footer() {
       </div>
       <div className="footer-bottom">
         <span>{config.copyright}</span>
+        <span>
+          by{' '}
+          <a href="https://velsadigital.com" target="_blank" rel="noopener noreferrer">
+            Velsa Digital
+          </a>
+        </span>
         <span>{config.slogan}</span>
       </div>
     </footer>
