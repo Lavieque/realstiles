@@ -18,10 +18,6 @@ export const metadata: Metadata = {
   title: 'Real Stiles — Moda para todos',
   description: 'Loja de vestuário online. Encontra as melhores peças de roupa a preços acessíveis.',
   manifest: '/manifest.json',
-  // Verificação do Search Console por meta tag; sem a variável, não sai nada
-  verification: process.env.GOOGLE_SITE_VERIFICATION
-    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
-    : undefined,
   icons: {
     icon: '/img/logo.png',
     shortcut: '/img/logo.png',
