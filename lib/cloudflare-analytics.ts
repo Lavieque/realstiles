@@ -84,7 +84,9 @@ export async function consultarVisitas(dias: number): Promise<ResumoVisitas> {
   const inicio = new Date(fim.getTime() - dias * 24 * 60 * 60 * 1000);
   // Valores todos controlados por nós (ISO e variável de ambiente), mas o
   // siteTag passa por JSON.stringify para não partir a query.
-  const filtro = `{ siteTag: ${JSON.stringify(siteTag)}, datetime_geq: "${inicio.toISOString()}", datetime_leq: "${fim.toISOString()}" }`;
+  // `bot: 0` e a exclusão do /admin alinham os números com o painel da
+  // Cloudflare ("Exclude bots") e com o que interessa: visitas de clientes.
+  const filtro = `{ siteTag: ${JSON.stringify(siteTag)}, bot: 0, requestPath_notlike: "/admin%", datetime_geq: "${inicio.toISOString()}", datetime_leq: "${fim.toISOString()}" }`;
   const campos = 'count sum { visits }';
   const grupo = (alias: string, dimensao: string | null, limite: number, ordem: string) =>
     `${alias}: rumPageloadEventsAdaptiveGroups(limit: ${limite}, filter: ${filtro}, orderBy: [${ordem}]) {
