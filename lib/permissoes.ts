@@ -24,6 +24,7 @@ export const CHAVES_PERMISSAO: Permissao[] = PERMISSOES.map(p => p.chave);
 // Permissão exigida por cada página do admin. A rota mais específica ganha.
 const ROTAS: Record<string, Permissao> = {
   '/admin': 'dashboard',
+  '/admin/visitas': 'dashboard',
   '/admin/encomendas': 'encomendas',
   '/admin/produtos': 'produtos',
   '/admin/importar': 'produtos',

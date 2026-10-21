@@ -12,7 +12,7 @@ import type { Permissao } from '@/lib/permissoes';
 import type { ReactNode } from 'react';
 import {
   BarChart2, Package, Tag, Layers, Users, Pencil, Bell,
-  ClipboardList, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare, Percent, ShieldCheck, CreditCard,
+  ClipboardList, Eye, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare, Percent, ShieldCheck, CreditCard,
 } from 'lucide-react';
 
 
@@ -38,6 +38,7 @@ function AdminTopBar() {
 
 const NAV: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: <BarChart2 size={18} strokeWidth={1.5} />, section: 'Principal' },
+  { href: '/admin/visitas', label: 'Visitas', icon: <Eye size={18} strokeWidth={1.5} />, section: 'Principal' },
   { href: '/admin/encomendas', label: 'Encomendas', icon: <Package size={18} strokeWidth={1.5} />, section: 'Principal' },
   { href: '/admin/produtos', label: 'Produtos', icon: <Tag size={18} strokeWidth={1.5} />, section: 'Catálogo' },
   { href: '/admin/importar', label: 'Importar via link', icon: <LinkIcon size={18} strokeWidth={1.5} />, section: 'Catálogo' },
