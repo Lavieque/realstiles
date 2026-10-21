@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import { exigirPermissao } from '@/lib/permissoes-server';
-import { consultarVisitas, ErroCloudflare } from '@/lib/cloudflare-analytics';
+import { consultarVisitas, inicioDoPeriodo, ErroCloudflare, type Periodo } from '@/lib/cloudflare-analytics';
 
 export const dynamic = 'force-dynamic';
 
-const PERIODOS = [7, 30];
 
 // Encomendas criadas e pagas no período, para a taxa de conversão. Filtra só
 // por `criado_em`: juntar `pagamento_estado` pediria um índice composto.
-async function contarEncomendas(dias: number) {
-  const desde = Timestamp.fromMillis(Date.now() - dias * 24 * 60 * 60 * 1000);
+async function contarEncomendas(periodo: Periodo) {
+  const desde = Timestamp.fromDate(inicioDoPeriodo(periodo));
   const snap = await adminDb.collection('encomendas')
     .where('criado_em', '>=', desde)
     .select('pagamento_estado')
@@ -27,12 +26,12 @@ export async function GET(req: NextRequest) {
   const auth = await exigirPermissao(req, 'dashboard');
   if (auth instanceof NextResponse) return auth;
 
-  const pedido = Number(req.nextUrl.searchParams.get('dias'));
-  const dias = PERIODOS.includes(pedido) ? pedido : 7;
+  const pedido = req.nextUrl.searchParams.get('periodo');
+  const periodo: Periodo = pedido === 'hoje' ? 'hoje' : pedido === '30' ? 30 : 7;
 
   try {
-    const [visitas, encomendas] = await Promise.all([consultarVisitas(dias), contarEncomendas(dias)]);
-    return NextResponse.json({ dias, ...visitas, encomendas });
+    const [visitas, encomendas] = await Promise.all([consultarVisitas(periodo), contarEncomendas(periodo)]);
+    return NextResponse.json({ periodo, ...visitas, encomendas });
   } catch (err) {
     if (err instanceof ErroCloudflare) {
       console.error('[visitas]', err.message);

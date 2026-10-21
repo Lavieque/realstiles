@@ -3,8 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/api-fetch';
 
 interface Linha { chave: string; visitas: number; paginas: number }
+type Periodo = 'hoje' | 7 | 30;
+
 interface Dados {
-  dias: number;
+  periodo: Periodo;
+  granularidade: 'hora' | 'dia';
   visitas: number;
   paginas: number;
   porDia: Linha[];
@@ -21,13 +24,31 @@ const DISPOSITIVOS: Record<string, string> = {
 
 const nf = new Intl.NumberFormat('pt-PT');
 
-// Preenche com zeros os dias sem visitas, para o gráfico não saltar datas
-function diasDoPeriodo(dias: number, porDia: Linha[]) {
-  const mapa = new Map(porDia.map(l => [l.chave, l.visitas]));
-  const hoje = new Date();
+// Moçambique: UTC+2 todo o ano
+const DESVIO_LOCAL_H = 2;
+
+// Preenche com zeros os intervalos sem visitas, para o gráfico não saltar.
+// "Hoje" vem por hora (da meia-noite local até agora); o resto por dia (UTC).
+function serieDoPeriodo(dados: Dados) {
+  const mapa = new Map(dados.porDia.map(l => [l.chave, l.visitas]));
+  const agora = new Date();
+
+  if (dados.periodo === 'hoje') {
+    const horaAtual = (agora.getUTCHours() + DESVIO_LOCAL_H) % 24;
+    return Array.from({ length: horaAtual + 1 }, (_, h) => {
+      const utc = new Date(agora);
+      utc.setUTCHours(agora.getUTCHours() - (horaAtual - h), 0, 0, 0);
+      const visitas = [...mapa.entries()]
+        .filter(([k]) => new Date(k).getTime() === utc.getTime())
+        .reduce((s, [, v]) => s + v, 0);
+      return { chave: `${String(h).padStart(2, '0')}:00`, visitas };
+    });
+  }
+
+  const dias = dados.periodo;
   return Array.from({ length: dias }, (_, i) => {
-    const d = new Date(hoje);
-    d.setUTCDate(hoje.getUTCDate() - (dias - 1 - i));
+    const d = new Date(agora);
+    d.setUTCDate(agora.getUTCDate() - (dias - 1 - i));
     const chave = d.toISOString().slice(0, 10);
     return { chave, visitas: mapa.get(chave) ?? 0 };
   });
@@ -61,7 +82,7 @@ function ListaBarras({ titulo, linhas, rotulo, vazio }: {
 }
 
 export default function AdminVisitas() {
-  const [dias, setDias] = useState(7);
+  const [periodo, setPeriodo] = useState<Periodo>(7);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(true);
@@ -70,7 +91,7 @@ export default function AdminVisitas() {
     let activo = true;
     setLoading(true);
     setErro('');
-    apiFetch(`/api/admin/visitas?dias=${dias}`)
+    apiFetch(`/api/admin/visitas?periodo=${periodo}`)
       .then(async res => {
         const corpo = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(corpo.error || 'Não foi possível carregar as visitas.');
@@ -80,9 +101,9 @@ export default function AdminVisitas() {
       .catch(e => { if (activo) { setDados(null); setErro(e.message); } })
       .finally(() => { if (activo) setLoading(false); });
     return () => { activo = false; };
-  }, [dias]);
+  }, [periodo]);
 
-  const serie = useMemo(() => (dados ? diasDoPeriodo(dados.dias, dados.porDia) : []), [dados]);
+  const serie = useMemo(() => (dados ? serieDoPeriodo(dados) : []), [dados]);
   const maxDia = Math.max(...serie.map(s => s.visitas), 1);
   const largura = 100 / Math.max(serie.length, 1);
 
@@ -96,13 +117,13 @@ export default function AdminVisitas() {
   return (
     <div className="admin-content">
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[7, 30].map(d => (
+        {([['hoje', 'Hoje'], [7, 'Últimos 7 dias'], [30, 'Últimos 30 dias']] as [Periodo, string][]).map(([p, rotulo]) => (
           <button
-            key={d}
-            className={`btn btn-sm ${dias === d ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setDias(d)}
+            key={p}
+            className={`btn btn-sm ${periodo === p ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setPeriodo(p)}
           >
-            Últimos {d} dias
+            {rotulo}
           </button>
         ))}
       </div>
@@ -120,7 +141,7 @@ export default function AdminVisitas() {
             <div className="stat-card">
               <div className="stat-card-label">Visitas</div>
               <div className="stat-card-value">{nf.format(dados.visitas)}</div>
-              <div className="stat-card-sub">Últimos {dados.dias} dias</div>
+              <div className="stat-card-sub">{dados.periodo === 'hoje' ? 'Hoje' : `Últimos ${dados.periodo} dias`}</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-label">Páginas vistas</div>
@@ -144,7 +165,7 @@ export default function AdminVisitas() {
           </div>
 
           <div className="chart-card" style={{ marginBottom: 24 }}>
-            <h3>Visitas por dia</h3>
+            <h3>{dados.granularidade === 'hora' ? 'Visitas por hora' : 'Visitas por dia'}</h3>
             <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height: 140 }}>
               {serie.map((s, i) => {
                 const h = (s.visitas / maxDia) * 36;
@@ -161,7 +182,9 @@ export default function AdminVisitas() {
               <span>{serie[0]?.chave}</span>
               <span>{serie[serie.length - 1]?.chave}</span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>Dias em UTC.</p>
+            <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
+              {dados.granularidade === 'hora' ? 'Hora de Moçambique.' : 'Dias em UTC.'}
+            </p>
           </div>
 
           <div className="analytics-grid">

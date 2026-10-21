@@ -45,7 +45,23 @@ export interface LinhaVisitas {
   paginas: number;
 }
 
+export type Periodo = 'hoje' | 7 | 30;
+
+// Moçambique não tem hora de verão: UTC+2 todo o ano
+const DESVIO_LOCAL_MS = 2 * 60 * 60 * 1000;
+
+// Início do período. "Hoje" conta desde a meia-noite local, não UTC.
+export function inicioDoPeriodo(periodo: Periodo, agora = new Date()): Date {
+  if (periodo === 'hoje') {
+    const local = agora.getTime() + DESVIO_LOCAL_MS;
+    return new Date(local - (local % (24 * 60 * 60 * 1000)) - DESVIO_LOCAL_MS);
+  }
+  return new Date(agora.getTime() - periodo * 24 * 60 * 60 * 1000);
+}
+
 export interface ResumoVisitas {
+  // 'hora' no período "hoje" (chave = hora UTC em ISO), 'dia' nos outros
+  granularidade: 'hora' | 'dia';
   visitas: number;
   paginas: number;
   porDia: LinhaVisitas[];
@@ -76,12 +92,13 @@ function config() {
   return { apiToken: apiToken!, accountId: accountId!, siteToken: siteToken! };
 }
 
-export async function consultarVisitas(dias: number): Promise<ResumoVisitas> {
+export async function consultarVisitas(periodo: Periodo): Promise<ResumoVisitas> {
   const { apiToken, accountId, siteToken } = config();
   const siteTag = await resolverSiteTag(apiToken, accountId, siteToken);
 
   const fim = new Date();
-  const inicio = new Date(fim.getTime() - dias * 24 * 60 * 60 * 1000);
+  const inicio = inicioDoPeriodo(periodo, fim);
+  const porHora = periodo === 'hoje';
   // Valores todos controlados por nós (ISO e variável de ambiente), mas o
   // siteTag passa por JSON.stringify para não partir a query.
   // `bot: 0` e a exclusão do /admin alinham os números com o painel da
@@ -97,11 +114,11 @@ export async function consultarVisitas(dias: number): Promise<ResumoVisitas> {
     viewer {
       accounts(filter: { accountTag: $conta }) {
         ${grupo('totais', null, 1, 'count_DESC')}
-        ${grupo('porDia', 'date', 100, 'date_ASC')}
+        ${porHora ? grupo('porDia', 'datetimeHour', 48, 'datetimeHour_ASC') : grupo('porDia', 'date', 100, 'date_ASC')}
         ${grupo('paginas', 'requestPath', 10, 'count_DESC')}
         ${grupo('origens', 'refererHost', 10, 'count_DESC')}
         ${grupo('dispositivos', 'deviceType', 10, 'count_DESC')}
-        ${grupo('paises', 'countryName', 10, 'count_DESC')}
+        ${grupo('paises', 'countryName', 20, 'count_DESC')}
       }
     }
   }`;
@@ -133,7 +150,8 @@ export async function consultarVisitas(dias: number): Promise<ResumoVisitas> {
   return {
     visitas: total?.sum?.visits ?? 0,
     paginas: total?.count ?? 0,
-    porDia: linhas(conta.porDia, 'date'),
+    granularidade: porHora ? 'hora' : 'dia',
+    porDia: linhas(conta.porDia, porHora ? 'datetimeHour' : 'date'),
     topPaginas: linhas(conta.paginas, 'requestPath'),
     origens: linhas(conta.origens, 'refererHost'),
     dispositivos: linhas(conta.dispositivos, 'deviceType'),
