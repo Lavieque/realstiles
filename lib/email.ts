@@ -168,6 +168,38 @@ export async function notificarEncomendaPaga(
   if (erros.length) console.error('[email] encomenda paga', ref, erros);
 }
 
+// Lembrete de pagamento por email. Devolve true se o email saiu, para o
+// chamador só contar como enviado o que o foi.
+export async function lembrarPagamentoPorEmail(
+  encomendaId: string,
+  enc: Record<string, unknown>,
+): Promise<boolean> {
+  const cfg = configEmail();
+  const email = clientePorEmail(enc);
+  if (!email) return false;
+
+  const ref = referenciaEncomenda({
+    id: encomendaId,
+    numero_sequencial: Number(enc.numero_sequencial) || undefined,
+  });
+  const total = Number(enc.total) || 0;
+
+  const erros = await enviarEmails([{
+    from: `${cfg.LOJA_NOME} <${cfg.FROM_ENCOMENDAS}>`,
+    to: [email],
+    subject: `Lembrete: a encomenda ${ref} ainda não está paga`,
+    html: wrap(cfg.LOJA_NOME, cfg.LOJA_URL, `
+    <h2 style="margin-top:0;">⏰ Falta pagar a tua encomenda</h2>
+    <p style="color:#666;font-size:14px;">Referência: <strong>${ref}</strong></p>
+    <p style="font-size:14px;line-height:1.7;">A tua encomenda de <strong>${total.toFixed(2)} MZN</strong> continua à espera de pagamento. Só a preparamos depois de o recebermos.</p>
+    <div style="margin-top:24px;text-align:center;">
+      <a href="${cfg.LOJA_URL}/encomenda/${encomendaId}" style="display:inline-block;background:#0d1347;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Pagar agora</a>
+    </div>`),
+  }]);
+  if (erros.length) console.error('[email] lembrete de pagamento', ref, erros);
+  return erros.length === 0;
+}
+
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 // Todo o valor que venha de um utilizador (nome, morada, assunto, descrição,
