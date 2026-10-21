@@ -4,7 +4,7 @@ import { getProdutos } from '@/lib/produtos';
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = 'https://realstiles.com';
+  const base = 'https://www.realstiles.co.mz';
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: base, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
