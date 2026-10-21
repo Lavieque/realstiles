@@ -10,6 +10,7 @@ import CarrinhoDrawer from '@/components/CarrinhoDrawer';
 import Toast from '@/components/Toast';
 import Confirmar from '@/components/Confirmar';
 import CookieConsent from '@/components/CookieConsent';
+import CloudflareAnalytics from '@/components/CloudflareAnalytics';
 import AvisoPagamentos from '@/components/AvisoPagamentos';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 
@@ -17,6 +18,10 @@ export const metadata: Metadata = {
   title: 'Real Stiles — Moda para todos',
   description: 'Loja de vestuário online. Encontra as melhores peças de roupa a preços acessíveis.',
   manifest: '/manifest.json',
+  // Verificação do Search Console por meta tag; sem a variável, não sai nada
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   icons: {
     icon: '/img/logo.png',
     shortcut: '/img/logo.png',
@@ -41,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Toast />
         <Confirmar />
         <CookieConsent texto={config.cookies_texto} />
+        <CloudflareAnalytics token={process.env.CF_ANALYTICS_TOKEN || ''} />
         <a
           href="https://wa.me/258878753754"
           className="whatsapp-float"
