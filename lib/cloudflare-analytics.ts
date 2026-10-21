@@ -1,10 +1,37 @@
 // Leitura do Cloudflare Web Analytics pela API GraphQL, para o painel
 // /admin/visitas. Corre só no servidor: o token da API nunca vai para o browser.
 //
-// O `siteTag` do Web Analytics é o mesmo valor do token do beacon
-// (CF_ANALYTICS_TOKEN), por isso não há uma variável a mais para ele.
+// O beacon usa o `site_token` (CF_ANALYTICS_TOKEN), mas a API GraphQL filtra
+// pelo `site_tag`, que é outro valor. Vem de CF_SITE_TAG; se não estiver
+// definida, procura-se na lista de sites da conta o que tem aquele token.
 
-const ENDPOINT = 'https://api.cloudflare.com/client/v4/graphql';
+const API = 'https://api.cloudflare.com/client/v4';
+const ENDPOINT = `${API}/graphql`;
+
+let siteTagEmCache: { token: string; tag: string } | null = null;
+
+async function resolverSiteTag(apiToken: string, accountId: string, siteToken: string): Promise<string> {
+  const definido = process.env.CF_SITE_TAG;
+  if (definido) return definido;
+  if (siteTagEmCache?.token === siteToken) return siteTagEmCache.tag;
+
+  const res = await fetch(`${API}/accounts/${accountId}/rum/site_info/list?per_page=100`, {
+    headers: { Authorization: `Bearer ${apiToken}` },
+    cache: 'no-store',
+  });
+  const corpo = await res.json().catch(() => null);
+  const sites: { site_tag?: string; site_token?: string }[] = Array.isArray(corpo?.result) ? corpo.result : [];
+  const tag = sites.find(s => s.site_token === siteToken)?.site_tag;
+  if (!tag) {
+    throw new ErroCloudflare(
+      'Não foi possível descobrir o site_tag do Web Analytics. Define CF_SITE_TAG no servidor '
+      + '(o valor de siteTag no URL do site em Cloudflare > Web Analytics).',
+      503,
+    );
+  }
+  siteTagEmCache = { token: siteToken, tag };
+  return tag;
+}
 
 export class ErroCloudflare extends Error {
   constructor(message: string, readonly http = 502) {
@@ -37,20 +64,21 @@ interface Grupo {
 function config() {
   const apiToken = process.env.CF_API_TOKEN;
   const accountId = process.env.CF_ACCOUNT_ID;
-  const siteTag = process.env.CF_ANALYTICS_TOKEN;
+  const siteToken = process.env.CF_ANALYTICS_TOKEN;
   const em_falta = [
     !apiToken && 'CF_API_TOKEN',
     !accountId && 'CF_ACCOUNT_ID',
-    !siteTag && 'CF_ANALYTICS_TOKEN',
+    !siteToken && 'CF_ANALYTICS_TOKEN',
   ].filter(Boolean);
   if (em_falta.length) {
     throw new ErroCloudflare(`Variáveis em falta no servidor: ${em_falta.join(', ')}`, 503);
   }
-  return { apiToken: apiToken!, accountId: accountId!, siteTag: siteTag! };
+  return { apiToken: apiToken!, accountId: accountId!, siteToken: siteToken! };
 }
 
 export async function consultarVisitas(dias: number): Promise<ResumoVisitas> {
-  const { apiToken, accountId, siteTag } = config();
+  const { apiToken, accountId, siteToken } = config();
+  const siteTag = await resolverSiteTag(apiToken, accountId, siteToken);
 
   const fim = new Date();
   const inicio = new Date(fim.getTime() - dias * 24 * 60 * 60 * 1000);
