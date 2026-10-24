@@ -3,7 +3,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from '@/components/CloudImage';
 import Link from 'next/link';
-import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout, actualizarPerfil, temAcessoAdmin } from '@/lib/auth';
+import { login, loginGoogle, registar, recuperarSenha, onAuthChange, getPerfil, logout, actualizarPerfil, temAcessoAdmin, pedirMudancaEmail, eliminarConta, sincronizarEmailPerfil } from '@/lib/auth';
 import { signInWithCustomToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
@@ -12,7 +12,7 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
-import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText } from 'lucide-react';
+import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText, Trash2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
 import { caminhoInternoSeguro } from '@/lib/sessao';
 
@@ -48,6 +48,10 @@ function ContaInner() {
   const [editando, setEditando] = useState(false);
   const [editForm, setEditForm] = useState({ nome: '', telefone: '', morada: '' });
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
+  const [painel, setPainel] = useState<'email' | 'eliminar' | null>(null);
+  const [novoEmail, setNovoEmail] = useState('');
+  const [passwordConfirma, setPasswordConfirma] = useState('');
+  const [aProcessar, setAProcessar] = useState(false);
 
   useEffect(() => {
     fetch('/api/config/notify').then(r => r.json()).catch(() => ({})).then(notify => {
@@ -65,6 +69,8 @@ function ContaInner() {
           getPerfil(u.uid),
           getEncomendasCliente(u.uid),
         ]);
+        // Se o novo email já foi confirmado, o perfil ainda tem o antigo
+        if (p && await sincronizarEmailPerfil(u, p).catch(() => false)) p.email = u.email || p.email;
         setPerfil(p);
         setEncomendas(enc.slice(0, 3));
       }
@@ -206,6 +212,58 @@ function ContaInner() {
     } finally { setSalvandoPerfil(false); }
   };
 
+  const fecharPainel = () => { setPainel(null); setNovoEmail(''); setPasswordConfirma(''); };
+
+  // Contas com password confirmam com ela; as do Google usam o popup
+  const precisaPassword = !!user?.providerData.some(p => p.providerId === 'password');
+
+  const mensagemErroAuth = (err: unknown, padrao: string) => {
+    switch ((err as { code?: string }).code) {
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+      case 'auth/missing-password': return 'Password incorrecta';
+      case 'auth/email-already-in-use': return 'Este email já está registado';
+      case 'auth/invalid-email': return 'Email inválido';
+      case 'auth/requires-recent-login': return 'Por segurança, sai da conta, entra de novo e repete a operação.';
+      case 'auth/popup-closed-by-user': return 'Confirmação cancelada';
+      case 'auth/too-many-requests': return 'Demasiadas tentativas. Tenta mais tarde.';
+      default: return padrao;
+    }
+  };
+
+  const handleMudarEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    const email = novoEmail.trim();
+    if (email.toLowerCase() === (user.email || '').toLowerCase()) {
+      mostrarToast('Esse já é o teu email actual', 'error');
+      return;
+    }
+    setAProcessar(true);
+    try {
+      await pedirMudancaEmail(user, email, passwordConfirma);
+      mostrarToast(`Enviámos um link de confirmação para ${email}. O email só muda depois de o confirmares.`, 'success');
+      fecharPainel();
+    } catch (err) {
+      mostrarToast(mensagemErroAuth(err, 'Erro ao alterar o email. Tenta novamente.'), 'error');
+    } finally { setAProcessar(false); }
+  };
+
+  const handleEliminarConta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setAProcessar(true);
+    try {
+      await eliminarConta(user, passwordConfirma);
+      mostrarToast('A tua conta foi eliminada.', 'success');
+      setUser(null); setPerfil(null); setEncomendas([]);
+      fecharPainel();
+      router.push('/');
+    } catch (err) {
+      mostrarToast(mensagemErroAuth(err, 'Erro ao eliminar a conta. Tenta novamente.'), 'error');
+    } finally { setAProcessar(false); }
+  };
+
   const reenviarVerificacao = async () => {
     if (!user) return;
     setLoading(true);
@@ -280,7 +338,37 @@ function ContaInner() {
                   </form>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div>
+                    {user.email && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 2 }}>Email</p>
+                          {painel !== 'email' && (
+                            <button onClick={() => { fecharPainel(); setPainel('email'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-500)', fontSize: 12, padding: '2px 6px' }}>Alterar</button>
+                          )}
+                        </div>
+                        <p style={{ fontSize: 14, fontWeight: 500, wordBreak: 'break-all' }}>{user.email}</p>
+                        {painel === 'email' && (
+                          <form onSubmit={handleMudarEmail} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: 11 }}>Novo email</label>
+                              <input type="email" required value={novoEmail} onChange={e => setNovoEmail(e.target.value)} placeholder="novo@email.com" autoFocus />
+                            </div>
+                            {precisaPassword && (
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: 11 }}>Password actual</label>
+                                <input type="password" required value={passwordConfirma} onChange={e => setPasswordConfirma(e.target.value)} placeholder="••••••••" />
+                              </div>
+                            )}
+                            <p style={{ fontSize: 12, color: 'var(--gray-500)', margin: 0 }}>Enviamos um link de confirmação para o novo email. O email da conta só muda depois de o confirmares.</p>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button className="btn btn-primary btn-sm" type="submit" disabled={aProcessar} style={{ flex: 1 }}>{aProcessar ? 'A enviar...' : 'Enviar confirmação'}</button>
+                              <button className="btn btn-outline btn-sm" type="button" onClick={fecharPainel} style={{ flex: 1 }}>Cancelar</button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    )}
+                    <div style={user.email ? { borderTop: '1px solid var(--gray-100)', paddingTop: 14 } : undefined}>
                       <p style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 2 }}>Telefone</p>
                       <p style={{ fontSize: 14, fontWeight: 500 }}>{perfil.telefone || '—'}</p>
                     </div>
@@ -298,6 +386,26 @@ function ContaInner() {
                 {temAcessoAdmin(perfil) && <a href="/admin" className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}><Settings size={16} strokeWidth={1.5} /> Painel admin</a>}
                 {user.email && <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }} onClick={handlePasswordReset} disabled={loading}><Key size={16} strokeWidth={1.5} /> Alterar password</button>}
                 <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--red)', borderColor: 'var(--red)' }} onClick={async () => { await logout(); setUser(null); setPerfil(null); setEncomendas([]); }}><LogOut size={16} strokeWidth={1.5} /> Sair da conta</button>
+                {!temAcessoAdmin(perfil) && (
+                  painel === 'eliminar' ? (
+                    <form onSubmit={handleEliminarConta} style={{ display: 'flex', flexDirection: 'column', gap: 10, border: '1px solid var(--red)', borderRadius: 12, padding: 14, marginTop: 4 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--red)', margin: 0 }}>Eliminar a conta definitivamente?</p>
+                      <p style={{ fontSize: 12, color: 'var(--gray-600)', margin: 0 }}>Perdes o acesso e os dados do perfil. Esta acção não pode ser desfeita.</p>
+                      {precisaPassword && (
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label style={{ fontSize: 11 }}>Password actual</label>
+                          <input type="password" required value={passwordConfirma} onChange={e => setPasswordConfirma(e.target.value)} placeholder="••••••••" autoFocus />
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn btn-sm" type="submit" disabled={aProcessar} style={{ flex: 1, background: 'var(--red)', color: 'white', border: 'none' }}>{aProcessar ? 'A eliminar...' : 'Eliminar conta'}</button>
+                        <button className="btn btn-outline btn-sm" type="button" onClick={fecharPainel} disabled={aProcessar} style={{ flex: 1 }}>Cancelar</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button className="btn btn-outline btn-full" style={{ justifyContent: 'flex-start', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray-500)' }} onClick={() => { fecharPainel(); setPainel('eliminar'); }}><Trash2 size={16} strokeWidth={1.5} /> Eliminar conta</button>
+                  )
+                )}
               </div>
             </div>
 

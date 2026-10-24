@@ -7,9 +7,14 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  EmailAuthProvider,
+  verifyBeforeUpdateEmail,
+  deleteUser,
   User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { marcarLogoutVoluntario } from './sessao';
 
@@ -67,6 +72,38 @@ export async function loginGoogle(): Promise<User> {
     });
   }
   return cred.user;
+}
+
+// Operações sensíveis exigem login recente: confirma a identidade com a
+// password (conta de email) ou com o popup do Google.
+async function reautenticar(user: User, password?: string): Promise<void> {
+  const ids = user.providerData.map(p => p.providerId);
+  if (ids.includes('password') && user.email) {
+    if (!password) throw Object.assign(new Error('password em falta'), { code: 'auth/missing-password' });
+    await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+  } else if (ids.includes('google.com')) {
+    await reauthenticateWithPopup(user, googleProvider);
+  }
+}
+
+// Envia um link de confirmação para o NOVO email. O email da conta só muda
+// depois de o utilizador clicar nesse link.
+export async function pedirMudancaEmail(user: User, novoEmail: string, password?: string): Promise<void> {
+  await reautenticar(user, password);
+  await verifyBeforeUpdateEmail(user, novoEmail);
+}
+
+export async function eliminarConta(user: User, password?: string): Promise<void> {
+  await reautenticar(user, password);
+  await deleteDoc(doc(db, 'clientes', user.uid));
+  await deleteUser(user);
+}
+
+// Depois de confirmar o novo email, copia-o para o perfil.
+export async function sincronizarEmailPerfil(user: User, perfil: Perfil): Promise<boolean> {
+  if (!user.email || user.email === perfil.email) return false;
+  await updateDoc(doc(db, 'clientes', user.uid), { email: user.email });
+  return true;
 }
 
 export async function logout(): Promise<void> {
