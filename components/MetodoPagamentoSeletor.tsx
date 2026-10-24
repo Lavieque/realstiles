@@ -12,7 +12,7 @@ export default function MetodoPagamentoSeletor({ metodos, valor, onChange, compa
   compacto?: boolean;
 }) {
   return (
-    <div className={`mp-grid${compacto ? ' compacto' : ''}`} data-n={metodos.length} role="radiogroup" aria-label="Método de pagamento">
+    <div className={`mp-grid${compacto ? ' compacto' : ''}`} role="radiogroup" aria-label="Método de pagamento">
       {metodos.map(m => {
         const info = INFO_METODO[m];
         const activo = valor === m;
@@ -26,14 +26,14 @@ export default function MetodoPagamentoSeletor({ metodos, valor, onChange, compa
             className={`mp-tile${activo ? ' active' : ''}`}
             style={{ '--mp-cor': info.cor, '--mp-fundo': info.fundo } as React.CSSProperties}
           >
-            {activo && <span className="mp-check"><Check size={12} strokeWidth={3} /></span>}
-            <MetodoPagamentoLogo metodo={m} altura={compacto ? 38 : 44} />
+            <MetodoPagamentoLogo metodo={m} altura={compacto ? 38 : 34} />
             {!compacto && (
               <span className="mp-texto">
                 <span className="mp-nome">{info.nome}</span>
                 <span className="mp-sub">{info.sub}</span>
               </span>
             )}
+            <span className="mp-radio" aria-hidden="true">{activo && <Check size={13} strokeWidth={3} />}</span>
           </button>
         );
       })}
