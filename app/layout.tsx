@@ -4,7 +4,7 @@ import './globals.css';
 import Nav from '@/components/Nav';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'], variable: '--font-playfair' });
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ["600", "700"], variable: '--font-playfair' });
 import Footer from '@/components/Footer';
 import CarrinhoDrawer from '@/components/CarrinhoDrawer';
 import Toast from '@/components/Toast';

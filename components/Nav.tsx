@@ -5,22 +5,31 @@ import { useEffect, useState } from 'react';
 import { useCarrinho, getTotalItems } from '@/store/carrinho';
 import { onAuthChange, getPerfil, logout, temAcessoAdmin } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
-import { ShoppingCart, Flame, Heart, Search } from 'lucide-react';
+import { getCategoriasConfig } from '@/lib/produtos';
+import type { CategoriaConfig } from '@/lib/produtos';
+import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Tag, PackageSearch, ArrowRight } from 'lucide-react';
 
 export default function Nav() {
   const { items, bumped, abrirDrawer } = useCarrinho();
   const count = getTotalItems(items);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [catsOpen, setCatsOpen] = useState(false);
   const [contaMenuOpen, setContaMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categorias, setCategorias] = useState<CategoriaConfig[]>([]);
+  const [catActiva, setCatActiva] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!contaMenuOpen) return;
-    const fechar = () => setContaMenuOpen(false);
+    getCategoriasConfig().then(setCategorias).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!contaMenuOpen && !catsOpen) return;
+    const fechar = () => { setContaMenuOpen(false); setCatsOpen(false); };
     document.addEventListener('click', fechar);
     return () => document.removeEventListener('click', fechar);
-  }, [contaMenuOpen]);
+  }, [contaMenuOpen, catsOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,108 +57,119 @@ export default function Nav() {
     window.location.href = '/';
   };
 
+  const fecharTudo = () => { setMenuOpen(false); setCatsOpen(false); setCatActiva(null); };
+  const catAberta = categorias.find(c => c.slug === catActiva) || categorias[0];
+
   return (
-    <nav>
-      <Link href="/" className="nav-logo">
-        <Image src="/img/logo.png" alt="Real Stiles" height={52} width={52} style={{ height: 52, width: 52 }} />
-      </Link>
+    <nav className="site-nav">
+      <div className="nav-topbar">
+        <span>Compras por encomenda · entrega estimada de 15 a 30 dias úteis</span>
+        <a href="tel:+258878753754">+258 878 753 754</a>
+      </div>
 
-      <ul className={`nav-links${menuOpen ? ' open' : ''}`}>
-        <li><Link href="/promocoes" style={{ color: 'var(--red)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>Promoções <Flame size={16} strokeWidth={1.5} /></Link></li>
+      <div className="nav-main">
+        <button className="nav-menu-btn" onClick={() => setMenuOpen(o => !o)} aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}>
+          {menuOpen ? <X size={22} strokeWidth={1.5} /> : <Menu size={22} strokeWidth={1.5} />}
+        </button>
 
-        <li className="nav-dropdown">
-          <Link href="/?cat=mulher">Mulher</Link>
-          <ul className="nav-submenu">
-            <li><Link href="/?cat=vestidos">Vestidos</Link></li>
-            <li><Link href="/?cat=camisas">Camisas</Link></li>
-            <li><Link href="/?cat=calças">Calças</Link></li>
-            <li><Link href="/?cat=casacos">Casacos</Link></li>
-            <li><Link href="/?cat=saias">Saias</Link></li>
-            <li><Link href="/?cat=acessórios">Acessórios</Link></li>
-          </ul>
-        </li>
+        <Link href="/" className="nav-logo" onClick={fecharTudo}>
+          <Image src="/img/logo.png" alt="" height={48} width={48} style={{ height: 48, width: 48 }} />
+          <span className="nav-logo-texto">
+            <span className="nav-logo-nome">Real <em>Stiles</em></span>
+            <span className="nav-logo-sub">Multi Service</span>
+          </span>
+        </Link>
 
-        <li className="nav-dropdown">
-          <Link href="/?cat=homem">Homem</Link>
-          <ul className="nav-submenu">
-            <li><Link href="/?cat=camisas">Camisas</Link></li>
-            <li><Link href="/?cat=calças">Calças</Link></li>
-            <li><Link href="/?cat=casacos">Casacos</Link></li>
-            <li><Link href="/?cat=sapatos">Sapatos</Link></li>
-            <li><Link href="/?cat=acessórios">Acessórios</Link></li>
-          </ul>
-        </li>
-
-        <li className="nav-dropdown">
-          <Link href="/?cat=crianca">Criança</Link>
-          <ul className="nav-submenu">
-            <li><Link href="/?cat=crianca-menina">Menina</Link></li>
-            <li><Link href="/?cat=crianca-menino">Menino</Link></li>
-            <li><Link href="/?cat=crianca-bebe">Bebé</Link></li>
-            <li><Link href="/?cat=crianca-calcado">Calçado</Link></li>
-          </ul>
-        </li>
-
-        <li className="nav-dropdown">
-          <Link href="/?cat=desporto">Desporto</Link>
-          <ul className="nav-submenu">
-            <li><Link href="/?cat=roupa-desporto">Roupa</Link></li>
-            <li><Link href="/?cat=calcado-desporto">Calçado</Link></li>
-            <li><Link href="/?cat=equipamento">Equipamento</Link></li>
-          </ul>
-        </li>
-
-        <li className="nav-dropdown">
-          <Link href="/?cat=lar">Lar</Link>
-          <ul className="nav-submenu">
-            <li><Link href="/?cat=decoracao">Decoração</Link></li>
-            <li><Link href="/?cat=cama-banho">Cama &amp; Banho</Link></li>
-            <li><Link href="/?cat=cozinha">Cozinha</Link></li>
-            <li><Link href="/?cat=organizacao">Organização</Link></li>
-          </ul>
-        </li>
-      </ul>
-
-      <div className="nav-actions">
-        {/* Pesquisa */}
-        <form onSubmit={handleSearch} className="nav-search-form">
-          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Pesquisar produtos..." className="nav-search-input" />
-          <button type="submit" className="nav-search-submit">
-            <Search size={16} strokeWidth={1.5} />
-          </button>
+        <form onSubmit={handleSearch} className="nav-search-form" role="search">
+          <Search size={16} strokeWidth={1.5} className="nav-search-icone" />
+          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="O que estás à procura?" className="nav-search-input" aria-label="Pesquisar produtos" />
+          <button type="submit" className="nav-search-submit" aria-label="Pesquisar"><ArrowRight size={16} strokeWidth={1.75} /></button>
         </form>
 
-        {perfil ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="nav-actions">
+          <Link href="/acompanhar" className="nav-icon-btn" aria-label="Acompanhar encomenda" title="Acompanhar encomenda"><Truck size={21} strokeWidth={1.5} /></Link>
+
+          {perfil ? (
             <div className={`nav-dropdown nav-dropdown-conta${contaMenuOpen ? ' open' : ''}`}>
               <button
                 type="button"
+                className="nav-icon-btn"
+                aria-label="A minha conta"
+                title={perfil.nome || perfil.email}
                 onClick={e => { e.stopPropagation(); setContaMenuOpen(o => !o); }}
-                style={{ fontSize: 14, fontWeight: 500, color: 'var(--gray-600)', textDecoration: 'none', padding: '8px 14px', borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
               >
-                {perfil.nome || perfil.email}
+                <User size={21} strokeWidth={1.5} />
               </button>
               <ul className="nav-submenu" onClick={() => setContaMenuOpen(false)}>
+                <li className="nav-submenu-titulo">{perfil.nome || perfil.email}</li>
                 <li><Link href="/conta">A minha conta</Link></li>
-                <li><Link href="/favoritos" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Favoritos <Heart size={14} strokeWidth={1.5} /></Link></li>
                 <li><Link href="/encomendas">Encomendas</Link></li>
                 {temAcessoAdmin(perfil) && <li><Link href="/admin">Admin</Link></li>}
                 <li className="nav-submenu-sep" />
                 <li><a href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}>Sair</a></li>
               </ul>
             </div>
+          ) : (
+            <Link href="/conta" className="nav-icon-btn" aria-label="Entrar" title="Entrar"><User size={21} strokeWidth={1.5} /></Link>
+          )}
+
+          <Link href="/favoritos" className="nav-icon-btn" aria-label="Favoritos" title="Favoritos"><Heart size={21} strokeWidth={1.5} /></Link>
+
+          <button className={`nav-icon-btn nav-cart-btn${bumped ? ' bumped' : ''}`} onClick={abrirDrawer} aria-label="Carrinho">
+            <ShoppingCart size={21} strokeWidth={1.5} />
+            {count > 0 && <span className="cart-count">{count}</span>}
+          </button>
+        </div>
+      </div>
+
+      <div className={`nav-sub${menuOpen ? ' open' : ''}`}>
+        <div className={`nav-cats${catsOpen ? ' open' : ''}`}>
+          <button
+            type="button"
+            className="nav-cats-btn"
+            aria-expanded={catsOpen}
+            onClick={e => { e.stopPropagation(); setCatsOpen(o => !o); }}
+          >
+            <Menu size={18} strokeWidth={1.5} /> Todas as categorias <ChevronDown size={14} strokeWidth={1.5} />
+          </button>
+          <div className="nav-mega" onClick={e => e.stopPropagation()}>
+            <ul className="nav-mega-cats">
+              {categorias.map(c => (
+                <li key={c.slug}>
+                  <Link
+                    href={`/?cat=${c.slug}`}
+                    className={catAberta?.slug === c.slug ? 'activo' : ''}
+                    onMouseEnter={() => setCatActiva(c.slug)}
+                    onFocus={() => setCatActiva(c.slug)}
+                    onClick={fecharTudo}
+                  >
+                    {c.nome}
+                  </Link>
+                </li>
+              ))}
+              <li><Link href="/" className="nav-mega-todos" onClick={fecharTudo}>Todos os produtos</Link></li>
+            </ul>
+            {catAberta && (
+              <div className="nav-mega-subs">
+                <Link href={`/?cat=${catAberta.slug}`} className="nav-mega-ver" onClick={fecharTudo}>Ver tudo em {catAberta.nome} <ArrowRight size={14} strokeWidth={1.5} /></Link>
+                <ul>
+                  {catAberta.subcategorias.map(s => (
+                    <li key={s.slug}><Link href={`/?cat=${s.slug}`} onClick={fecharTudo}>{s.nome}</Link></li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        ) : (
-          <Link href="/conta" className="btn btn-outline btn-sm">Entrar</Link>
-        )}
+        </div>
 
-        <button className={`nav-cart-btn${bumped ? ' bumped' : ''}`} onClick={abrirDrawer}>
-          <ShoppingCart size={20} strokeWidth={1.5} /> {count > 0 && <span className="cart-count">{count}</span>}
-        </button>
+        <ul className="nav-links">
+          <li><Link href="/?cat=novidades" onClick={fecharTudo}><Sparkles size={15} strokeWidth={1.5} /> Novidades</Link></li>
+          <li><Link href="/promocoes" className="nav-link-promo" onClick={fecharTudo}><Tag size={15} strokeWidth={1.5} /> Promoções</Link></li>
+          <li><Link href="/entregas" onClick={fecharTudo}><Truck size={15} strokeWidth={1.5} /> Entregas</Link></li>
+          <li className="nav-so-mobile"><Link href="/acompanhar" onClick={fecharTudo}><PackageSearch size={15} strokeWidth={1.5} /> Acompanhar encomenda</Link></li>
+        </ul>
 
-        <button className="nav-menu-btn" onClick={() => setMenuOpen(o => !o)}>
-          <span /><span /><span />
-        </button>
+        <span className="nav-prazo">Entrega estimada: 15–30 dias úteis</span>
       </div>
     </nav>
   );
