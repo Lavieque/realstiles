@@ -9,9 +9,9 @@ export interface MembroEquipa {
 }
 
 export const DEFAULTS = {
-  hero_titulo:    'Veste o teu estilo.',
-  hero_subtitulo: 'As melhores peças de vestuário, cuidadosamente seleccionadas para ti.',
-  hero_btn:       'Ver colecção',
+  hero_titulo:    'Tudo o que precisas. Num só lugar.',
+  hero_subtitulo: 'Moda, eletrónica, beleza e casa. Produtos por encomenda, com entrega final estimada de 15 a 30 dias úteis.',
+  hero_btn:       'Explorar coleção',
   catalogo_titulo: 'Todos os produtos',
   qs_sobre_titulo:    'O seu pedido, a nossa responsabilidade',
   qs_sobre_texto1:    'A Real Stiles Multi Service nasceu da vontade de simplificar o processo de compra para quem não tem tempo, acesso ou facilidade para adquirir produtos onde quer que estejam.',
