@@ -47,6 +47,7 @@ const NAV: NavItem[] = [
   { href: '/admin/comentarios', label: 'Avaliações', icon: <MessageSquare size={18} strokeWidth={1.5} />, section: 'Catálogo' },
   { href: '/admin/clientes', label: 'Clientes', icon: <Users size={18} strokeWidth={1.5} />, section: 'Clientes' },
   { href: '/admin/conteudo', label: 'Conteúdo do site', icon: <Pencil size={18} strokeWidth={1.5} />, section: 'Site' },
+  { href: '/admin/noticias', label: 'Notícias e imprensa', icon: <Pencil size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/banner', label: 'Barra de anúncios', icon: <Bell size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/reclamacoes', label: 'Reclamações', icon: <ClipboardList size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/tradeflow', label: 'TradeFlow', icon: <Zap size={18} strokeWidth={1.5} />, section: 'Integrações' },
