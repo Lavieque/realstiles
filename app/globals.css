@@ -1459,6 +1459,18 @@ body:has(.auth-split) { padding-top: 0 !important; }
   grid-template-columns: 1fr 1fr;
   min-height: 100vh;
 }
+.acompanhar { max-width: 760px; padding-bottom: 40px; }
+.acompanhar .display-titulo em { display: inline; }
+.acompanhar-form { background: var(--cream); border: 1px solid var(--border); border-radius: 6px; padding: 28px; margin-bottom: 28px; }
+.acompanhar-erro { margin-top: 14px; font-size: 13.5px; color: var(--red); }
+.acompanhar-res { margin-bottom: 28px; }
+.acompanhar-res-topo { margin-bottom: 28px; }
+.acompanhar-itens { list-style: none; margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+.acompanhar-itens li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; margin-bottom: 12px; font-size: 14px; }
+.acompanhar-itens small { color: var(--muted); }
+.acompanhar-ajuda { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; background: var(--sand); border-radius: 6px; padding: 28px; }
+.acompanhar-ajuda h2 { font-family: var(--font-playfair, 'Playfair Display'), serif; font-size: 1.35rem; margin-bottom: 4px; }
+.acompanhar-ajuda p { color: var(--muted); font-size: 14px; }
 .auth-lado-marca {
   background: var(--black);
   display: flex; flex-direction: column; justify-content: space-between;
