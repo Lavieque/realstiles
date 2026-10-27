@@ -7,7 +7,7 @@ import { onAuthChange, getPerfil, logout, temAcessoAdmin } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 import { getCategoriasConfig } from '@/lib/produtos';
 import type { CategoriaConfig } from '@/lib/produtos';
-import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, PackageSearch, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, ThumbsUp, PackageSearch, ArrowRight } from 'lucide-react';
 
 export default function Nav() {
   const { items, bumped, abrirDrawer } = useCarrinho();
@@ -163,6 +163,7 @@ export default function Nav() {
         </div>
 
         <ul className="nav-links">
+          <li><Link href="/loja?mode=mais-vendidos" onClick={fecharTudo}><ThumbsUp size={15} strokeWidth={1.5} /> Artigos mais vendidos</Link></li>
           <li><Link href="/loja?mode=cinco-estrelas" onClick={fecharTudo}><Star size={15} strokeWidth={1.5} /> Avaliação 5 estrelas</Link></li>
           <li><Link href="/loja?mode=novidades" onClick={fecharTudo}><Sparkles size={15} strokeWidth={1.5} /> Novidades</Link></li>
           <li><Link href="/promocoes" className="nav-link-promo" onClick={fecharTudo}><Tag size={15} strokeWidth={1.5} /> Promoções</Link></li>

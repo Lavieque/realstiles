@@ -74,10 +74,11 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
             <ShoppingCart size={16} strokeWidth={1.5} />
           </button>
         </div>
-        {!!produto.num_avaliacoes && (
+        {(!!produto.num_avaliacoes || !!produto.vendidos) && (
           <div className="produto-card-rating">
-            <Estrelas valor={produto.avaliacao || 0} tamanho={12} />
-            <span className="num-avaliacoes">({produto.num_avaliacoes})</span>
+            {!!produto.num_avaliacoes && <Estrelas valor={produto.avaliacao || 0} tamanho={12} />}
+            {!!produto.num_avaliacoes && <span className="num-avaliacoes">({produto.num_avaliacoes})</span>}
+            {!!produto.vendidos && <span className="num-avaliacoes produto-card-vendidos">{produto.vendidos} vendido{produto.vendidos !== 1 ? 's' : ''}</span>}
           </div>
         )}
       </div>

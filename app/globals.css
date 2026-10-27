@@ -282,6 +282,7 @@ footer img { mix-blend-mode: screen; }
 .produto-card-rating { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
 .estrelas { display: flex; gap: 1px; line-height: 1; }
 .num-avaliacoes { font-size: 11px; color: var(--gray-400); }
+.produto-card-vendidos:not(:first-child) { margin-left: auto; }
 .produto-card-body { padding: 14px 14px 16px; display: flex; flex-direction: column; flex: 1; }
 .produto-card-nome {
   font-size: 14px; font-weight: 500; margin-bottom: 8px;

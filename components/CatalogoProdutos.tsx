@@ -42,7 +42,7 @@ function escolherSeed(seedInicial?: string): string {
   return seed;
 }
 
-export type ModoLoja = 'novidades' | 'cinco-estrelas' | null;
+export type ModoLoja = 'novidades' | 'cinco-estrelas' | 'mais-vendidos' | null;
 
 export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos', basePath = '/', modo = null, ocultarTitulo = false }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string; basePath?: string; modo?: ModoLoja; ocultarTitulo?: boolean }) {
   // URL da listagem para uma categoria, preservando o modo (novidades, 5 estrelas)
@@ -54,7 +54,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     return qs ? `${basePath}?${qs}` : basePath;
   };
   // 5 estrelas precisa de todo o catálogo para filtrar — sem paginação aleatória
-  const carregaTudo = modo === 'cinco-estrelas';
+  const carregaTudo = modo === 'cinco-estrelas' || modo === 'mais-vendidos';
   const searchParams = useSearchParams();
   const catParam = searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
@@ -176,10 +176,12 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   useEffect(() => {
     const intervalo = INTERVALOS_PRECO[precoIdx];
     let filtrados = todos.filter(p => precoActual(p) >= intervalo.min && precoActual(p) <= intervalo.max);
+    if (modo === 'mais-vendidos') filtrados = filtrados.filter(p => (p.vendidos || 0) > 0);
     if (modo === 'cinco-estrelas') filtrados = filtrados.filter(p => (p.avaliacao || 0) >= 4.5 && !!p.num_avaliacoes);
     if (tamActual) filtrados = filtrados.filter(p => p.tamanhos?.includes(tamActual));
     if (corActual) filtrados = filtrados.filter(p => p.cores?.includes(corActual));
-    if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => precoActual(a) - precoActual(b));
+    if (modo === 'mais-vendidos' && ordenacao === 'relevancia') filtrados = [...filtrados].sort((a, b) => (b.vendidos || 0) - (a.vendidos || 0));
+    else if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => precoActual(a) - precoActual(b));
     else if (ordenacao === 'preco_desc') filtrados = [...filtrados].sort((a, b) => precoActual(b) - precoActual(a));
     else if (ordenacao === 'novidades') filtrados = [...filtrados].sort((a, b) => {
       const ta = (a.criado_em as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0;

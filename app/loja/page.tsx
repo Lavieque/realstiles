@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 const MODOS: { chave: ModoLoja; rotulo: string; titulo: string; sub: string }[] = [
   { chave: null, rotulo: 'Todos', titulo: 'Encontra o que combina contigo.', sub: 'Moda, eletrónica, beleza e casa, por encomenda.' },
   { chave: 'novidades', rotulo: 'Novidades', titulo: 'As novidades da seleção.', sub: 'Os artigos mais recentes, primeiro.' },
+  { chave: 'mais-vendidos', rotulo: 'Mais vendidos', titulo: 'Os mais pedidos.', sub: 'Os artigos que mais clientes encomendaram.' },
   { chave: 'cinco-estrelas', rotulo: 'Avaliação 5 estrelas', titulo: 'Os mais bem avaliados.', sub: 'Artigos com a melhor opinião de quem comprou.' },
 ];
 
