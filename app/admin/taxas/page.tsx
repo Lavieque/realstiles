@@ -5,6 +5,7 @@ import { aplicarTaxas } from '@/lib/taxas';
 import type { Taxa } from '@/lib/taxas';
 import { X } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
+import TarifasEntrega from './TarifasEntrega';
 
 export default function AdminTaxasPage() {
   const [itens, setItens] = useState<Taxa[]>([]);
@@ -129,6 +130,8 @@ export default function AdminTaxasPage() {
       <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: itens.length > 0 ? 4 : 16 }}>
         As taxas são aplicadas automaticamente ao preço sugerido sempre que importas um produto via link ou pela extensão da Temu — podes sempre ajustar o preço final antes de guardar.
       </p>
+
+      <TarifasEntrega />
     </div>
   );
 }
