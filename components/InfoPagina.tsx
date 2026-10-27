@@ -68,3 +68,26 @@ export function InfoCartao({ icone, titulo, children, href, acao }: {
 export function InfoGrelha({ children, colunas = 3 }: { children: ReactNode; colunas?: 2 | 3 | 4 }) {
   return <div className={`info-grelha c${colunas}`}>{children}</div>;
 }
+
+// Bloco final "Ainda precisas de ajuda?" das páginas informativas
+export function InfoAjuda() {
+  return (
+    <InfoSecao tom="sand" eyebrow="Pessoas que ajudam pessoas" titulo="Ainda precisas de " destaque="ajuda?" sub="A equipa acompanha a tua escolha, a compra e a entrega.">
+      <div className="info-hero-acoes" style={{ marginTop: 0 }}>
+        <a href="https://wa.me/258878753754" target="_blank" rel="noopener noreferrer" className="btn-escuro">Conversar agora</a>
+        <Link href="/ajuda" className="btn-claro">Contactar a equipa</Link>
+      </div>
+    </InfoSecao>
+  );
+}
+
+// Passos numerados (01, 02, 03…) em cartões
+export function InfoPassos({ passos }: { passos: { t: string; c: string }[] }) {
+  return (
+    <InfoGrelha colunas={passos.length === 2 ? 2 : passos.length >= 4 ? 4 : 3}>
+      {passos.map((p, i) => (
+        <InfoCartao key={p.t} icone={<b>{String(i + 1).padStart(2, '0')}</b>} titulo={p.t}>{p.c}</InfoCartao>
+      ))}
+    </InfoGrelha>
+  );
+}
