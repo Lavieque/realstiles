@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import { getConfigSSR } from '@/lib/config-site-ssr';
+import PoliticaLayout from '@/components/PoliticaLayout';
 
 export const metadata: Metadata = {
   title: 'Termos e Condições — Real Stiles',
@@ -18,30 +19,15 @@ const SECCOES_DEFEITO = [
 
 export default async function TermosPage() {
   const config = await getConfigSSR();
-  const paragrafosPersonalizados = config.termos_conteudo.split('\n\n').map(p => p.trim()).filter(Boolean);
+  const paragrafos = config.termos_conteudo.split('\n\n').map(p => p.trim()).filter(Boolean);
 
   return (
-    <div className="page-wrapper">
-      <div className="container" style={{ maxWidth: 1200 }}>
-        <div className="page-header">
-          <h1>{config.termos_titulo}</h1>
-          <p>{config.termos_data}</p>
-        </div>
-        <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray-200)', padding: 40 }}>
-          {paragrafosPersonalizados.length > 0 ? (
-            paragrafosPersonalizados.map((p, i) => (
-              <p key={i} style={{ color: 'var(--gray-600)', lineHeight: 1.7, marginBottom: 20 }}>{p}</p>
-            ))
-          ) : (
-            SECCOES_DEFEITO.map(s => (
-              <div key={s.t} style={{ marginBottom: 28 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>{s.t}</h2>
-                <p style={{ color: 'var(--gray-600)', lineHeight: 1.7 }}>{s.c}</p>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
+    <PoliticaLayout
+      activo="termos"
+      titulo={config.termos_titulo}
+      data={config.termos_data}
+      paragrafos={paragrafos}
+      seccoes={SECCOES_DEFEITO}
+    />
   );
 }

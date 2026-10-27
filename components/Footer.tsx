@@ -21,15 +21,21 @@ export default async function Footer() {
           <h4>Conhece-nos</h4>
           <ul>
             <li><Link href="/quem-somos">Quem somos</Link></li>
-            <li><Link href="/loja">Todos os produtos</Link></li>
-            <li><Link href="/loja?mode=mais-vendidos">Mais vendidos</Link></li>
-            <li><Link href="/promocoes">Promoções</Link></li>
-            <li><Link href="/loja?mode=novidades">Novidades</Link></li>
+            <li><Link href="/porque-escolher">Porquê escolher a Real Stiles?</Link></li>
+            <li><Link href="/informacao-empresa">Informação da empresa</Link></li>
+            <li><Link href="/parcerias">Parcerias</Link></li>
+            <li><Link href="/noticias">Notícias</Link></li>
+            <li><Link href="/opinioes">Opiniões dos clientes</Link></li>
           </ul>
         </div>
         <div>
           <h4>Atendimento</h4>
           <ul>
+            <li><Link href="/ajuda">Ajuda e contacto</Link></li>
+            <li><Link href="/entregas">Entregas</Link></li>
+            <li><Link href="/acompanhar">Acompanhar encomenda</Link></li>
+            <li><Link href="/protecao-compras">Proteção de compras</Link></li>
+            <li><Link href="/seguranca">Centro de segurança</Link></li>
             <li><Link href="/reclamacao">Reclamações</Link></li>
             <li><Link href="/politicas">Políticas</Link></li>
             <li><Link href="/termos">Termos e condições</Link></li>
