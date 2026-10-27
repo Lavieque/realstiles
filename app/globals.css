@@ -367,8 +367,8 @@ footer img { mix-blend-mode: screen; }
 
 /* ── BADGE ESTADO ── */
 .badge-estado {
-  display: inline-block; font-size: 12px; font-weight: 500;
-  padding: 4px 10px; border-radius: 100px;
+  display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  padding: 4px 10px; border-radius: 4px;
 }
 .badge-pendente { background: #FEF3C7; color: #92400E; }
 .badge-confirmada { background: #DBEAFE; color: #1E40AF; }
@@ -1360,8 +1360,8 @@ tr:hover td { background: var(--gray-100); }
 .enc-lista { display: flex; flex-direction: column; gap: 10px; }
 .enc-row {
   display: flex; align-items: center; gap: 16px;
-  background: white; border: 1px solid var(--gray-200); border-radius: 14px;
-  padding: 14px 18px; transition: box-shadow 0.2s;
+  background: white; border: 1px solid var(--border); border-radius: 6px;
+  padding: 16px 20px; transition: box-shadow 0.2s;
 }
 .enc-row:hover { box-shadow: var(--shadow); }
 .enc-row-imgs { display: flex; gap: 4px; flex-shrink: 0; }
@@ -1401,7 +1401,7 @@ tr:hover td { background: var(--gray-100); }
 .enc-modal p { font-size: 14px; color: var(--gray-600); line-height: 1.5; margin-bottom: 24px; }
 .enc-modal-acoes { display: flex; gap: 12px; justify-content: flex-end; }
 .tl-sub { display: block; font-size: 11px; color: var(--gray-400); margin-top: 2px; }
-.detalhe-card { background: white; border: 1px solid var(--gray-200); border-radius: 16px; padding: 28px; margin-bottom: 20px; }
+.detalhe-card { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 28px; margin-bottom: 20px; }
 .detalhe-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-200); }
 .item-row { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--gray-100); }
 .item-row:last-of-type { border-bottom: none; padding-bottom: 0; }

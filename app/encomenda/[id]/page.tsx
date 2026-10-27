@@ -195,20 +195,19 @@ export default function EncomendaPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        <div className="page-header" style={{ paddingBottom: 24 }}>
+        <header className="page-header" style={{ paddingBottom: 24 }}>
           <Link href="/encomendas" className="enc-back-link" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} strokeWidth={1.5} /> Voltar às encomendas</Link>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h1 style={{ fontSize: '1.6rem' }}>
-                Encomenda <span style={{ fontFamily: 'monospace', fontSize: '1.2rem' }}>{ref}</span>
-              </h1>
+              <span className="eyebrow" style={{ marginBottom: 12 }}>A tua encomenda</span>
+              <h1 className="display-titulo" style={{ fontSize: '1.9rem' }}>{ref}</h1>
               <p style={{ marginTop: 4 }}>{formatarData(encomenda.criado_em)}</p>
             </div>
             <span className={`badge-estado ${badgeEstadoClass(encomenda.estado as EstadoEncomenda)}`} style={{ fontSize: 14, padding: '6px 14px' }}>
               {badgeEstadoLabel(encomenda.estado as EstadoEncomenda)}
             </span>
           </div>
-        </div>
+        </header>
 
         {/* Acções rápidas */}
         <div className="enc-acoes">

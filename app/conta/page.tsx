@@ -280,7 +280,10 @@ function ContaInner() {
     return (
       <div className="page-wrapper">
         <div className="container">
-          <div className="page-header"><h1>A minha conta</h1></div>
+          <header className="page-header">
+            <span className="eyebrow" style={{ marginBottom: 14 }}>A tua área Real Stiles</span>
+            <h1 className="display-titulo">A minha conta.</h1>
+          </header>
 
           {!user.emailVerified && user.email && (
             <div style={{ background: '#fff8e1', border: '1px solid #f39c12', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -466,8 +469,8 @@ function ContaInner() {
           <Link href="/">
             <Image src="/img/logo.png" alt="Real Stiles" width={48} height={48} style={{ height: 48, width: 48 }} />
           </Link>
-          <h2 className="auth-marca-titulo">Veste o teu<br /><em>estilo.</em></h2>
-          <p className="auth-marca-sub">As melhores peças de vestuário, cuidadosamente seleccionadas para ti.</p>
+          <h2 className="auth-marca-titulo">Tudo o que precisas.<br /><em>Num só lugar.</em></h2>
+          <p className="auth-marca-sub">Moda, eletrónica, beleza e casa. Escolhes tu, tratamos nós.</p>
           <div className="auth-marca-pontos">
             <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Entrega em todo o país</div>
             <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Pagamento seguro</div>
