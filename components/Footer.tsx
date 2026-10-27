@@ -21,9 +21,9 @@ export default async function Footer() {
           <h4>Conhece-nos</h4>
           <ul>
             <li><Link href="/quem-somos">Quem somos</Link></li>
-            <li><Link href="/">Todos os produtos</Link></li>
+            <li><Link href="/loja">Todos os produtos</Link></li>
             <li><Link href="/promocoes">Promoções</Link></li>
-            <li><Link href="/?cat=novidades">Novidades</Link></li>
+            <li><Link href="/loja?mode=novidades">Novidades</Link></li>
           </ul>
         </div>
         <div>

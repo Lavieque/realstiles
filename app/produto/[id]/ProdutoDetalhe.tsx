@@ -6,6 +6,8 @@ import { useCarrinho } from '@/store/carrinho';
 import { mostrarToast } from '@/components/Toast';
 import ProdutoCard from '@/components/ProdutoCard';
 import Estrelas from '@/components/Estrelas';
+import Preco from '@/components/Preco';
+import { useFavoritos } from '@/store/favoritos';
 import { getProduto as getProdutoClient, getProdutos } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
 import { estadoPromocao } from '@/lib/promocao';
@@ -16,7 +18,7 @@ import { uploadParaCloudinary } from '@/lib/cloudinary';
 import type { ComentarioProduto } from '@/lib/comentarios';
 import { formatarData } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn, Play, ImagePlus } from 'lucide-react';
+import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn, Play, ImagePlus, Heart, Truck, ShieldCheck } from 'lucide-react';
 
 const COR_MAP: Record<string, string> = {
   'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
@@ -65,6 +67,8 @@ export default function ProdutoDetalhe({
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const touchStartX = useRef(0);
   const { adicionarItem, abrirDrawer } = useCarrinho();
+  const favorito = useFavoritos(s => s.ids.includes(id));
+  const toggleFavorito = useFavoritos(s => s.toggleFavorito);
   // Re-render quando a promoção termina para o preço voltar ao original
   const [, actualizar] = useReducer((n: number) => n + 1, 0);
 
@@ -222,10 +226,12 @@ export default function ProdutoDetalhe({
 
         {/* Breadcrumb */}
         <div className="pd-breadcrumb">
-          <Link href="/">Loja</Link>
+          <Link href="/">Início</Link>
+          <span>›</span>
+          <Link href="/loja">Explorar</Link>
           <span>›</span>
           {produto.categoria
-            ? <Link href={`/?cat=${produto.categoria}`}>{produto.categoria.charAt(0).toUpperCase() + produto.categoria.slice(1)}</Link>
+            ? <Link href={`/loja?cat=${produto.categoria}`}>{produto.categoria.charAt(0).toUpperCase() + produto.categoria.slice(1)}</Link>
             : <span>Produto</span>
           }
           <span>›</span>
@@ -330,12 +336,18 @@ export default function ProdutoDetalhe({
 
             <h1 className="pd-nome">{produto.nome}</h1>
 
+            {!!produto.num_avaliacoes && (
+              <a href="#avaliacoes" className="pd-resumo-avaliacao">
+                <Estrelas valor={produto.avaliacao || 0} tamanho={16} />
+                <span>{(produto.avaliacao || 0).toFixed(1)} · {produto.num_avaliacoes} avaliação{produto.num_avaliacoes !== 1 ? 'ões' : ''}</span>
+              </a>
+            )}
+
             <div className="pd-precos">
-              <span className="pd-preco-atual">{promo.preco.toFixed(2)} MZN</span>
-              {promo.activa && (
-                <span className="pd-preco-orig">{Number(promo.precoOriginal).toFixed(2)} MZN</span>
-              )}
+              <Preco valor={promo.preco} className="pd-preco-atual" />
+              {promo.activa && <Preco valor={Number(promo.precoOriginal)} riscado className="pd-preco-orig" />}
             </div>
+            <span className="pd-tag-encomenda">Produto por encomenda</span>
 
             {promo.activa && <ContagemPromocao fim={promo.fim} variante="detalhe" onTerminar={actualizar} />}
 
@@ -404,7 +416,28 @@ export default function ProdutoDetalhe({
               {produto.stock === 0 ? 'Sem stock' : '+ Adicionar ao carrinho'}
             </button>
 
-            <Link href="/carrinho" className="btn btn-outline btn-full">Ver carrinho</Link>
+            <div className="pd-acoes-sec">
+              <Link href="/carrinho" className="btn btn-outline">Ver carrinho</Link>
+              <button
+                type="button"
+                className={`btn btn-outline pd-fav${favorito ? ' activo' : ''}`}
+                onClick={() => toggleFavorito(id)}
+                aria-pressed={favorito}
+              >
+                <Heart size={16} strokeWidth={1.5} fill={favorito ? 'currentColor' : 'none'} /> {favorito ? 'Nos favoritos' : 'Guardar'}
+              </button>
+            </div>
+
+            <div className="pd-entrega">
+              <div>
+                <Truck size={18} strokeWidth={1.5} />
+                <p><strong>Entrega com acompanhamento</strong>Prazo final estimado de 15 a 30 dias úteis, após confirmação do pagamento e da encomenda. <Link href="/entregas">Ver custos de entrega</Link></p>
+              </div>
+              <div>
+                <ShieldCheck size={18} strokeWidth={1.5} />
+                <p><strong>Compra acompanhada</strong>Se algo não correr como esperado, a equipa ajuda. <Link href="/reclamacao">Pedir apoio</Link></p>
+              </div>
+            </div>
 
             {/* Partilhar */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -473,8 +506,9 @@ export default function ProdutoDetalhe({
         )}
 
         {/* Avaliações */}
-        <section style={{ marginTop: 64, maxWidth: 640 }}>
-          <h2 style={{ fontFamily: 'var(--font-playfair, "Playfair Display"), serif', fontSize: '1.6rem', marginBottom: 16 }}>Avaliações</h2>
+        <section id="avaliacoes" style={{ marginTop: 72, maxWidth: 680 }}>
+          <span className="eyebrow" style={{ marginBottom: 12 }}>A tua experiência conta</span>
+          <h2 className="display-titulo" style={{ fontSize: '1.9rem', marginBottom: 16 }}>Avaliações do artigo</h2>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
             <Estrelas valor={produto.avaliacao || 0} tamanho={20} />
@@ -567,8 +601,8 @@ export default function ProdutoDetalhe({
 
         {/* Relacionados */}
         {relacionados.length > 0 && (
-          <section style={{ marginTop: 64 }}>
-            <h2 style={{ fontFamily: 'var(--font-playfair, "Playfair Display"), serif', fontSize: '1.6rem', marginBottom: 24 }}>Também podes gostar</h2>
+          <section style={{ marginTop: 72 }}>
+            <h2 className="display-titulo" style={{ fontSize: '1.9rem', marginBottom: 24 }}>Também pode combinar contigo.</h2>
             <div className="produtos-grid">
               {relacionados.map(p => <ProdutoCard key={p.id} produto={p} />)}
             </div>

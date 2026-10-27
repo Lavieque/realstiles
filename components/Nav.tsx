@@ -7,7 +7,7 @@ import { onAuthChange, getPerfil, logout, temAcessoAdmin } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 import { getCategoriasConfig } from '@/lib/produtos';
 import type { CategoriaConfig } from '@/lib/produtos';
-import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Tag, PackageSearch, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, PackageSearch, ArrowRight } from 'lucide-react';
 
 export default function Nav() {
   const { items, bumped, abrirDrawer } = useCarrinho();
@@ -34,7 +34,7 @@ export default function Nav() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      window.location.href = `/?q=${encodeURIComponent(searchTerm.trim())}`;
+      window.location.href = `/loja?q=${encodeURIComponent(searchTerm.trim())}`;
       setSearchTerm('');
     }
   };
@@ -137,7 +137,7 @@ export default function Nav() {
               {categorias.map(c => (
                 <li key={c.slug}>
                   <Link
-                    href={`/?cat=${c.slug}`}
+                    href={`/loja?cat=${c.slug}`}
                     className={catAberta?.slug === c.slug ? 'activo' : ''}
                     onMouseEnter={() => setCatActiva(c.slug)}
                     onFocus={() => setCatActiva(c.slug)}
@@ -147,14 +147,14 @@ export default function Nav() {
                   </Link>
                 </li>
               ))}
-              <li><Link href="/" className="nav-mega-todos" onClick={fecharTudo}>Todos os produtos</Link></li>
+              <li><Link href="/loja" className="nav-mega-todos" onClick={fecharTudo}>Todos os produtos</Link></li>
             </ul>
             {catAberta && (
               <div className="nav-mega-subs">
-                <Link href={`/?cat=${catAberta.slug}`} className="nav-mega-ver" onClick={fecharTudo}>Ver tudo em {catAberta.nome} <ArrowRight size={14} strokeWidth={1.5} /></Link>
+                <Link href={`/loja?cat=${catAberta.slug}`} className="nav-mega-ver" onClick={fecharTudo}>Ver tudo em {catAberta.nome} <ArrowRight size={14} strokeWidth={1.5} /></Link>
                 <ul>
                   {catAberta.subcategorias.map(s => (
-                    <li key={s.slug}><Link href={`/?cat=${s.slug}`} onClick={fecharTudo}>{s.nome}</Link></li>
+                    <li key={s.slug}><Link href={`/loja?cat=${s.slug}`} onClick={fecharTudo}>{s.nome}</Link></li>
                   ))}
                 </ul>
               </div>
@@ -163,7 +163,8 @@ export default function Nav() {
         </div>
 
         <ul className="nav-links">
-          <li><Link href="/?cat=novidades" onClick={fecharTudo}><Sparkles size={15} strokeWidth={1.5} /> Novidades</Link></li>
+          <li><Link href="/loja?mode=cinco-estrelas" onClick={fecharTudo}><Star size={15} strokeWidth={1.5} /> Avaliação 5 estrelas</Link></li>
+          <li><Link href="/loja?mode=novidades" onClick={fecharTudo}><Sparkles size={15} strokeWidth={1.5} /> Novidades</Link></li>
           <li><Link href="/promocoes" className="nav-link-promo" onClick={fecharTudo}><Tag size={15} strokeWidth={1.5} /> Promoções</Link></li>
           <li><Link href="/entregas" onClick={fecharTudo}><Truck size={15} strokeWidth={1.5} /> Entregas</Link></li>
           <li className="nav-so-mobile"><Link href="/acompanhar" onClick={fecharTudo}><PackageSearch size={15} strokeWidth={1.5} /> Acompanhar encomenda</Link></li>

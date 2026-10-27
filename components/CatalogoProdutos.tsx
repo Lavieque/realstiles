@@ -42,7 +42,19 @@ function escolherSeed(seedInicial?: string): string {
   return seed;
 }
 
-export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos' }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string }) {
+export type ModoLoja = 'novidades' | 'cinco-estrelas' | null;
+
+export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos', basePath = '/', modo = null, ocultarTitulo = false }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string; basePath?: string; modo?: ModoLoja; ocultarTitulo?: boolean }) {
+  // URL da listagem para uma categoria, preservando o modo (novidades, 5 estrelas)
+  const urlLista = (cat: string | null) => {
+    const q = new URLSearchParams();
+    if (cat) q.set('cat', cat);
+    if (modo) q.set('mode', modo);
+    const qs = q.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  };
+  // 5 estrelas precisa de todo o catálogo para filtrar — sem paginação aleatória
+  const carregaTudo = modo === 'cinco-estrelas';
   const searchParams = useSearchParams();
   const catParam = searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
@@ -63,7 +75,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   const [precoIdx, setPrecoIdx] = useState(0);
   const [tamActual, setTamActual] = useState<string | null>(null);
   const [corActual, setCorActual] = useState<string | null>(null);
-  const [ordenacao, setOrdenacao] = useState('relevancia');
+  const [ordenacao, setOrdenacao] = useState(modo === 'novidades' ? 'novidades' : 'relevancia');
   const scrollRestored = useRef(false);
   const seedRef = useRef<string | null>(null);
   const cursorAleatorioRef = useRef<CursorAleatorio | null>(null);
@@ -115,7 +127,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       const seed = seedRef.current ?? (seedRef.current = escolherSeed(seedInicial));
       const aleatorio = ordenacaoRef.current !== 'novidades';
       let resultado: Produto[];
-      if (!cat && aleatorio) {
+      if (!cat && aleatorio && !carregaTudo) {
         // Página inicial: amostra aleatória paginada (não sempre os mais recentes)
         const cursor: CursorAleatorio | null = append
           ? cursorAleatorioRef.current
@@ -127,12 +139,12 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
         setUltimoDoc(null);
         setTodos(p => append ? [...p, ...resultado] : resultado);
       } else {
-        const max = cat ? 200 : PAGE + 1;
-        const cursor = cat ? null : (append ? ultimoDocRef.current : null);
+        const max = cat || carregaTudo ? 200 : PAGE + 1;
+        const cursor = cat || carregaTudo ? null : (append ? ultimoDocRef.current : null);
         const slugs = cat ? resolveDescendants(catTreeRef.current, cat) : null;
         const res = await getProdutos({ categorias: slugs, max, ultimoDoc: cursor });
         resultado = res.produtos;
-        const maisDisp = !cat && resultado.length > PAGE;
+        const maisDisp = !cat && !carregaTudo && resultado.length > PAGE;
         let slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
         // Categoria: vem tudo de uma vez — baralhar para não mostrar sempre os mais recentes primeiro
         if (cat && aleatorio) slice = baralhar(slice, seed);
@@ -164,6 +176,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   useEffect(() => {
     const intervalo = INTERVALOS_PRECO[precoIdx];
     let filtrados = todos.filter(p => precoActual(p) >= intervalo.min && precoActual(p) <= intervalo.max);
+    if (modo === 'cinco-estrelas') filtrados = filtrados.filter(p => (p.avaliacao || 0) >= 4.5 && !!p.num_avaliacoes);
     if (tamActual) filtrados = filtrados.filter(p => p.tamanhos?.includes(tamActual));
     if (corActual) filtrados = filtrados.filter(p => p.cores?.includes(corActual));
     if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => precoActual(a) - precoActual(b));
@@ -174,7 +187,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       return tb - ta;
     });
     setProdutos(filtrados);
-  }, [todos, precoIdx, tamActual, corActual, ordenacao]);
+  }, [todos, precoIdx, tamActual, corActual, ordenacao, modo]);
 
   // Sem categoria, "Novidades" carrega os mais recentes do servidor e as
   // restantes ordenações partem da amostra aleatória — recarregar ao alternar.
@@ -183,7 +196,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   useEffect(() => {
     if (ehNovidadesAnterior.current === ehNovidades) return;
     ehNovidadesAnterior.current = ehNovidades;
-    if (!catActual && !searchTerm.trim()) carregarProdutos(null, false);
+    if (!catActual && !searchTerm.trim() && !carregaTudo) carregarProdutos(null, false);
   }, [ehNovidades]);
 
   const filtrar = (cat: string | null) => {
@@ -192,7 +205,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     setPrecoIdx(0);
     setTamActual(null);
     setCorActual(null);
-    const url = cat ? `/?cat=${cat}` : '/';
+    const url = urlLista(cat);
     window.history.pushState({}, '', url);
     carregarProdutos(cat, false);
   };
@@ -210,12 +223,12 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   // Debounce pesquisa + sync URL
   useEffect(() => {
     if (!searchTerm.trim()) {
-      const url = catActual ? `/?cat=${catActual}` : '/';
+      const url = urlLista(catActual);
       window.history.replaceState({}, '', url);
       carregarProdutos(catActual, false);
       return;
     }
-    const url = `/?q=${encodeURIComponent(searchTerm)}`;
+    const url = `${basePath}?q=${encodeURIComponent(searchTerm)}`;
     window.history.replaceState({}, '', url);
     const t = setTimeout(async () => {
       setLoading(true);
@@ -281,8 +294,8 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   return (
     <>
       {/* Header */}
-      <div className="catalogo-header">
-        <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>
+      <div className={`catalogo-header${ocultarTitulo ? ' sem-titulo' : ''}`}>
+        {!ocultarTitulo && <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>}
         <select className="filtro-ordenacao" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}>
           <option value="relevancia">Relevância</option>
           <option value="novidades">Novidades</option>
