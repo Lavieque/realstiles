@@ -40,6 +40,8 @@ export interface Produto {
   activo: boolean;
   avaliacao?: number;
   num_avaliacoes?: number;
+  // Unidades vendidas (encomendas confirmadas) — mantido por lib/vendas-server
+  vendidos?: number;
   criado_em?: unknown;
 }
 
