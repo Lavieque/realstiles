@@ -36,6 +36,7 @@ const ROTAS: Record<string, Permissao> = {
   '/admin/banner': 'conteudo',
   '/admin/noticias': 'conteudo',
   '/admin/reclamacoes': 'reclamacoes',
+  '/admin/contactos': 'reclamacoes',
   '/admin/tradeflow': 'integracoes',
   '/admin/whatsapp': 'integracoes',
   '/admin/pagamentos': 'pagamentos',

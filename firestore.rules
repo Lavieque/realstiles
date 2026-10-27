@@ -177,6 +177,13 @@ service cloud.firestore {
       }
     }
 
+    // Mensagens do formulário de contacto: criadas só pelo servidor
+    // (/api/contacto, Admin SDK); a equipa com 'reclamacoes' lê e gere.
+    match /contactos/{contactoId} {
+      allow read, update, delete: if temPerm('reclamacoes');
+      allow create: if false;
+    }
+
     // Nota: `rate_limits` (limites de OTP e de criação de encomendas) e
     // `pagamentos` não têm bloco aqui de propósito — são escritas só pelo
     // Admin SDK, que não passa por estas regras, e ficam negadas ao cliente.

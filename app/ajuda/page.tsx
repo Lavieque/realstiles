@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { MessageCircle, Phone, Mail, MapPin, FileText } from 'lucide-react';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import FormContacto from '@/components/FormContacto';
 
 export const metadata: Metadata = {
   title: 'Ajuda e atendimento — Real Stiles',
@@ -70,6 +71,10 @@ export default async function AjudaPage({ searchParams }: { searchParams: { topi
             {morada || 'Chimoio, Manica, Moçambique'}
           </InfoCartao>
         </InfoGrelha>
+      </InfoSecao>
+
+      <InfoSecao eyebrow="Prefere escrever?" titulo="Deixa a tua " destaque="mensagem.">
+        <FormContacto />
       </InfoSecao>
 
       <InfoSecao>
