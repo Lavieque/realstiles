@@ -7,7 +7,7 @@ import { onAuthChange, getPerfil, logout, temAcessoAdmin } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 import { getCategoriasConfig } from '@/lib/produtos';
 import type { CategoriaConfig } from '@/lib/produtos';
-import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, ThumbsUp, PackageSearch, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, ThumbsUp, PackageSearch, ArrowRight, Headphones, Globe } from 'lucide-react';
 
 export default function Nav() {
   const { items, bumped, abrirDrawer } = useCarrinho();
@@ -16,6 +16,7 @@ export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(false);
   const [contaMenuOpen, setContaMenuOpen] = useState(false);
+  const [topMenu, setTopMenu] = useState<'apoio' | 'regiao' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categorias, setCategorias] = useState<CategoriaConfig[]>([]);
   const [catActiva, setCatActiva] = useState<string | null>(null);
@@ -25,11 +26,11 @@ export default function Nav() {
   }, []);
 
   useEffect(() => {
-    if (!contaMenuOpen && !catsOpen) return;
-    const fechar = () => { setContaMenuOpen(false); setCatsOpen(false); };
+    if (!contaMenuOpen && !catsOpen && !topMenu) return;
+    const fechar = () => { setContaMenuOpen(false); setCatsOpen(false); setTopMenu(null); };
     document.addEventListener('click', fechar);
     return () => document.removeEventListener('click', fechar);
-  }, [contaMenuOpen, catsOpen]);
+  }, [contaMenuOpen, catsOpen, topMenu]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +65,43 @@ export default function Nav() {
     <nav className="site-nav">
       <div className="nav-topbar">
         <span>Compras por encomenda · entrega estimada de 15 a 30 dias úteis</span>
-        <a href="tel:+258878753754">+258 878 753 754</a>
+        <div className="nav-topbar-dir">
+          <div className={`nav-top-dropdown${topMenu === 'apoio' ? ' open' : ''}`}>
+            <button type="button" className="nav-top-btn" aria-expanded={topMenu === 'apoio'} aria-controls="menu-apoio" onClick={e => { e.stopPropagation(); setTopMenu(m => m === 'apoio' ? null : 'apoio'); }}>
+              <Headphones size={14} strokeWidth={1.5} /> Atendimento <ChevronDown size={12} strokeWidth={1.5} />
+            </button>
+            <ul id="menu-apoio" className="nav-submenu" onClick={() => setTopMenu(null)}>
+              <li className="nav-submenu-titulo">Sempre por perto. Conta connosco.</li>
+              <li><Link href="/ajuda">Atendimento ao cliente</Link></li>
+              <li><Link href="/seguranca">Centro de segurança</Link></li>
+              <li><a href="https://wa.me/258878753754" target="_blank" rel="noopener noreferrer">Conversa com a Real Stiles</a></li>
+              <li><Link href="/protecao-compras">Proteção de compras</Link></li>
+              <li className="nav-submenu-sep" />
+              <li><Link href="/politicas#privacidade">Política de privacidade</Link></li>
+              <li><Link href="/termos">Termos e condições</Link></li>
+              <li><Link href="/informacao-empresa">Informação da empresa</Link></li>
+              <li><Link href="/parcerias">Parcerias</Link></li>
+            </ul>
+          </div>
+          <div className={`nav-top-dropdown${topMenu === 'regiao' ? ' open' : ''}`}>
+            <button type="button" className="nav-top-btn" aria-expanded={topMenu === 'regiao'} aria-controls="menu-regiao" aria-label="Idioma e moeda: Português, MZN" onClick={e => { e.stopPropagation(); setTopMenu(m => m === 'regiao' ? null : 'regiao'); }}>
+              <Globe size={14} strokeWidth={1.5} /> PT · MZN <ChevronDown size={12} strokeWidth={1.5} />
+            </button>
+            <div id="menu-regiao" className="nav-submenu nav-regiao" onClick={e => e.stopPropagation()}>
+              <p className="nav-regiao-rotulo">Idioma</p>
+              <div className="nav-regiao-opcoes">
+                <span className="nav-regiao-op desligada" aria-disabled="true">English <small>em breve</small></span>
+                <span className="nav-regiao-op activa" aria-current="true">Português</span>
+              </div>
+              <p className="nav-regiao-rotulo">Moeda</p>
+              <div className="nav-regiao-opcoes">
+                <span className="nav-regiao-op activa" aria-current="true">MZN: MT <small>Metical moçambicano</small></span>
+              </div>
+              <p className="nav-regiao-nota">Estás a comprar na Real Stiles Moçambique.</p>
+            </div>
+          </div>
+          <a href="tel:+258878753754">+258 878 753 754</a>
+        </div>
       </div>
 
       <div className="nav-main">
