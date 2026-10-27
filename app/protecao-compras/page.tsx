@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PackageX, Clock, RotateCcw, Route } from 'lucide-react';
-import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoPassos, InfoAjuda } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
   title: 'Proteção de compras — Real Stiles',
@@ -34,6 +34,14 @@ export default function ProtecaoComprasPage() {
         </InfoGrelha>
       </InfoSecao>
 
+      <InfoSecao eyebrow="Um caminho claro" titulo="Como pedir apoio " destaque="à tua compra">
+        <InfoPassos passos={[
+          { t: 'Conta-nos o que aconteceu.', c: 'Indica a referência, o produto e o motivo do pedido. Não envies PIN, palavras-passe ou códigos.' },
+          { t: 'Recebe orientação da equipa.', c: 'A equipa analisa o caso e confirma os documentos, o transporte e os passos necessários.' },
+          { t: 'Acompanha a solução.', c: 'Guarda a referência até à resolução. Troca, substituição ou reembolso são avaliados conforme o caso.' },
+        ]} />
+      </InfoSecao>
+
       <InfoSecao tom="sand" eyebrow="Um caminho claro" titulo="Da escolha " destaque="à entrega.">
         <InfoGrelha colunas={2}>
           <InfoCartao icone={<Route size={20} strokeWidth={1.5} />} titulo="Acompanhas cada etapa" href="/entregas" acao="Ver entregas e preços">
@@ -44,6 +52,8 @@ export default function ProtecaoComprasPage() {
           </InfoCartao>
         </InfoGrelha>
       </InfoSecao>
+
+      <InfoAjuda />
     </>
   );
 }

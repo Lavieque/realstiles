@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Coins, LayoutGrid, Users, ArrowRight } from 'lucide-react';
-import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import { Coins, LayoutGrid, Users, ArrowRight, Wallet, ShieldCheck } from 'lucide-react';
+import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoAjuda } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
   title: 'Porquê escolher a Real Stiles?',
@@ -34,6 +34,19 @@ export default function PorqueEscolherPage() {
           </InfoCartao>
         </InfoGrelha>
       </InfoSecao>
+
+      <InfoSecao tom="sand" eyebrow="Informação para cada etapa" titulo="Segurança " destaque="e privacidade.">
+        <InfoGrelha colunas={2}>
+          <InfoCartao icone={<Wallet size={20} strokeWidth={1.5} />} titulo="Pagamento à tua escolha." href="/politicas#compras" acao="Consultar as condições de compra">
+            M-Pesa, e-Mola, mKesh ou cartão, consoante o que estiver disponível no resumo da compra. Confere o valor total e guarda a referência do pedido.
+          </InfoCartao>
+          <InfoCartao icone={<ShieldCheck size={20} strokeWidth={1.5} />} titulo="Informação clara sobre os teus dados." href="/politicas#privacidade" acao="Ler a política de privacidade">
+            Podes comprar sem criar conta. Os teus dados são usados apenas para processar a encomenda e não são partilhados com terceiros.
+          </InfoCartao>
+        </InfoGrelha>
+      </InfoSecao>
+
+      <InfoAjuda />
 
       <InfoSecao>
         <p className="pol-nota">Vê também as <Link href="/opinioes" style={{ color: 'var(--black)', fontWeight: 600 }}>opiniões de quem já comprou</Link> e a nossa <Link href="/protecao-compras" style={{ color: 'var(--black)', fontWeight: 600 }}>proteção de compras</Link>.</p>

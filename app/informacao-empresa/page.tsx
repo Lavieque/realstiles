@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, Users, Phone, Mail, FileText } from 'lucide-react';
 import { getConfigSSR } from '@/lib/config-site-ssr';
-import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoAjuda } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
   title: 'Informação da empresa — Real Stiles',
@@ -53,6 +53,8 @@ export default async function InformacaoEmpresaPage() {
           <p className="pol-nota" style={{ marginTop: 20 }}>NIF {config.empresa_nif}</p>
         )}
       </InfoSecao>
+
+      <InfoAjuda />
     </>
   );
 }

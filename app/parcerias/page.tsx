@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import type { Metadata } from 'next';
 import { Handshake, Truck, Mail } from 'lucide-react';
 import { getConfigSSR } from '@/lib/config-site-ssr';
-import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoAjuda } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
   title: 'Parcerias — Real Stiles',
@@ -40,6 +40,8 @@ export default async function ParceriasPage() {
           Também podes enviar uma proposta para <a href={`mailto:${email}`} style={{ color: 'var(--black)', fontWeight: 600 }}>{email}</a>.
         </p>
       </InfoSecao>
+
+      <InfoAjuda />
     </>
   );
 }

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Store, Warehouse, Home, Clock, ArrowRight } from 'lucide-react';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { getConfigSSR } from '@/lib/config-site-ssr';
-import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoPassos, InfoAjuda } from '@/components/InfoPagina';
 import CalculadoraEntrega from '@/components/CalculadoraEntrega';
 import Preco from '@/components/Preco';
 import type { TarifaEntrega, Modalidade } from '@/lib/entregas';
@@ -36,7 +36,7 @@ function desde(tarifas: TarifaEntrega[], m: Modalidade): number | null {
 export default async function EntregasPage({ searchParams }: { searchParams: { calcular?: string } }) {
   if (searchParams.calcular === '1') redirect('/entregas#calculadora');
   const [tarifas, config] = await Promise.all([getTarifas(), getConfigSSR()]);
-  const cidade = config.empresa_cidade || 'a nossa loja';
+  const cidade = (config.empresa_cidade || '').split(',')[0].trim() || 'a nossa loja';
   const dTerminal = desde(tarifas, 'terminal');
   const dDomicilio = desde(tarifas, 'domicilio');
 
@@ -85,6 +85,35 @@ export default async function EntregasPage({ searchParams }: { searchParams: { c
           <CalculadoraEntrega tarifasIniciais={tarifas} />
         </div>
       </InfoSecao>
+
+      <InfoSecao tom="sand" eyebrow="Contigo em cada etapa" titulo="Da encomenda " destaque="à tua mão.">
+        <InfoPassos passos={[
+          { t: 'Confirmamos a encomenda', c: 'Revês os artigos, o pagamento, a modalidade e os custos.' },
+          { t: 'Preparamos e expedimos', c: 'Adquirimos os artigos, conferimos a embalagem e organizamos o envio.' },
+          { t: 'Avisamos para receber', c: 'Acompanhas com a referência e confirmas quando podes receber ou levantar.' },
+        ]} />
+        <p style={{ marginTop: 20 }}><Link href="/acompanhar" className="info-cartao-link">Já tenho uma referência: acompanhar encomenda <ArrowRight size={14} strokeWidth={1.75} /></Link></p>
+      </InfoSecao>
+
+      <InfoSecao eyebrow={`De ${cidade} para o teu mundo`} titulo="Uma base próxima. " destaque="Mais caminhos até ti." sub="A disponibilidade de cada rota é confirmada com a equipa.">
+        <InfoGrelha colunas={3}>
+          <InfoCartao icone={<Store size={20} strokeWidth={1.5} />} titulo={cidade}>Recolha e entrega urbana, com perímetro a confirmar.</InfoCartao>
+          <InfoCartao icone={<Warehouse size={20} strokeWidth={1.5} />} titulo="Beira · Tete · Quelimane · Nampula · Maputo">Levantamento em terminal, sujeito a confirmação da rota e do ponto.</InfoCartao>
+          <InfoCartao icone={<Home size={20} strokeWidth={1.5} />} titulo="Outras cidades e distritos">A equipa confirma cobertura, preço e modalidade contigo.</InfoCartao>
+        </InfoGrelha>
+      </InfoSecao>
+
+      <InfoSecao eyebrow="Respostas simples" titulo="Antes de " destaque="receber." sub="O essencial para planeares a tua entrega com confiança.">
+        <div className="faq">
+          <details><summary>Quanto tempo demora a minha encomenda?</summary><p>O prazo final estimado é de 15 a 30 dias úteis, após a confirmação do pagamento e da encomenda.</p></details>
+          <details><summary>A entrega é sempre em minha casa?</summary><p>Não. Podes recolher em {cidade}, levantar num terminal ou pedir entrega ao domicílio, que depende de consulta e confirmação prévia.</p></details>
+          <details><summary>E se eu não souber o peso do pacote?</summary><p>Podes usar os artigos do teu carrinho na calculadora ou escolher &ldquo;Ainda não sei o peso&rdquo;. A equipa confirma o valor final antes do pagamento.</p></details>
+          <details><summary>Como sei que já posso levantar?</summary><p>Avisamos-te quando a encomenda estiver pronta. Também podes acompanhar o estado em <Link href="/acompanhar">Acompanhar encomenda</Link>.</p></details>
+          <details><summary>O que faço se houver um atraso ou um problema?</summary><p>Contacta a equipa com a referência da encomenda. Vê também a <Link href="/protecao-compras">proteção de compras</Link>.</p></details>
+        </div>
+      </InfoSecao>
+
+      <InfoAjuda />
 
       <InfoSecao>
         <p className="pol-nota">O preço final depende do destino e do pacote e é confirmado antes do pagamento. Dúvidas? <Link href="/ajuda" style={{ color: 'var(--black)', fontWeight: 600 }}>Fala com a equipa</Link>.</p>
