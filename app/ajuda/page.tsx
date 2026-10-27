@@ -21,6 +21,8 @@ const FAQ: { p: string; r: React.ReactNode }[] = [
   { p: 'Como peço uma devolução ou um reembolso?', r: <>Consulta a <Link href="/politicas">política de devoluções</Link> e contacta a equipa com a referência da encomenda. Confirmamos a elegibilidade e os passos antes do envio de retorno.</> },
   { p: 'A equipa pode pedir o meu PIN ou código de confirmação?', r: <>Nunca. O PIN é só teu e só o inseres no teu telemóvel. Se alguém to pedir, não partilhes e fala connosco.</> },
   { p: 'A encomenda aparece como entregue, mas não a recebi.', r: <>Contacta-nos de imediato com a referência da encomenda. Verificamos o destino e a prova de entrega. Também podes usar o <Link href="/reclamacao">livro de reclamações</Link>.</> },
+  { p: 'Não reconheço uma cobrança. O que devo fazer?', r: <>Contacta a equipa de imediato com a referência da encomenda e o valor. Não partilhes o teu PIN nem códigos de confirmação.</> },
+  { p: 'Faltam artigos na minha encomenda. Como peço ajuda?', r: <>Contacta a equipa com a referência da encomenda e fotografias da embalagem. Vê a <Link href="/protecao-compras">proteção de compras</Link>.</> },
 ];
 
 export default async function AjudaPage({ searchParams }: { searchParams: { topic?: string } }) {
