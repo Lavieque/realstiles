@@ -56,7 +56,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   // 5 estrelas precisa de todo o catálogo para filtrar — sem paginação aleatória
   const carregaTudo = modo === 'cinco-estrelas' || modo === 'mais-vendidos';
   const searchParams = useSearchParams();
-  const catParam = searchParams.get('cat');
+  const catParam = searchParams.get('sub') || searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
 
   const [todos, setTodos] = useState<Produto[]>(inicial);

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { MessageCircle, Phone, Mail, MapPin, FileText } from 'lucide-react';
 import { getConfigSSR } from '@/lib/config-site-ssr';
@@ -22,7 +23,8 @@ const FAQ: { p: string; r: React.ReactNode }[] = [
   { p: 'A encomenda aparece como entregue, mas não a recebi.', r: <>Contacta-nos de imediato com a referência da encomenda. Verificamos o destino e a prova de entrega. Também podes usar o <Link href="/reclamacao">livro de reclamações</Link>.</> },
 ];
 
-export default async function AjudaPage() {
+export default async function AjudaPage({ searchParams }: { searchParams: { topic?: string } }) {
+  if (searchParams.topic === 'reclamacao') redirect('/reclamacao');
   const config = await getConfigSSR();
   const wa = `258${config.tel1.replace(/\D/g, '')}`;
   const morada = [config.empresa_morada, config.empresa_cidade].filter(Boolean).join(', ');

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Store, Warehouse, Home, Clock, ArrowRight } from 'lucide-react';
 import { getAdminDb } from '@/lib/firebase-admin';
@@ -32,7 +33,8 @@ function desde(tarifas: TarifaEntrega[], m: Modalidade): number | null {
   return precos.length ? Math.min(...precos) : null;
 }
 
-export default async function EntregasPage() {
+export default async function EntregasPage({ searchParams }: { searchParams: { calcular?: string } }) {
+  if (searchParams.calcular === '1') redirect('/entregas#calculadora');
   const [tarifas, config] = await Promise.all([getTarifas(), getConfigSSR()]);
   const cidade = config.empresa_cidade || 'a nossa loja';
   const dTerminal = desde(tarifas, 'terminal');
