@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getConfigSSR } from '@/lib/config-site-ssr';
+import MetodoPagamentoLogo from '@/components/MetodoPagamentoLogo';
+import { METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
 
 export default async function Footer() {
   const config = await getConfigSSR();
@@ -56,6 +58,29 @@ export default async function Footer() {
             <li><a href={`tel:${tel1Href}`}>{config.tel1}</a></li>
             <li><a href={`tel:${tel2Href}`}>{config.tel2}</a></li>
           </ul>
+        </div>
+      </div>
+      <div className="footer-extra">
+        <div>
+          <h4>Os nossos parceiros</h4>
+          <div className="footer-parceiros">
+            <a href="https://www.velsadigital.com/pt" target="_blank" rel="noopener noreferrer">Velsa Digital<small>Página oficial</small></a>
+            <a href="https://citylink.co.mz/" target="_blank" rel="noopener noreferrer">ML-Transport<small>Página oficial</small></a>
+          </div>
+        </div>
+        <div>
+          <h4>Formas de pagamento</h4>
+          <div className="footer-pagamentos">
+            {METODOS_PAGAMENTO.map(m => <span key={m}><MetodoPagamentoLogo metodo={m} altura={22} /></span>)}
+          </div>
+        </div>
+        <div>
+          <h4>A nossa app</h4>
+          <div className="footer-lojas">
+            <span className="footer-loja"><small>Descarregar na</small>App Store</span>
+            <span className="footer-loja"><small>Obtenha-o na</small>Google Play</span>
+          </div>
+          <p style={{ marginTop: 10 }}>Em breve.</p>
         </div>
       </div>
       <div className="footer-bottom">
