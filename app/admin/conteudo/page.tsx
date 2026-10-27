@@ -193,22 +193,29 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
-          <h2>Página de Políticas</h2>
-          <div className="form-group"><label>Título</label><input value={config.pol_titulo} onChange={f('pol_titulo')} /></div>
-          <div className="form-group"><label>Data de actualização</label><input value={config.pol_data} onChange={f('pol_data')} /></div>
-          <div className="form-group">
-            <label>Conteúdo (opcional — parágrafos separados por linha em branco; se vazio, usa o texto padrão)</label>
-            <textarea value={config.pol_conteudo} onChange={f('pol_conteudo')} style={{ minHeight: 160 }} />
+          <h2>Políticas e Termos</h2>
+          <p style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 14 }}>
+            Cada documento tem um texto padrão. Para o substituir, escreve aqui: parágrafos separados por linha em branco e uma linha a começar por <code>## </code> para abrir uma secção (ex.: <code>## 1. Encomendas</code>). Deixa vazio para usar o texto padrão.
+          </p>
+          <div className="form-grid-2">
+            <div className="form-group"><label>Data — compras, devoluções e privacidade</label><input value={config.pol_data} onChange={f('pol_data')} /></div>
+            <div className="form-group"><label>Data — termos e condições</label><input value={config.termos_data} onChange={f('termos_data')} /></div>
           </div>
-        </div>
-
-        <div className="form-card">
-          <h2>Página de Termos e Condições</h2>
-          <div className="form-group"><label>Título</label><input value={config.termos_titulo} onChange={f('termos_titulo')} /></div>
-          <div className="form-group"><label>Data de actualização</label><input value={config.termos_data} onChange={f('termos_data')} /></div>
           <div className="form-group">
-            <label>Conteúdo (opcional — parágrafos separados por linha em branco; se vazio, usa o texto padrão)</label>
-            <textarea value={config.termos_conteudo} onChange={f('termos_conteudo')} style={{ minHeight: 160 }} />
+            <label>Política de compras</label>
+            <textarea value={config.pol_conteudo} onChange={f('pol_conteudo')} style={{ minHeight: 140 }} />
+          </div>
+          <div className="form-group">
+            <label>Devoluções e reembolsos</label>
+            <textarea value={config.pol_devolucoes_conteudo} onChange={f('pol_devolucoes_conteudo')} style={{ minHeight: 140 }} />
+          </div>
+          <div className="form-group">
+            <label>Política de privacidade</label>
+            <textarea value={config.pol_privacidade_conteudo} onChange={f('pol_privacidade_conteudo')} style={{ minHeight: 140 }} />
+          </div>
+          <div className="form-group">
+            <label>Termos e condições</label>
+            <textarea value={config.termos_conteudo} onChange={f('termos_conteudo')} style={{ minHeight: 140 }} />
           </div>
         </div>
 

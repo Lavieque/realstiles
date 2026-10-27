@@ -2063,3 +2063,5 @@ button.btn-escuro { border: none; cursor: pointer; font-family: inherit; }
   body { padding-bottom: 58px; }
   .whatsapp-float { bottom: 74px; }
 }
+
+.pol-corpo h3 { font-family: var(--font-playfair, 'Playfair Display'), serif; font-size: 1.1rem; margin: 28px 0 8px; }

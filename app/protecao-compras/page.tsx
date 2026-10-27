@@ -17,7 +17,7 @@ export default function ProtecaoComprasPage() {
         destaque="O nosso acompanhamento."
         sub="Informação antes de comprar. Apoio se surgir um problema com o artigo ou a entrega."
       >
-        <Link href="/politicas#devolucoes" className="btn-escuro">Consultar devoluções e reembolsos</Link>
+        <Link href="/politicas?tab=devolucoes" className="btn-escuro">Consultar devoluções e reembolsos</Link>
       </InfoHero>
 
       <InfoSecao eyebrow="Se algo não correr como esperado" titulo="Estamos aqui " destaque="para ajudar." sub="Comunica a ocorrência com a referência da encomenda. Cada pedido é analisado de acordo com a compra e as condições aplicáveis.">
@@ -28,7 +28,7 @@ export default function ProtecaoComprasPage() {
           <InfoCartao icone={<Clock size={20} strokeWidth={1.5} />} titulo="Atraso ou falta de entrega" href="/acompanhar" acao="Acompanhar o meu pedido">
             Consulta o estado do pedido e confirma o destino e a previsão com a equipa.
           </InfoCartao>
-          <InfoCartao icone={<RotateCcw size={20} strokeWidth={1.5} />} titulo="Devolução ou reembolso" href="/politicas#devolucoes" acao="Consultar condições">
+          <InfoCartao icone={<RotateCcw size={20} strokeWidth={1.5} />} titulo="Devolução ou reembolso" href="/politicas?tab=devolucoes" acao="Consultar condições">
             A equipa confirma a elegibilidade, os passos e a solução aplicável antes do envio de retorno.
           </InfoCartao>
         </InfoGrelha>

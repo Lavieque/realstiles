@@ -77,7 +77,7 @@ export default function Nav() {
               <li><a href="https://wa.me/258878753754" target="_blank" rel="noopener noreferrer">Conversa com a Real Stiles</a></li>
               <li><Link href="/protecao-compras">Proteção de compras</Link></li>
               <li className="nav-submenu-sep" />
-              <li><Link href="/politicas#privacidade">Política de privacidade</Link></li>
+              <li><Link href="/politicas?tab=privacidade">Política de privacidade</Link></li>
               <li><Link href="/termos">Termos e condições</Link></li>
               <li><Link href="/informacao-empresa">Informação da empresa</Link></li>
               <li><Link href="/parcerias">Parcerias</Link></li>

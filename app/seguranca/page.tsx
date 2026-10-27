@@ -22,7 +22,7 @@ export default function SegurancaPage() {
 
       <InfoSecao eyebrow="Informação que protege" titulo="Pequenos cuidados. " destaque="Mais confiança.">
         <InfoGrelha colunas={3}>
-          <InfoCartao icone={<ShieldCheck size={20} strokeWidth={1.5} />} titulo="Protege os teus dados." href="/politicas#privacidade" acao="Ver privacidade">
+          <InfoCartao icone={<ShieldCheck size={20} strokeWidth={1.5} />} titulo="Protege os teus dados." href="/politicas?tab=privacidade" acao="Ver privacidade">
             Partilha apenas o necessário para a compra e a entrega. Consulta como são usados os teus dados.
           </InfoCartao>
           <InfoCartao icone={<KeyRound size={20} strokeWidth={1.5} />} titulo="Cuida do teu acesso." href="/conta" acao="Ajuda com a conta">

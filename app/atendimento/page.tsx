@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 const TEMAS = [
   { icone: PackageSearch, t: 'As minhas encomendas', c: 'Encontrar, acompanhar ou alterar o teu pedido.', href: '/acompanhar', acao: 'Acompanhar encomenda' },
   { icone: Truck, t: 'Envio e entrega', c: 'Preparação do pedido, envio, prazos e custos.', href: '/entregas', acao: 'Ver entregas' },
-  { icone: RotateCcw, t: 'Devoluções e reembolsos', c: 'Como pedir uma análise, devolução ou reembolso.', href: '/politicas#devolucoes', acao: 'Ler condições' },
+  { icone: RotateCcw, t: 'Devoluções e reembolsos', c: 'Como pedir uma análise, devolução ou reembolso.', href: '/politicas?tab=devolucoes', acao: 'Ler condições' },
   { icone: ShoppingBag, t: 'Produtos e tamanhos', c: 'Disponibilidade, tamanho e ajuste, informação do artigo.', href: '/loja', acao: 'Explorar produtos' },
   { icone: User, t: 'A minha conta', c: 'Login, registo e preferências da conta.', href: '/conta', acao: 'Abrir a conta' },
-  { icone: CreditCard, t: 'Pagamentos e promoções', c: 'Formas de pagamento e artigos em promoção.', href: '/politicas#compras', acao: 'Ver condições de compra' },
+  { icone: CreditCard, t: 'Pagamentos e promoções', c: 'Formas de pagamento e artigos em promoção.', href: '/politicas?tab=compras', acao: 'Ver condições de compra' },
   { icone: ShieldCheck, t: 'Segurança e privacidade', c: 'Protege os teus dados e confirma antes de pagar.', href: '/seguranca', acao: 'Centro de segurança' },
   { icone: FileText, t: 'Políticas e termos', c: 'Políticas da loja e termos e condições.', href: '/termos', acao: 'Consultar termos' },
   { icone: Handshake, t: 'Feedback e parcerias', c: 'Sugestões, reclamações e propostas de parceria.', href: '/parcerias', acao: 'Ver parcerias' },
