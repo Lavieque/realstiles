@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
       notas: body?.notas,
       pagamento_metodo: body?.pagamento_metodo,
       forma_entrega: body?.forma_entrega,
+      provincia: body?.provincia,
+      zona: body?.zona,
     });
     // Avisa o cliente de que falta pagar. O email não pode fazer a criação
     // falhar, por isso os erros ficam no log e a resposta segue na mesma.

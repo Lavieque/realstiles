@@ -162,6 +162,9 @@ export default function AdminConteudoPage() {
 
         <div className="form-card">
           <h2>Formas de entrega</h2>
+          <p style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 12 }}>
+            O custo de entrega vem das tarifas por província, modo e zona (menu Taxas de importação, Tarifas de entrega). Esta taxa única só se aplica enquanto não houver tarifas configuradas.
+          </p>
           <div className="form-group">
             <label>Taxa de entrega ao domicílio (MZN)</label>
             <input

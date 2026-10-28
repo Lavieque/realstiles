@@ -55,3 +55,34 @@ export function descricaoTarifa(t: TarifaEntrega): string {
   const zona = t.zona ? ` · ${ZONAS[t.zona]}` : '';
   return `${t.provincia} · ${MODALIDADES[t.modalidade]}${zona}`;
 }
+
+export interface EntregaCalculada {
+  taxa: number;
+  // Sem tarifa fixa para o destino: não entra no total, combina-se com o cliente
+  sobConsulta: boolean;
+}
+
+// Taxa de entrega de uma encomenda. É a única fonte do valor cobrado: corre no
+// servidor tanto ao criar a encomenda como na estimativa do checkout.
+//
+// - recolha: tarifa da província se existir, senão grátis
+// - terminal e domicílio: tarifa da província (+ zona no domicílio); sem
+//   tarifa fica sob consulta
+// - sem nenhuma tarifa configurada em config/entregas, vale o regime antigo
+//   (taxa única de domicílio de config/site)
+export function entregaDaEncomenda(
+  tarifas: TarifaEntrega[],
+  p: PedidoEntrega,
+  legado: { taxa: number; sobConsulta: boolean },
+): EntregaCalculada {
+  if (tarifas.length === 0) {
+    if (p.modalidade === 'recolha') return { taxa: 0, sobConsulta: false };
+    if (p.modalidade === 'terminal') return { taxa: 0, sobConsulta: true };
+    return legado.sobConsulta ? { taxa: 0, sobConsulta: true } : { taxa: Math.max(0, legado.taxa), sobConsulta: false };
+  }
+  const valor = calcularEntrega(tarifas, p);
+  if (valor === null) {
+    return p.modalidade === 'recolha' ? { taxa: 0, sobConsulta: false } : { taxa: 0, sobConsulta: true };
+  }
+  return { taxa: valor, sobConsulta: false };
+}

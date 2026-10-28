@@ -30,6 +30,8 @@ export interface Produto {
   fonte?: string;
   url_origem?: string;
   stock: number;
+  // Peso de uma unidade em kg (opcional): soma-se ao custo por kg da entrega
+  peso_kg?: number;
   imagens: string[];
   // URL do vídeo (Cloudinary), mostrado na galeria depois das imagens
   video?: string | null;

@@ -6,7 +6,9 @@ import { Loader2, XCircle, Check, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
 import { criarEncomendaPendente, FORMAS_ENTREGA } from '@/lib/encomendas';
 import type { FormaEntrega } from '@/lib/encomendas';
-import { getConfig, DEFAULTS } from '@/lib/config-site';
+import { getConfig } from '@/lib/config-site';
+import { PROVINCIAS, ZONAS } from '@/lib/entregas';
+import type { TarifaEntrega, Zona } from '@/lib/entregas';
 import { onAuthChange, getPerfil } from '@/lib/auth';
 import { mostrarToast } from '@/components/Toast';
 import type { User } from 'firebase/auth';
@@ -27,13 +29,16 @@ export default function CheckoutPage() {
   const subtotal = getTotalPreco(items);
   const [passo, setPasso] = useState(1);
   const [formaEntrega, setFormaEntrega] = useState<FormaEntrega>('recolha');
-  const [entregaConfig, setEntregaConfig] = useState({
-    taxa: DEFAULTS.entrega_domicilio_taxa,
-    sobConsulta: DEFAULTS.entrega_domicilio_sob_consulta,
-    recolhaInfo: DEFAULTS.entrega_recolha_info,
-  });
-  const entregaSobConsulta = formaEntrega === 'domicilio' && entregaConfig.sobConsulta;
-  const taxaEntrega = formaEntrega === 'domicilio' && !entregaConfig.sobConsulta ? entregaConfig.taxa : 0;
+  const [recolhaInfo, setRecolhaInfo] = useState('');
+  const [provincia, setProvincia] = useState('');
+  const [zona, setZona] = useState<Zona>('urbana');
+  const [tarifas, setTarifas] = useState<TarifaEntrega[]>([]);
+  // Estimativa calculada no servidor (mesma função que fixa a taxa da encomenda)
+  const [entrega, setEntrega] = useState<{ taxa: number; sobConsulta: boolean } | null>(null);
+  const [aCalcular, setACalcular] = useState(false);
+  const destinoCompleto = formaEntrega === 'recolha' || !!provincia;
+  const entregaSobConsulta = !!entrega?.sobConsulta;
+  const taxaEntrega = entrega?.taxa ?? 0;
   const total = subtotal + taxaEntrega;
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,13 +70,39 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     getConfig()
-      .then(c => setEntregaConfig({
-        taxa: Math.max(0, Number(c.entrega_domicilio_taxa) || 0),
-        sobConsulta: !!c.entrega_domicilio_sob_consulta,
-        recolhaInfo: c.entrega_recolha_info || '',
-      }))
+      .then(c => setRecolhaInfo(c.entrega_recolha_info || ''))
       .catch(() => {});
+    fetch('/api/config/entregas').then(r => r.json()).then(d => setTarifas(d.itens || [])).catch(() => {});
   }, []);
+
+  // Recalcula a entrega no servidor sempre que muda o carrinho ou o destino
+  const chaveItens = JSON.stringify(items.map(i => [i.produto_id, i.quantidade]));
+  useEffect(() => {
+    if (!destinoCompleto || items.length === 0) { setEntrega(null); return; }
+    const ctrl = new AbortController();
+    setACalcular(true);
+    fetch('/api/entregas/calcular', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        itens: items.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade })),
+        forma_entrega: formaEntrega, provincia, zona,
+      }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setEntrega({ taxa: Number(d.taxa) || 0, sobConsulta: !!d.sobConsulta }))
+      .catch(e => { if (e?.name !== 'AbortError') setEntrega(null); })
+      .finally(() => { if (!ctrl.signal.aborted) setACalcular(false); });
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveItens, formaEntrega, provincia, zona, destinoCompleto]);
+
+  // "Desde" de cada modalidade, a partir das tarifas configuradas
+  const desde = (m: FormaEntrega): number | null => {
+    const precos = tarifas.filter(t => t.modalidade === m).map(t => t.preco_base);
+    return precos.length ? Math.min(...precos) : null;
+  };
 
   // Métodos disponíveis no site; se o escolhido não estiver disponível, passa ao primeiro
   useEffect(() => {
@@ -83,7 +114,7 @@ export default function CheckoutPage() {
 
   // Encomenda já criada para este carrinho: "Tentar de novo" depois de uma
   // tentativa falhada paga a mesma, em vez de criar outra
-  const assinaturaCarrinho = JSON.stringify([items.map(i => [i.key, i.quantidade, i.preco]), formaEntrega, total]);
+  const assinaturaCarrinho = JSON.stringify([items.map(i => [i.key, i.quantidade, i.preco]), formaEntrega, provincia, zona, form.cidade, form.morada, total]);
   const encomendaCriadaRef = useRef<{ id: string; assinatura: string } | null>(null);
 
   const handleCheckout = async () => {
@@ -96,7 +127,9 @@ export default function CheckoutPage() {
         itens: items,
         // Ponto de recolha não tem morada do cliente
         morada: formaEntrega === 'domicilio' ? form.morada : '',
-        cidade: formaEntrega === 'domicilio' ? form.cidade : '',
+        cidade: formaEntrega !== 'recolha' ? form.cidade : '',
+        provincia: formaEntrega !== 'recolha' ? provincia : '',
+        zona: formaEntrega === 'domicilio' ? zona : '',
         telefone: form.telefone,
         notas: form.notas,
         pagamento_metodo: metodo,
@@ -144,7 +177,7 @@ export default function CheckoutPage() {
   }
 
   const movelOuCartao = INFO_METODO[metodo];
-  const textoEntrega = entregaSobConsulta ? 'Sob consulta' : taxaEntrega > 0 ? null : 'Grátis';
+  const textoEntrega = !destinoCompleto ? 'Escolhe o destino' : aCalcular ? 'A calcular…' : entregaSobConsulta ? 'Sob consulta' : taxaEntrega > 0 ? null : 'Grátis';
 
   return (
     <div className="page-wrapper">
@@ -236,34 +269,60 @@ export default function CheckoutPage() {
                   <label style={{ marginBottom: 10, display: 'block' }}>Como queres receber? *</label>
                   <div className="entrega-opcoes">
                     {(Object.keys(FORMAS_ENTREGA) as FormaEntrega[]).map(fe => {
-                      const sobConsulta = fe === 'domicilio' && entregaConfig.sobConsulta;
-                      const taxa = fe === 'domicilio' && !sobConsulta ? entregaConfig.taxa : 0;
+                      const d = desde(fe);
+                      const preco = fe === 'recolha' ? 'Grátis' : d !== null ? `Desde ${d.toFixed(2)} MZN` : 'Sob consulta';
                       return (
                         <label key={fe} className={`entrega-opcao${formaEntrega === fe ? ' active' : ''}`}>
                           <input type="radio" name="forma_entrega" checked={formaEntrega === fe} onChange={() => setFormaEntrega(fe)} />
                           <span className="entrega-opcao-nome">{FORMAS_ENTREGA[fe]}</span>
-                          <span className="entrega-opcao-preco">{sobConsulta ? 'Sob consulta' : taxa > 0 ? `+${taxa.toFixed(2)} MZN` : 'Grátis'}</span>
+                          <span className="entrega-opcao-preco">{preco}</span>
                         </label>
                       );
                     })}
                   </div>
                   {formaEntrega === 'recolha' && (
                     <p className="entrega-recolha-info">
-                      {entregaConfig.recolhaInfo || 'Combinamos contigo o ponto de recolha pelo telefone de contacto.'}
+                      {recolhaInfo || 'Combinamos contigo o ponto de recolha pelo telefone de contacto.'}
                     </p>
                   )}
                 </div>
-                {formaEntrega === 'domicilio' && (
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label>Morada / ponto de referência *</label>
-                      <input required value={form.morada} onChange={e => setForm(f => ({ ...f, morada: e.target.value }))} placeholder="Rua, número, bairro" />
+                {formaEntrega !== 'recolha' && (
+                  <>
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label>Província *</label>
+                        <select required value={provincia} onChange={e => setProvincia(e.target.value)}>
+                          <option value="">Selecciona...</option>
+                          {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>{formaEntrega === 'terminal' ? 'Cidade de levantamento *' : 'Cidade / distrito *'}</label>
+                        <input required value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} placeholder="Ex: Maputo" />
+                      </div>
                     </div>
-                    <div className="form-group">
-                      <label>Cidade / distrito *</label>
-                      <input required value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} placeholder="Ex: Maputo" />
-                    </div>
-                  </div>
+                    {formaEntrega === 'domicilio' && (
+                      <>
+                        <div className="form-group">
+                          <label>Morada / ponto de referência *</label>
+                          <input required value={form.morada} onChange={e => setForm(f => ({ ...f, morada: e.target.value }))} placeholder="Rua, número, bairro" />
+                        </div>
+                        <div className="form-group">
+                          <label>Zona da morada</label>
+                          <select value={zona} onChange={e => setZona(e.target.value as Zona)}>
+                            {(Object.keys(ZONAS) as Exclude<Zona, ''>[]).map(z => <option key={z} value={z}>{ZONAS[z]}</option>)}
+                          </select>
+                        </div>
+                      </>
+                    )}
+                    {destinoCompleto && !aCalcular && entrega && (
+                      <p className="checkout-nota">
+                        {entrega.sobConsulta
+                          ? 'Ainda não temos preço fixo para este destino. A equipa confirma o valor contigo antes de avançar, e não entra no total.'
+                          : <>Entrega estimada: <Preco valor={entrega.taxa} />. O valor final é confirmado ao criar a encomenda.</>}
+                      </p>
+                    )}
+                  </>
                 )}
                 <div className="form-group">
                   <label>Telemóvel *</label>
@@ -329,6 +388,7 @@ export default function CheckoutPage() {
                     <dd>
                       {FORMAS_ENTREGA[formaEntrega]}
                       {formaEntrega === 'domicilio' && <><br />{form.morada}, {form.cidade}</>}
+                      {formaEntrega !== 'recolha' && <><br />{formaEntrega === 'terminal' ? `Terminal em ${form.cidade}` : ''}{provincia ? ` · ${provincia}` : ''}</>}
                       <br />Telemóvel {form.telefone}
                       {form.email && <><br />{form.email}</>}
                       {form.notas && <><br /><em>{form.notas}</em></>}

@@ -271,6 +271,7 @@ export default function AdminProdutosPage() {
                   )}
                 </div>
                 <div className="form-group"><label>Stock</label><input type="number" value={seleccionado.stock || ''} onChange={f('stock')} /></div>
+                <div className="form-group"><label>Peso por unidade (kg, opcional)</label><input type="number" step="0.01" min="0" value={seleccionado.peso_kg || ''} onChange={f('peso_kg')} placeholder="Ex: 0,5" /></div>
               </div>
               {seleccionado.url_origem && (
                 <div className="form-group">
