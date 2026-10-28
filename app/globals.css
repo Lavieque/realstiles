@@ -15,7 +15,7 @@
   --red: #e53e3e;
   --green: #38a169;
   --banner-h: 0px;
-  --nav-top-h: 34px;
+  --nav-top-h: 0px;
   --nav-main-h: 76px;
   --nav-sub-h: 48px;
   --nav-bar-h: calc(var(--nav-top-h) + var(--nav-main-h) + var(--nav-sub-h) + 2px);
@@ -423,10 +423,6 @@ footer img { mix-blend-mode: screen; }
 footer {
   background: var(--black); color: rgba(255,255,255,0.6);
   padding: 64px 5% 24px; margin-top: 80px;
-}
-.footer-grid {
-  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1.2fr;
-  gap: 40px; margin-bottom: 48px;
 }
 footer h4 {
   color: white; font-size: 12px; font-weight: 600; margin-bottom: 18px;
@@ -1120,7 +1116,7 @@ tr:hover td { background: var(--gray-100); }
 }
 @media (max-width: 768px) {
   :root { --nav-top-h: 0px; --nav-main-h: 116px; --nav-sub-h: 0px; --nav-bar-h: 117px; }
-  .nav-topbar, .nav-prazo, .nav-logo-sub, .nav-actions .nav-icon-btn[href="/acompanhar"] { display: none; }
+  .nav-regiao-rotulo-btn, .nav-prazo, .nav-logo-sub, .nav-actions .nav-icon-btn[href="/acompanhar"] { display: none; }
   .nav-main { gap: 8px; padding: 0 12px; flex-wrap: wrap; }
   .nav-logo { margin-right: auto; }
   .nav-logo-nome { font-size: 22px; }
@@ -1144,7 +1140,6 @@ tr:hover td { background: var(--gray-100); }
   .nav-so-mobile { display: block; }
   .nav-menu-btn { display: flex; }
   .nav-dropdown-conta .nav-submenu { right: -40px; }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
   .produtos-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
 @media (max-width: 480px) {
@@ -2039,9 +2034,6 @@ button.btn-escuro { border: none; cursor: pointer; font-family: inherit; }
 @media (max-width: 700px) { .nav-topbar > span { display: none; } .nav-topbar { justify-content: flex-end; } .nav-topbar-dir > a { display: none; } }
 
 /* rodapé: parceiros, pagamentos e app */
-.footer-extra { border-top: 1px solid rgba(255,255,255,0.12); padding: 32px 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; margin-bottom: 8px; }
-.footer-extra h4 { margin-bottom: 14px; }
-.footer-extra p { font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
 /* faixa de parceiros acima do rodapé */
 .parceiros-faixa { background: #f3f0e7; border-top: 1px solid var(--border); padding: 34px 0; margin-top: 80px; }
 .parceiros-faixa + footer { margin-top: 0; }
@@ -2054,17 +2046,13 @@ button.btn-escuro { border: none; cursor: pointer; font-family: inherit; }
 .parceiro-marca { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; font-weight: 700; font-size: 15px; }
 .parceiro-marca img { height: 100%; width: auto; max-width: 140px; object-fit: contain; }
 .parceiro-marca img[src$=".svg"] { height: 36px; }
+.parceiro-marca img[src$=".jpg"] { height: 56px; }
 .parceiro-legenda { font-size: 12px; color: var(--muted); }
 a.parceiro-cartao:hover .parceiro-legenda { color: var(--black); }
 @media (max-width: 860px) {
   .parceiros-faixa-interior { grid-template-columns: 1fr; gap: 20px; }
   .parceiros-faixa ul { grid-template-columns: repeat(2, 1fr); }
 }
-.footer-pagamentos { display: flex; flex-wrap: wrap; gap: 10px; }
-.footer-pagamentos img { mix-blend-mode: normal; }
-.footer-pagamentos > span { align-items: center; }
-.footer-pagamentos > span { background: white; border-radius: 6px; padding: 6px 12px; display: inline-flex; }
-@media (max-width: 860px) { .footer-extra { grid-template-columns: 1fr; gap: 28px; } }
 
 /* navegação inferior em mobile */
 .nav-inferior { display: none; }
@@ -2078,3 +2066,51 @@ a.parceiro-cartao:hover .parceiro-legenda { color: var(--black); }
 }
 
 .pol-corpo h3 { font-family: var(--font-playfair, 'Playfair Display'), serif; font-size: 1.1rem; margin: 28px 0 8px; }
+
+/* rodapé */
+.rodape-colunas { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.35fr 1.1fr 0.9fr 1.1fr; gap: 46px; padding-bottom: 42px; align-items: start; }
+.rodape-coluna h4, .rodape-social h4, .rodape-pagamentos h4 { margin-bottom: 18px; font-size: 16px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+.rodape-coluna ul { gap: 4px; }
+.rodape-coluna ul a { display: block; padding: 5px 0; font-size: 14px; line-height: 1.45; }
+.rodape-social, .rodape-pagamentos { margin-top: 26px; }
+.rodape-social h4, .rodape-pagamentos h4 { margin-bottom: 12px; }
+.rodape-social-icones { display: flex; flex-wrap: wrap; gap: 4px; margin-left: -7px; }
+.rodape-social-icones a, .rodape-social-icones .sem-ligacao { width: 44px; height: 44px; padding: 8px; display: flex; align-items: center; justify-content: center; color: white; border-radius: 6px; }
+.rodape-social-icones svg { width: 28px; height: 28px; fill: currentColor; }
+.rodape-social-icones a:hover { color: var(--accent); background: rgba(255,255,255,0.05); }
+.rodape-social-icones .sem-ligacao { opacity: 0.85; cursor: default; }
+.rodape-nota { font-size: 11px; line-height: 1.5; margin: 8px 0 0; color: rgba(255,255,255,0.55); }
+.footer-pagamentos { display: flex; flex-wrap: wrap; gap: 6px; }
+.footer-pagamentos > span { background: white; border-radius: 3px; padding: 5px; height: 40px; min-width: 50px; display: inline-flex; align-items: center; justify-content: center; }
+.footer-pagamentos img { mix-blend-mode: normal; height: 30px; width: auto; max-width: 64px; }
+.rodape-contacto > a, .rodape-local { display: flex; align-items: center; gap: 11px; font-size: 14px; line-height: 1.45; color: rgba(255,255,255,0.75); text-decoration: none; padding: 6px 0; margin: 0; overflow-wrap: anywhere; }
+.rodape-contacto > a:hover { color: var(--accent); }
+.rodape-contacto svg { flex: 0 0 auto; color: #d4bb80; }
+.rodape-local { align-items: flex-start; margin-top: 6px; }
+.rodape-contacto .rodape-cta { display: inline-flex; width: auto; border: 1px solid rgba(255,255,255,0.4); border-radius: 25px; padding: 10px 20px; margin-top: 18px; min-height: 44px; color: white; font-weight: 600; }
+.rodape-contacto .rodape-cta svg { color: white; }
+.rodape-atalhos { display: flex; gap: 4px; width: 192px; max-width: 100%; margin-top: 24px; padding: 4px; background: white; border-radius: 12px; }
+.rodape-atalhos a { display: flex; align-items: center; text-decoration: none; flex: 1 1 0; flex-direction: column; justify-content: center; gap: 7px; min-height: 70px; padding: 11px 6px; color: var(--black); font-size: 12px; text-align: center; border-radius: 8px; }
+.rodape-atalhos a svg { color: var(--black); }
+.rodape-atalhos a:hover { background: #f2efe6; color: var(--black); }
+.rodape-fundo { max-width: 1200px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 32px; font-size: 12px; }
+.rodape-legal { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 23px; }
+.rodape-legal a { color: inherit; text-decoration: underline; text-underline-offset: 3px; min-height: 34px; display: flex; align-items: center; }
+@media (max-width: 1150px) { .rodape-colunas { gap: 26px; } }
+@media (max-width: 900px) { .rodape-colunas { grid-template-columns: 1fr 1fr; gap: 35px 40px; } }
+@media (max-width: 480px) { .rodape-colunas { grid-template-columns: 1fr; gap: 27px; } }
+
+/* parceiros de entrega (página de parcerias) */
+.parceiros-entrega { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.parceiros-entrega a, .parceiros-entrega div { display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none; color: var(--muted); font-size: 13px; }
+.parceiros-entrega img { height: 84px; width: auto; max-width: 240px; object-fit: contain; border-radius: 8px; }
+
+/* lista de perguntas dentro de um cartão de tema */
+.info-cartao-lista { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.info-cartao-lista a { font-size: 14px; color: var(--muted); text-decoration: none; }
+.info-cartao-lista a:hover { color: var(--black); text-decoration: underline; }
+
+/* atendimento e região no cabeçalho */
+.nav-actions .nav-top-dropdown { display: flex; }
+.nav-actions .nav-top-btn { color: var(--black); font-size: 13px; font-weight: 600; gap: 5px; padding: 6px 4px; }
+.nav-actions .nav-top-dropdown .nav-submenu { right: 0; left: auto; }

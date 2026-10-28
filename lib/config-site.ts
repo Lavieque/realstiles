@@ -40,6 +40,12 @@ export const DEFAULTS = {
   empresa_morada:  '',
   empresa_cidade:  '',
   empresa_email:   '',
+  // Perfis nas redes sociais (rodape). Vazio = icone sem ligacao.
+  social_instagram: '',
+  social_facebook:  '',
+  social_x:         '',
+  social_tiktok:    '',
+  social_youtube:   '',
   fatura_condicoes: 'Envio por transportadora. Prazo estimado: 3 a 5 dias úteis.',
   // Formas de entrega no checkout
   entrega_domicilio_taxa: 25,

@@ -132,6 +132,18 @@ export default function AdminConteudoPage() {
         </div>
 
         <div className="form-card">
+          <h2>Redes sociais</h2>
+          <p style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 12 }}>Ligações completas (https://…). Os ícones do rodapé só ficam clicáveis nos perfis preenchidos.</p>
+          <div className="form-grid-2">
+            <div className="form-group"><label>Instagram</label><input value={config.social_instagram} onChange={f('social_instagram')} placeholder="https://instagram.com/…" /></div>
+            <div className="form-group"><label>Facebook</label><input value={config.social_facebook} onChange={f('social_facebook')} placeholder="https://facebook.com/…" /></div>
+            <div className="form-group"><label>X</label><input value={config.social_x} onChange={f('social_x')} placeholder="https://x.com/…" /></div>
+            <div className="form-group"><label>TikTok</label><input value={config.social_tiktok} onChange={f('social_tiktok')} placeholder="https://tiktok.com/@…" /></div>
+          </div>
+          <div className="form-group"><label>YouTube</label><input value={config.social_youtube} onChange={f('social_youtube')} placeholder="https://youtube.com/@…" /></div>
+        </div>
+
+        <div className="form-card">
           <h2>Dados de Fatura / Recibo</h2>
           <div className="form-group"><label>Nome da empresa</label><input value={config.empresa_nome} onChange={f('empresa_nome')} /></div>
           <div className="form-grid-2">
