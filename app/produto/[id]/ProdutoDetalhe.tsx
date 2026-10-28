@@ -439,6 +439,21 @@ export default function ProdutoDetalhe({
               </div>
             </div>
 
+            <div className="faq" style={{ marginTop: 16 }}>
+              <details>
+                <summary>Como funciona a encomenda</summary>
+                <p>Escolhe a variante e confirma os dados de entrega. A encomenda avança após confirmação do pagamento e da disponibilidade do fornecedor, e podes acompanhá-la em <Link href="/acompanhar">Acompanhar encomenda</Link>.</p>
+              </details>
+              <details>
+                <summary>Entregas e devoluções</summary>
+                <p>Todos os produtos são por encomenda, com prazo final estimado de 15 a 30 dias úteis. Vê os custos em <Link href="/entregas">Entregas</Link> e as condições em <Link href="/politicas?tab=devolucoes">Devoluções e reembolsos</Link>.</p>
+              </details>
+              <details>
+                <summary>Tens alguma dúvida?</summary>
+                <p>A equipa ajuda a esclarecer medidas, tamanho, cor ou modelo antes de encomendares. <Link href="/ajuda?assunto=Produto%20e%20encomenda#mensagem">Falar com a equipa</Link>.</p>
+              </details>
+            </div>
+
             {/* Partilhar */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <a
