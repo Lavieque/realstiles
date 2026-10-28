@@ -2039,7 +2039,7 @@ button.btn-escuro { border: none; cursor: pointer; font-family: inherit; }
 @media (max-width: 700px) { .nav-topbar > span { display: none; } .nav-topbar { justify-content: flex-end; } .nav-topbar-dir > a { display: none; } }
 
 /* rodapé: parceiros, pagamentos e app */
-.footer-extra { border-top: 1px solid rgba(255,255,255,0.12); padding: 32px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin-bottom: 8px; }
+.footer-extra { border-top: 1px solid rgba(255,255,255,0.12); padding: 32px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; margin-bottom: 8px; }
 .footer-extra h4 { margin-bottom: 14px; }
 .footer-extra p { font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
 .footer-parceiros { display: flex; flex-direction: column; gap: 8px; }
@@ -2048,9 +2048,6 @@ button.btn-escuro { border: none; cursor: pointer; font-family: inherit; }
 .footer-parceiros small { display: block; font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.55); }
 .footer-pagamentos { display: flex; flex-wrap: wrap; gap: 10px; }
 .footer-pagamentos > span { background: white; border-radius: 6px; padding: 6px 12px; display: inline-flex; }
-.footer-lojas { display: flex; flex-wrap: wrap; gap: 10px; }
-.footer-loja { border: 1px solid rgba(255,255,255,0.22); border-radius: 6px; padding: 8px 14px; font-size: 13px; color: white; display: flex; flex-direction: column; line-height: 1.3; }
-.footer-loja small { font-size: 10.5px; color: rgba(255,255,255,0.55); }
 @media (max-width: 860px) { .footer-extra { grid-template-columns: 1fr; gap: 28px; } }
 
 /* navegação inferior em mobile */

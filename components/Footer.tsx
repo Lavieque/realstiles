@@ -74,14 +74,6 @@ export default async function Footer() {
             {METODOS_PAGAMENTO.map(m => <span key={m}><MetodoPagamentoLogo metodo={m} altura={22} /></span>)}
           </div>
         </div>
-        <div>
-          <h4>A nossa app</h4>
-          <div className="footer-lojas">
-            <span className="footer-loja"><small>Descarregar na</small>App Store</span>
-            <span className="footer-loja"><small>Obtenha-o na</small>Google Play</span>
-          </div>
-          <p style={{ marginTop: 10 }}>Em breve.</p>
-        </div>
       </div>
       <div className="footer-bottom">
         <span>{config.copyright}</span>
