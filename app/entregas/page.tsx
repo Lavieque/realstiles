@@ -36,7 +36,7 @@ function desde(tarifas: TarifaEntrega[], m: Modalidade): number | null {
 export default async function EntregasPage({ searchParams }: { searchParams: { calcular?: string } }) {
   if (searchParams.calcular === '1') redirect('/entregas#calculadora');
   const [tarifas, config] = await Promise.all([getTarifas(), getConfigSSR()]);
-  const cidade = (config.empresa_cidade || '').split(',')[0].trim() || 'a nossa loja';
+  const cidade = /chimoio/i.test(`${config.empresa_morada} ${config.empresa_cidade}`) ? 'Chimoio' : (config.empresa_cidade || '').split(',')[0].trim() || 'a nossa loja';
   const dTerminal = desde(tarifas, 'terminal');
   const dDomicilio = desde(tarifas, 'domicilio');
 

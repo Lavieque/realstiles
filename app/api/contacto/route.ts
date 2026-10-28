@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   const email = String(body.email ?? '').trim().slice(0, 160);
   const telefone = String(body.telefone ?? '').trim().slice(0, 40);
   const assunto = String(body.assunto ?? '').trim().slice(0, 160);
+  const referencia = String(body.referencia ?? '').trim().slice(0, 60);
   const mensagem = String(body.mensagem ?? '').trim().slice(0, 5000);
 
   if (!nome || !mensagem) return NextResponse.json({ error: 'Indica o nome e a mensagem' }, { status: 400 });
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
 
   const ref = await adminDb.collection('contactos').add({
-    nome, email, telefone, assunto, mensagem,
+    nome, email, telefone, assunto, referencia, mensagem,
     lida: false,
     criado_em: FieldValue.serverTimestamp(),
   });
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
         ${email ? `<p><strong>Email:</strong> ${esc(email)}</p>` : ''}
         ${telefone ? `<p><strong>Telefone:</strong> ${esc(telefone)}</p>` : ''}
         ${assunto ? `<p><strong>Assunto:</strong> ${esc(assunto)}</p>` : ''}
+        ${referencia ? `<p><strong>Referência:</strong> ${esc(referencia)}</p>` : ''}
         <div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;font-size:14px;line-height:1.7;">${escMultilinha(mensagem)}</div>
         <p style="margin-top:20px;">
           <a href="${LOJA_URL}/admin/contactos" style="background:#0d1347;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Ver no painel admin</a>

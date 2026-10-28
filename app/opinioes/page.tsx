@@ -2,55 +2,14 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { serializar } from '@/lib/serializar';
+import { getOpinioes } from '@/lib/opinioes';
 import Estrelas from '@/components/Estrelas';
 import { InfoHero, InfoSecao, InfoGrelha } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
-  title: 'Opiniões dos clientes — Real Stiles',
+  title: 'Opiniões dos produtos — Real Stiles',
   description: 'Avaliações de quem já recebeu os seus artigos.',
 };
-
-interface Opiniao {
-  id: string;
-  produto_id: string;
-  produto_nome: string;
-  cliente_nome: string;
-  texto: string;
-  estrelas: number;
-  criado_em: number;
-}
-
-// Avaliações aprovadas. Só percorre os produtos que já têm avaliações
-// (num_avaliacoes) em vez de depender de uma consulta de grupo de colecções.
-async function getOpinioes(): Promise<Opiniao[]> {
-  try {
-    const db = getAdminDb();
-    if (!db) return [];
-    const produtos = await db.collection('produtos').where('activo', '==', true).get();
-    const comAvaliacoes = produtos.docs.filter(d => Number(d.data().num_avaliacoes) > 0).slice(0, 60);
-    const listas = await Promise.all(comAvaliacoes.map(async p => {
-      const snap = await p.ref.collection('comentarios').where('estado', '==', 'aprovado').get();
-      return snap.docs.map(c => {
-        const d = serializar<Record<string, unknown>>(c.data());
-        return {
-          id: `${p.id}_${c.id}`,
-          produto_id: p.id,
-          produto_nome: String(p.data().nome || ''),
-          cliente_nome: String(d.cliente_nome || 'Cliente'),
-          texto: String(d.texto || ''),
-          estrelas: Number(d.estrelas) || 0,
-          criado_em: Number(d.criado_em) || 0,
-        } as Opiniao;
-      });
-    }));
-    return listas.flat().sort((a, b) => b.criado_em - a.criado_em).slice(0, 48);
-  } catch (e) {
-    console.error('[opinioes]', e);
-    return [];
-  }
-}
 
 export default async function OpinioesPage() {
   const opinioes = await getOpinioes();
@@ -61,7 +20,7 @@ export default async function OpinioesPage() {
       <InfoHero
         eyebrow="A tua experiência conta"
         titulo="Opiniões "
-        destaque="dos clientes."
+        destaque="dos produtos."
         sub="Avaliações de quem já recebeu os seus artigos."
       >
         {opinioes.length > 0 && (

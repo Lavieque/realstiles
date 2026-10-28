@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { PackageX, Clock, RotateCcw, Route } from 'lucide-react';
+import { PackageX, Clock, RotateCcw } from 'lucide-react';
 import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoPassos, InfoAjuda } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export default function ProtecaoComprasPage() {
         destaque="O nosso acompanhamento."
         sub="Informação antes de comprar. Apoio se surgir um problema com o artigo ou a entrega."
       >
-        <Link href="/politicas?tab=devolucoes" className="btn-escuro">Consultar devoluções e reembolsos</Link>
+        <Link href="/ajuda#mensagem" className="btn-escuro">Pedir apoio à compra</Link>
       </InfoHero>
 
       <InfoSecao eyebrow="Se algo não correr como esperado" titulo="Estamos aqui " destaque="para ajudar." sub="Comunica a ocorrência com a referência da encomenda. Cada pedido é analisado de acordo com a compra e as condições aplicáveis.">
@@ -40,17 +40,6 @@ export default function ProtecaoComprasPage() {
           { t: 'Recebe orientação da equipa.', c: 'A equipa analisa o caso e confirma os documentos, o transporte e os passos necessários.' },
           { t: 'Acompanha a solução.', c: 'Guarda a referência até à resolução. Troca, substituição ou reembolso são avaliados conforme o caso.' },
         ]} />
-      </InfoSecao>
-
-      <InfoSecao tom="sand" eyebrow="Um caminho claro" titulo="Da escolha " destaque="à entrega.">
-        <InfoGrelha colunas={2}>
-          <InfoCartao icone={<Route size={20} strokeWidth={1.5} />} titulo="Acompanhas cada etapa" href="/entregas" acao="Ver entregas e preços">
-            Sabes o custo antes de pagar e podes seguir o estado da encomenda até à entrega.
-          </InfoCartao>
-          <InfoCartao icone={<RotateCcw size={20} strokeWidth={1.5} />} titulo="Apoio da equipa" href="/ajuda" acao="Falar com a equipa">
-            Uma equipa próxima para esclarecer características, disponibilidade, pagamento e entrega.
-          </InfoCartao>
-        </InfoGrelha>
       </InfoSecao>
 
       <InfoAjuda />

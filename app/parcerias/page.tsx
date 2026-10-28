@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Handshake, Truck, Mail } from 'lucide-react';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoAjuda } from '@/components/InfoPagina';
@@ -22,7 +23,18 @@ export default async function ParceriasPage() {
         titulo="Boas ligações. "
         destaque="Melhores experiências."
         sub="A Real Stiles aproxima produtos, pessoas e serviços para acompanhar cada encomenda."
-      />
+      >
+        <Link href="/entregas" className="btn-escuro">Conhecer a operação de entrega</Link>
+      </InfoHero>
+
+      <InfoSecao eyebrow="Parceiros de entrega" titulo="Unidos no " destaque="caminho até ti." sub="A Real Stiles trabalha com a CityLink e a TMT Logistics para acompanhar o transporte e a entrega. A cobertura, a modalidade e os custos são confirmados com cada pedido.">
+        <div className="parceiros-entrega">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <a href="https://citylink.co.mz/" target="_blank" rel="noopener noreferrer"><img src="/img/partner-citylink.jpg" alt="CityLink" /><span>Página oficial ›</span></a>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div><img src="/img/partner-tmt-logistics.png" alt="TMT Logistics" /></div>
+        </div>
+      </InfoSecao>
 
       <InfoSecao eyebrow="Trabalha connosco" titulo="Apresenta a tua " destaque="proposta.">
         <InfoGrelha colunas={2}>

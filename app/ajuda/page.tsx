@@ -14,19 +14,15 @@ export const metadata: Metadata = {
 };
 
 const FAQ: { p: string; r: React.ReactNode }[] = [
-  { p: 'Como faço a minha primeira compra?', r: <>Escolhe o produto, a variante (tamanho, cor) e adiciona ao carrinho. No <Link href="/checkout">checkout</Link> indicas a entrega e o pagamento. Todos os produtos são por encomenda.</> },
-  { p: 'Posso comprar sem criar uma conta?', r: <>Sim. Podes finalizar como visitante. Com conta, guardas o histórico das tuas encomendas.</> },
-  { p: 'Qual é o prazo de entrega?', r: <>O prazo final estimado é de 15 a 30 dias úteis, após confirmação do pagamento e da encomenda. Vê os custos em <Link href="/entregas">Entregas</Link>.</> },
-  { p: 'Como acompanho a minha encomenda?', r: <>Em <Link href="/acompanhar">Acompanhar encomenda</Link> com a referência e o telemóvel usado na compra, ou na tua conta, em <Link href="/encomendas">As minhas encomendas</Link>.</> },
-  { p: 'Que formas de pagamento posso escolher?', r: <>Pagas com M-Pesa, e-Mola, mKesh ou cartão, consoante o que estiver disponível no checkout.</> },
-  { p: 'Como peço uma devolução ou um reembolso?', r: <>Consulta a <Link href="/politicas">política de devoluções</Link> e contacta a equipa com a referência da encomenda. Confirmamos a elegibilidade e os passos antes do envio de retorno.</> },
-  { p: 'A equipa pode pedir o meu PIN ou código de confirmação?', r: <>Nunca. O PIN é só teu e só o inseres no teu telemóvel. Se alguém to pedir, não partilhes e fala connosco.</> },
-  { p: 'A encomenda aparece como entregue, mas não a recebi.', r: <>Contacta-nos de imediato com a referência da encomenda. Verificamos o destino e a prova de entrega. Também podes usar o <Link href="/reclamacao">livro de reclamações</Link>.</> },
-  { p: 'Não reconheço uma cobrança. O que devo fazer?', r: <>Contacta a equipa de imediato com a referência da encomenda e o valor. Não partilhes o teu PIN nem códigos de confirmação.</> },
-  { p: 'Faltam artigos na minha encomenda. Como peço ajuda?', r: <>Contacta a equipa com a referência da encomenda e fotografias da embalagem. Vê a <Link href="/protecao-compras">proteção de compras</Link>.</> },
+  { p: 'Como funciona uma compra?', r: <>Escolhe o produto, seleciona a variante e confirma os dados de entrega no <Link href="/checkout">checkout</Link>. A encomenda avança após confirmação do pagamento e da disponibilidade do fornecedor.</> },
+  { p: 'Como posso pagar?', r: <>A seleção inclui M-Pesa, e-Mola, mKesh e cartão (Visa e Mastercard), consoante o que estiver disponível no checkout.</> },
+  { p: 'Quanto tempo demora a entrega?', r: <>Todos os produtos são por encomenda. O prazo final estimado é de 15 a 30 dias úteis, após confirmação do pagamento e da encomenda, incluindo aquisição, importação e entrega final. A modalidade e o destino são confirmados com a compra. Vê os custos em <Link href="/entregas">Entregas</Link>.</> },
+  { p: 'Posso pedir um produto que não está no catálogo?', r: <>A Real Stiles faz intermediação de compras de produtos nacionais e internacionais. Fala com a equipa, indica o produto e pede confirmação de disponibilidade e condições.</> },
+  { p: 'Como peço uma devolução?', r: <>Contacta a equipa com a referência, o produto e o motivo do pedido. As condições e os prazos dependem da compra e da <Link href="/politicas?tab=devolucoes">política de devoluções</Link>.</> },
+  { p: 'Como acompanho a encomenda?', r: <>Usa a referência na página <Link href="/acompanhar">Acompanhar encomenda</Link>, ou vê as tuas compras em <Link href="/encomendas">As minhas encomendas</Link>.</> },
 ];
 
-export default async function AjudaPage({ searchParams }: { searchParams: { topic?: string } }) {
+export default async function AjudaPage({ searchParams }: { searchParams: { topic?: string; assunto?: string } }) {
   if (searchParams.topic === 'reclamacao') redirect('/reclamacao');
   const config = await getConfigSSR();
   const wa = `258${config.tel1.replace(/\D/g, '')}`;
@@ -42,6 +38,9 @@ export default async function AjudaPage({ searchParams }: { searchParams: { topi
       >
         <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="btn-escuro"><MessageCircle size={16} strokeWidth={1.5} /> Falar com a equipa</a>
         <Link href="/acompanhar" className="btn-claro">Acompanhar encomenda</Link>
+        {['Produto e encomenda', 'Troca ou devolução', 'Reclamação', 'Orçamento de entrega'].map(a => (
+          <Link key={a} href={`/ajuda?assunto=${encodeURIComponent(a)}#mensagem`} className="btn-claro">{a}</Link>
+        ))}
       </InfoHero>
 
       <InfoSecao eyebrow="Respostas, sem complicações" titulo="Talvez a resposta " destaque="esteja aqui.">
@@ -73,8 +72,8 @@ export default async function AjudaPage({ searchParams }: { searchParams: { topi
         </InfoGrelha>
       </InfoSecao>
 
-      <InfoSecao eyebrow="Prefere escrever?" titulo="Deixa a tua " destaque="mensagem.">
-        <FormContacto />
+      <InfoSecao eyebrow="Vamos conversar" titulo="Deixa a tua " destaque="mensagem.">
+        <div id="mensagem" style={{ scrollMarginTop: 120 }}><FormContacto key={searchParams.assunto || ''} assuntoInicial={searchParams.assunto || ''} /></div>
       </InfoSecao>
 
       <InfoSecao>

@@ -5,12 +5,17 @@ import { mostrarToast } from '@/components/Toast';
 
 // Formulário da página /ajuda. Envia para /api/contacto, que guarda a
 // mensagem e avisa a equipa por email.
-export default function FormContacto() {
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: '', mensagem: '' });
+export const ASSUNTOS_CONTACTO = [
+  'Produto e encomenda', 'Troca ou devolução', 'Reclamação', 'Orçamento de entrega',
+  'Imprensa e comunicação', 'Publicidade e artistas locais', 'Proposta de parceria',
+];
+
+export default function FormContacto({ assuntoInicial = '' }: { assuntoInicial?: string }) {
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: ASSUNTOS_CONTACTO.includes(assuntoInicial) ? assuntoInicial : '', referencia: '', mensagem: '' });
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
 
-  const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(v => ({ ...v, [k]: e.target.value }));
 
   const submeter = async (e: React.FormEvent) => {
@@ -42,12 +47,19 @@ export default function FormContacto() {
     <form onSubmit={submeter} style={{ maxWidth: 640 }}>
       <div className="form-grid-2">
         <div className="form-group"><label>Nome *</label><input required value={form.nome} onChange={f('nome')} /></div>
-        <div className="form-group"><label>Assunto</label><input value={form.assunto} onChange={f('assunto')} placeholder="Ex: Dúvida sobre uma encomenda" /></div>
+        <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={f('email')} placeholder="o-teu@email.com" /></div>
       </div>
       <div className="form-grid-2">
-        <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={f('email')} placeholder="o-teu@email.com" /></div>
         <div className="form-group"><label>Telefone</label><input value={form.telefone} onChange={f('telefone')} /></div>
+        <div className="form-group">
+          <label>Assunto</label>
+          <select value={form.assunto} onChange={f('assunto')}>
+            <option value="">Selecciona...</option>
+            {ASSUNTOS_CONTACTO.map(a => <option key={a}>{a}</option>)}
+          </select>
+        </div>
       </div>
+      <div className="form-group"><label>Referência da encomenda (opcional)</label><input value={form.referencia} onChange={f('referencia')} placeholder="Ex: ENC-0001" /></div>
       <p style={{ fontSize: 12, color: 'var(--gray-400)', margin: '-4px 0 12px' }}>Indica pelo menos um email ou telefone para te responder.</p>
       <div className="form-group"><label>Mensagem *</label><textarea required value={form.mensagem} onChange={f('mensagem')} style={{ minHeight: 130 }} /></div>
       <button className="btn btn-primary" type="submit" disabled={loading}>{loading ? 'A enviar...' : 'Enviar mensagem'}</button>

@@ -1,14 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Coins, LayoutGrid, Users, ArrowRight, Wallet, ShieldCheck } from 'lucide-react';
-import { InfoHero, InfoSecao, InfoCartao, InfoGrelha, InfoAjuda } from '@/components/InfoPagina';
+import { InfoHero, InfoSecao, InfoCartao, InfoGrelha } from '@/components/InfoPagina';
+import Estrelas from '@/components/Estrelas';
+import { getOpinioes } from '@/lib/opinioes';
 
 export const metadata: Metadata = {
   title: 'Porquê escolher a Real Stiles?',
   description: 'Uma seleção para o teu dia a dia, com preços em meticais e uma equipa próxima em cada etapa.',
 };
 
-export default function PorqueEscolherPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function PorqueEscolherPage() {
+  const opinioes = (await getOpinioes()).slice(0, 3);
+
   return (
     <>
       <InfoHero
@@ -46,10 +52,31 @@ export default function PorqueEscolherPage() {
         </InfoGrelha>
       </InfoSecao>
 
-      <InfoAjuda />
+      <InfoSecao eyebrow="A tua experiência conta" titulo="Opiniões que ajudam " destaque="a escolher.">
+        {opinioes.length > 0 ? (
+          <InfoGrelha colunas={3}>
+            {opinioes.map(o => (
+              <article key={o.id} className="info-cartao">
+                <Estrelas valor={o.estrelas} tamanho={16} />
+                <p>{o.texto}</p>
+                <h3 style={{ fontSize: 14 }}>{o.produto_nome}</h3>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>{o.cliente_nome}</span>
+              </article>
+            ))}
+          </InfoGrelha>
+        ) : (
+          <p className="pol-nota">Ainda sem opiniões publicadas. As avaliações de quem já recebeu os artigos aparecem aqui.</p>
+        )}
+        <div className="info-hero-acoes" style={{ marginTop: 24 }}>
+          <Link href="/opinioes" className="btn-escuro">Ver mais opiniões</Link>
+          <Link href="/encomendas" className="btn-claro">Ver as minhas compras</Link>
+        </div>
+      </InfoSecao>
 
-      <InfoSecao>
-        <p className="pol-nota">Vê também as <Link href="/opinioes" style={{ color: 'var(--black)', fontWeight: 600 }}>opiniões de quem já comprou</Link> e a nossa <Link href="/protecao-compras" style={{ color: 'var(--black)', fontWeight: 600 }}>proteção de compras</Link>.</p>
+      <InfoSecao tom="sand" titulo="Uma dúvida? " destaque="Fala connosco." sub="Ajuda a escolher, confirmar o pedido ou resolver uma ocorrência.">
+        <div className="info-hero-acoes" style={{ marginTop: 0 }}>
+          <Link href="/ajuda" className="btn-escuro">Falar com a equipa</Link>
+        </div>
       </InfoSecao>
     </>
   );
