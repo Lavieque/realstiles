@@ -212,8 +212,19 @@ export default function CheckoutPage() {
             )}
 
             {/* Passo 1 — Entrega */}
+            {pagStatus === 'idle' && passo === 1 && !user && (
+              <div className="checkout-conta">
+                <h2 className="checkout-titulo">Compra à tua maneira.</h2>
+                <p>Finaliza como visitante ou entra para usar o teu perfil.</p>
+                <div className="info-hero-acoes" style={{ marginTop: 14 }}>
+                  <a href="#checkout-form" className="btn-escuro">Continuar sem conta</a>
+                  <Link href="/conta?redirect=/checkout" className="btn-claro">Entrar</Link>
+                  <Link href="/conta?tab=registar&redirect=/checkout" className="btn-claro">Criar conta</Link>
+                </div>
+              </div>
+            )}
             {pagStatus === 'idle' && passo === 1 && (
-              <form onSubmit={e => { e.preventDefault(); setPasso(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              <form id="checkout-form" onSubmit={e => { e.preventDefault(); setPasso(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                 <h2 className="checkout-titulo">Onde entregamos?</h2>
                 {(!user || !user.email) && (
                   <div className="form-group">

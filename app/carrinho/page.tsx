@@ -34,6 +34,11 @@ export default function CarrinhoPage() {
           <p>{items.length} {items.length === 1 ? 'artigo selecionado' : 'artigos selecionados'}. Mais um passo para o teu próximo favorito.</p>
         </header>
 
+        <div className="pol-nota" style={{ margin: '0 0 20px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <Truck size={16} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span><strong style={{ color: 'var(--black)' }}>Escolhes o destino antes de confirmar.</strong> Recolha em Chimoio sem taxa de entrega. Transporte nacional calculado por rota e pacote. <Link href="/entregas" style={{ color: 'var(--black)', fontWeight: 600 }}>Consultar entregas e preços</Link></span>
+        </div>
+
         <div className="carrinho-grid">
           <ul className="carrinho-lista">
             {items.map(item => (

@@ -474,7 +474,7 @@ function ContaInner() {
           <div className="auth-marca-pontos">
             <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Entrega em todo o país</div>
             <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Pagamento seguro</div>
-            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Devoluções em 30 dias</div>
+            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Apoio em cada etapa</div>
           </div>
           {/* WhatsApp info — só aparece quando o serviço está activo */}
           {whatsappActivo && (
@@ -490,6 +490,7 @@ function ContaInner() {
           )}
         </div>
         <Link href="/" className="auth-volta-loja" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} strokeWidth={1.5} /> Voltar à loja</Link>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', margin: '8px 0 0' }}>Também podes comprar como visitante. <Link href="/loja" style={{ color: 'white', fontWeight: 600 }}>Continuar sem conta</Link></p>
       </div>
 
       <div className="auth-lado-form">
