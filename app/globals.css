@@ -2047,6 +2047,7 @@ button.btn-escuro { border: none; cursor: pointer; font-family: inherit; }
 .footer-parceiros a:hover { color: var(--accent); }
 .footer-parceiros small { display: block; font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.55); }
 .footer-pagamentos { display: flex; flex-wrap: wrap; gap: 10px; }
+.footer-pagamentos img { mix-blend-mode: normal; }
 .footer-pagamentos > span { background: white; border-radius: 6px; padding: 6px 12px; display: inline-flex; }
 @media (max-width: 860px) { .footer-extra { grid-template-columns: 1fr; gap: 28px; } }
 
