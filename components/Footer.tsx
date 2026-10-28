@@ -4,6 +4,14 @@ import { getConfigSSR } from '@/lib/config-site-ssr';
 import MetodoPagamentoLogo from '@/components/MetodoPagamentoLogo';
 import { METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
 
+// Faixa acima do rodapé. Sem `href` o parceiro aparece sem ligação.
+const PARCEIROS: { nome: string; img: string; href?: string; externo?: boolean; legenda?: string; mostraNome?: boolean }[] = [
+  { nome: 'Velsadigital', img: '/img/partner-velsadigital.svg', href: 'https://www.velsadigital.com/pt', externo: true, legenda: 'Página oficial', mostraNome: true },
+  { nome: 'ML-Transport', img: '/img/partner-ml-transport.jpg' },
+  { nome: 'TMT Logistics', img: '/img/partner-tmt-logistics.png', href: '/parcerias', legenda: 'Conhecer a parceria' },
+  { nome: 'CityLink', img: '/img/partner-citylink.jpg', href: 'https://citylink.co.mz/', externo: true, legenda: 'Página oficial' },
+];
+
 export default async function Footer() {
   const config = await getConfigSSR();
   const tel1Href = `+258${config.tel1.replace(/\D/g, '')}`;
@@ -11,6 +19,37 @@ export default async function Footer() {
   const morada = [config.empresa_morada, config.empresa_cidade].filter(Boolean).join(', ');
 
   return (
+    <>
+    <section className="parceiros-faixa" aria-labelledby="parceiros-titulo">
+      <div className="parceiros-faixa-interior">
+        <div>
+          <span className="parceiros-eyebrow">Os nossos parceiros</span>
+          <h2 id="parceiros-titulo">Juntos, vamos <em>mais longe.</em></h2>
+        </div>
+        <ul>
+          {PARCEIROS.map(p => {
+            const corpo = (
+              <>
+                <span className="parceiro-marca">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.img} alt={p.nome} />
+                  {p.mostraNome && <span>{p.nome}</span>}
+                </span>
+                {p.legenda && <span className="parceiro-legenda">{p.legenda} ›</span>}
+              </>
+            );
+            if (!p.href) return <li key={p.nome}><div className="parceiro-cartao">{corpo}</div></li>;
+            return (
+              <li key={p.nome}>
+                {p.externo
+                  ? <a className="parceiro-cartao" href={p.href} target="_blank" rel="noopener noreferrer" aria-label={`${p.nome}: ${p.legenda} (abre numa nova janela)`}>{corpo}</a>
+                  : <Link className="parceiro-cartao" href={p.href} aria-label={`${p.nome}: ${p.legenda}`}>{corpo}</Link>}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
     <footer>
       <div className="footer-grid">
         <div className="footer-logo">
@@ -62,16 +101,13 @@ export default async function Footer() {
       </div>
       <div className="footer-extra">
         <div>
-          <h4>Os nossos parceiros</h4>
-          <div className="footer-parceiros">
-            <a href="https://www.velsadigital.com/pt" target="_blank" rel="noopener noreferrer">Velsa Digital<small>Página oficial</small></a>
-            <a href="https://citylink.co.mz/" target="_blank" rel="noopener noreferrer">ML-Transport<small>Página oficial</small></a>
-          </div>
-        </div>
-        <div>
           <h4>Formas de pagamento</h4>
           <div className="footer-pagamentos">
-            {METODOS_PAGAMENTO.map(m => <span key={m}><MetodoPagamentoLogo metodo={m} altura={22} /></span>)}
+            {METODOS_PAGAMENTO.filter(m => m !== 'cartao').map(m => <span key={m}><MetodoPagamentoLogo metodo={m} altura={30} /></span>)}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <span><img src="/img/payment-mastercard.svg" alt="Mastercard" style={{ height: 30, width: 'auto' }} /></span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <span><img src="/img/payment-visa.svg" alt="Visa" style={{ height: 30, width: 'auto' }} /></span>
           </div>
         </div>
       </div>
@@ -86,5 +122,6 @@ export default async function Footer() {
         <span>{config.slogan}</span>
       </div>
     </footer>
+    </>
   );
 }
