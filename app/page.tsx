@@ -1,14 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import { Suspense } from 'react';
 import { FieldPath } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { gerarSeedAleatoria } from '@/lib/aleatorio';
 import { serializar } from '@/lib/serializar';
-import CatalogoProdutos from '@/components/CatalogoProdutos';
-import Image from '@/components/CloudImage';
+import ProdutoCard from '@/components/ProdutoCard';
+import HeroFoto from '@/components/HeroFoto';
 import Link from 'next/link';
-import { Sparkles, ShieldCheck, ArrowRight, Truck, MessageCircle } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ChevronRight, Truck, MessageCircle } from 'lucide-react';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 import type { Produto } from '@/lib/produtos';
@@ -53,23 +52,11 @@ async function getProdutosAleatoriosSSR(seed: string, max: number): Promise<Prod
   }
 }
 
-async function getCategoriasSSR(): Promise<string[]> {
-  try {
-    const db = getAdminDb();
-    if (!db) return [];
-    const snap = await db.collection('config').doc('loja').get();
-    return snap.exists ? (snap.data()?.categorias_ativas || []) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default async function HomePage() {
   const seed = gerarSeedAleatoria();
-  const [destaques, produtosIniciais, categorias, config] = await Promise.all([
+  const [destaques, produtosIniciais, config] = await Promise.all([
     getProdutosSSR({ destaque: true, max: 12 }),
     getProdutosAleatoriosSSR(seed, 12),
-    getCategoriasSSR(),
     getConfigSSR(),
   ]);
 
@@ -78,8 +65,6 @@ export default async function HomePage() {
   // "Frase um. Frase dois." → segunda frase em dourado
   const [linha1, ...resto] = config.hero_titulo.split(/(?<=\.)\s+/);
   const linha2 = resto.join(' ');
-  const foto = comImagem[0];
-  const cartao = comImagem[1];
 
   return (
     <>
@@ -100,50 +85,20 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="home-hero-visual">
-            <div className="home-hero-foto">
-              {foto && <Image src={foto.imagens[0]} alt={foto.nome} fill priority style={{ objectFit: 'cover' }} sizes="(max-width: 860px) 100vw, 50vw" />}
-            </div>
-            <div className="home-hero-selo" aria-hidden="true">
-              <Sparkles size={14} strokeWidth={1.5} />
-              <span>Estilo</span><span>Qualidade</span><span>Confiança</span>
-            </div>
-            {cartao && (
-              <Link href={`/produto/${cartao.id}`} className="home-hero-cartao">
-                <div className="home-hero-cartao-img">
-                  <Image src={cartao.imagens[0]} alt="" fill style={{ objectFit: 'cover' }} sizes="84px" />
-                </div>
-                <div>
-                  <small>Pequenos detalhes</small>
-                  <strong>{cartao.nome}</strong>
-                  <span>Descobrir <ArrowRight size={13} strokeWidth={1.75} /></span>
-                </div>
-              </Link>
-            )}
-            <span className="home-hero-lateral">{config.empresa_nome} / Seleção 2026</span>
-          </div>
+          {comImagem.length > 0 && <HeroFoto destaques={comImagem} rotulo={`${config.empresa_nome} / Seleção 2026`} />}
         </div>
       </section>
 
       {/* ANÚNCIOS / BENEFÍCIOS */}
       <AnnouncementBar />
 
-      {/* ENTREGAS + PORQUÊ */}
-      <section className="home-secao">
-        <div className="home-secao-inner home-duo">
-          <div className="home-bloco">
-            <span className="eyebrow">Entregas</span>
-            <h2 className="display-titulo">Como chega <em>até ti?</em></h2>
-            <p>Recolha na loja, levantamento em terminal ou entrega na morada. Consulta o custo antes de encomendar.</p>
-            <Link href="/entregas" className="btn-claro"><Truck size={16} strokeWidth={1.5} /> Ver entregas e preços</Link>
-          </div>
-          <div className="home-bloco escuro">
-            <span className="eyebrow">Uma equipa próxima</span>
-            <h2 className="display-titulo">Porquê escolher <em>a Real Stiles?</em></h2>
-            <p>Apoio em cada etapa da compra, da primeira escolha à entrega.</p>
-            <Link href="/porque-escolher" className="btn-claro">Saber mais <ArrowRight size={16} strokeWidth={1.75} /></Link>
-          </div>
-        </div>
+      {/* ENTREGAS + PORQUÊ + EQUIPA */}
+      <section className="home-faixa">
+        <ul className="home-faixa-inner">
+          <li><Link href="/entregas"><Truck size={22} strokeWidth={1.5} /><span><strong>Como chega até ti?</strong><small>Ver entregas e preços</small></span><ChevronRight size={16} /></Link></li>
+          <li><Link href="/porque-escolher"><ShieldCheck size={22} strokeWidth={1.5} /><span><strong>Porquê escolher</strong><small>a Real Stiles?</small></span><ChevronRight size={16} /></Link></li>
+          <li><Link href="/ajuda"><MessageCircle size={22} strokeWidth={1.5} /><span><strong>Uma equipa próxima</strong><small>Apoio em cada etapa da compra</small></span><ChevronRight size={16} /></Link></li>
+        </ul>
       </section>
 
       {/* CATÁLOGO */}
@@ -152,9 +107,16 @@ export default async function HomePage() {
           <div className="home-cabecalho">
             <span className="eyebrow">A tua seleção Real Stiles</span>
           </div>
-          <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
-            <CatalogoProdutos inicial={produtosIniciais} seedInicial={seed} categoriasIniciais={categorias} tituloDefault={config.catalogo_titulo} />
-          </Suspense>
+          {produtosIniciais.length > 0 ? (
+            <div className="produtos-grid">
+              {produtosIniciais.slice(0, 10).map(p => <ProdutoCard key={p.id} produto={p} />)}
+            </div>
+          ) : (
+            <p className="pol-nota">Ainda não há produtos disponíveis.</p>
+          )}
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <Link href="/loja" className="btn-claro">Ver mais produtos <ArrowRight size={16} strokeWidth={1.75} /></Link>
+          </div>
         </div>
       </section>
 
