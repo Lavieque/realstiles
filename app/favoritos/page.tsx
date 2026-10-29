@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Heart, ArrowRight } from 'lucide-react';
 import ProdutoCard from '@/components/ProdutoCard';
 import { useFavoritos } from '@/store/favoritos';
 import { getProduto } from '@/lib/produtos';
@@ -26,19 +27,20 @@ export default function FavoritosPage() {
   return (
     <div className="page-wrapper">
       <div className="container">
-        <div className="page-header">
-          <h1>Os meus favoritos</h1>
-          <p>{ids.length} produto{ids.length !== 1 ? 's' : ''} guardado{ids.length !== 1 ? 's' : ''}</p>
-        </div>
+        <header className="page-header">
+          <span className="eyebrow" style={{ marginBottom: 14 }}>Guarda o que combina contigo</span>
+          <h1 className="display-titulo">Os teus favoritos.</h1>
+          <p>{ids.length === 0 ? 'As boas escolhas merecem ficar por perto.' : `${ids.length} produto${ids.length !== 1 ? 's' : ''} guardado${ids.length !== 1 ? 's' : ''}.`}</p>
+        </header>
 
         {loading ? (
           <div className="loading"><div className="spinner" /> A carregar...</div>
         ) : produtos.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">♡</div>
-            <h3>Sem favoritos</h3>
-            <p>Clica no coração nos produtos para os guardar aqui.</p>
-            <Link href="/" className="btn btn-primary" style={{ marginTop: 20 }}>Ver produtos</Link>
+            <div className="icon"><Heart size={40} strokeWidth={1.5} /></div>
+            <h3>Ainda à procura do teu favorito?</h3>
+            <p>Toca no coração de um produto para o guardar aqui.</p>
+            <Link href="/loja" className="btn-escuro" style={{ marginTop: 24 }}>Explorar produtos <ArrowRight size={16} strokeWidth={1.75} /></Link>
           </div>
         ) : (
           <div className="produtos-grid">

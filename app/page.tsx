@@ -1,12 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import { Suspense } from 'react';
 import { FieldPath } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { gerarSeedAleatoria } from '@/lib/aleatorio';
 import { serializar } from '@/lib/serializar';
-import CatalogoProdutos from '@/components/CatalogoProdutos';
-import HeroSlider from '@/components/HeroSlider';
+import ProdutoCard from '@/components/ProdutoCard';
+import HeroFoto from '@/components/HeroFoto';
+import Link from 'next/link';
+import { ShieldCheck, ArrowRight, ChevronRight, Truck, MessageCircle } from 'lucide-react';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 import type { Produto } from '@/lib/produtos';
@@ -51,54 +52,86 @@ async function getProdutosAleatoriosSSR(seed: string, max: number): Promise<Prod
   }
 }
 
-async function getCategoriasSSR(): Promise<string[]> {
-  try {
-    const db = getAdminDb();
-    if (!db) return [];
-    const snap = await db.collection('config').doc('loja').get();
-    return snap.exists ? (snap.data()?.categorias_ativas || []) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default async function HomePage() {
   const seed = gerarSeedAleatoria();
-  const [destaques, produtosIniciais, categorias, config] = await Promise.all([
+  const [destaques, produtosIniciais, config] = await Promise.all([
     getProdutosSSR({ destaque: true, max: 12 }),
     getProdutosAleatoriosSSR(seed, 12),
-    getCategoriasSSR(),
     getConfigSSR(),
   ]);
 
   const comImagem = destaques.filter(p => p.imagens?.[0]);
 
+  // "Frase um. Frase dois." → segunda frase em dourado
+  const [linha1, ...resto] = config.hero_titulo.split(/(?<=\.)\s+/);
+  const linha2 = resto.join(' ');
+
   return (
     <>
       {/* HERO */}
-      <div className="hero-loja">
-        <div className="hero-loja-inner">
-          <div className="hero-loja-content">
-            <h1>{config.hero_titulo}</h1>
+      <section className="home-hero">
+        <div className="home-hero-inner">
+          <div className="home-hero-texto">
+            <span className="eyebrow">O teu mundo, o teu estilo</span>
+            <h1 className="display-titulo">
+              {linha1}
+              {linha2 && <em>{linha2}</em>}
+            </h1>
             <p>{config.hero_subtitulo}</p>
-            <div className="hero-loja-btns">
-              <a href="/promocoes" className="btn btn-accent">{config.hero_btn} →</a>
-              <a href="/?novo=true" className="btn btn-outline-white">Ver novidades</a>
+            <a href="#catalogo" className="btn-escuro">{config.hero_btn} <ArrowRight size={16} strokeWidth={1.75} /></a>
+            <div className="home-hero-garantia">
+              <span><ShieldCheck size={18} strokeWidth={1.5} /></span>
+              Escolhes tu. Tratamos nós.
             </div>
           </div>
-          <HeroSlider destaques={comImagem} />
+
+          {comImagem.length > 0 && <HeroFoto destaques={comImagem} rotulo={`${config.empresa_nome} / Seleção 2026`} />}
         </div>
-      </div>
+      </section>
 
       {/* ANÚNCIOS / BENEFÍCIOS */}
       <AnnouncementBar />
 
+      {/* ENTREGAS + PORQUÊ + EQUIPA */}
+      <section className="home-faixa">
+        <ul className="home-faixa-inner">
+          <li><Link href="/entregas"><Truck size={22} strokeWidth={1.5} /><span><strong>Como chega até ti?</strong><small>Ver entregas e preços</small></span><ChevronRight size={16} /></Link></li>
+          <li><Link href="/porque-escolher"><ShieldCheck size={22} strokeWidth={1.5} /><span><strong>Porquê escolher</strong><small>a Real Stiles?</small></span><ChevronRight size={16} /></Link></li>
+          <li><Link href="/ajuda"><MessageCircle size={22} strokeWidth={1.5} /><span><strong>Uma equipa próxima</strong><small>Apoio em cada etapa da compra</small></span><ChevronRight size={16} /></Link></li>
+        </ul>
+      </section>
+
       {/* CATÁLOGO */}
-      <div className="catalogo-section" id="catalogo">
-        <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
-          <CatalogoProdutos inicial={produtosIniciais} seedInicial={seed} categoriasIniciais={categorias} tituloDefault={config.catalogo_titulo} />
-        </Suspense>
-      </div>
+      <section className="home-secao" id="catalogo">
+        <div className="home-secao-inner">
+          <div className="home-cabecalho">
+            <span className="eyebrow">A tua seleção Real Stiles</span>
+          </div>
+          {produtosIniciais.length > 0 ? (
+            <div className="produtos-grid">
+              {produtosIniciais.slice(0, 10).map(p => <ProdutoCard key={p.id} produto={p} />)}
+            </div>
+          ) : (
+            <p className="pol-nota">Ainda não há produtos disponíveis.</p>
+          )}
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <Link href="/loja" className="btn-claro">Ver mais produtos <ArrowRight size={16} strokeWidth={1.75} /></Link>
+          </div>
+        </div>
+      </section>
+
+      {/* AJUDA */}
+      <section className="home-ajuda">
+        <div className="home-ajuda-inner">
+          <div>
+            <h2>Precisas de uma mão?</h2>
+            <p>Ajudamos a encontrar o produto certo e a esclarecer as tuas dúvidas.</p>
+          </div>
+          <a href="https://wa.me/258878753754" target="_blank" rel="noopener noreferrer" className="btn-escuro">
+            <MessageCircle size={16} strokeWidth={1.5} /> Falar com a equipa
+          </a>
+        </div>
+      </section>
     </>
   );
 }

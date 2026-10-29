@@ -9,9 +9,9 @@ export interface MembroEquipa {
 }
 
 export const DEFAULTS = {
-  hero_titulo:    'Veste o teu estilo.',
-  hero_subtitulo: 'As melhores peças de vestuário, cuidadosamente seleccionadas para ti.',
-  hero_btn:       'Ver colecção',
+  hero_titulo:    'Tudo o que precisas. Num só lugar.',
+  hero_subtitulo: 'Moda, eletrónica, beleza e casa. Produtos por encomenda, com entrega final estimada de 15 a 30 dias úteis.',
+  hero_btn:       'Explorar coleção',
   catalogo_titulo: 'Todos os produtos',
   qs_sobre_titulo:    'O seu pedido, a nossa responsabilidade',
   qs_sobre_texto1:    'A Real Stiles Multi Service nasceu da vontade de simplificar o processo de compra para quem não tem tempo, acesso ou facilidade para adquirir produtos onde quer que estejam.',
@@ -40,6 +40,12 @@ export const DEFAULTS = {
   empresa_morada:  '',
   empresa_cidade:  '',
   empresa_email:   '',
+  // Perfis nas redes sociais (rodape). Vazio = icone sem ligacao.
+  social_instagram: '',
+  social_facebook:  '',
+  social_x:         '',
+  social_tiktok:    '',
+  social_youtube:   '',
   fatura_condicoes: 'Envio por transportadora. Prazo estimado: 3 a 5 dias úteis.',
   // Formas de entrega no checkout
   entrega_domicilio_taxa: 25,
@@ -48,10 +54,13 @@ export const DEFAULTS = {
   entrega_recolha_info:   '',
   fatura_obs:       '',
   pol_titulo:    'Políticas da Loja',
-  pol_data:      'Última actualização: Janeiro 2026',
+  pol_data:      'Última actualização: Outubro 2026',
+  // Documentos: vazio = texto padrão (ver lib/politicas.ts). "## Título" abre uma secção.
   pol_conteudo:  '',
+  pol_devolucoes_conteudo:  '',
+  pol_privacidade_conteudo: '',
   termos_titulo:    'Termos e Condições',
-  termos_data:      'Última actualização: Janeiro 2026',
+  termos_data:      'Última actualização: Outubro 2026',
   termos_conteudo:  '',
   aviso_ativo: true,
   aviso_texto: 'Estamos com problemas temporários nos pagamentos online\nPedimos desculpa pelo incómodo\nDúvidas? Fala connosco via WhatsApp +258 87 875 3754',

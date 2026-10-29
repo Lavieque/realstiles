@@ -4,6 +4,8 @@ import { getConfigSSR } from './config-site-ssr';
 import { precoActual } from './promocao';
 import type { FormaEntrega, ItemEncomenda } from './encomendas';
 import { METODOS } from './pagamentos';
+import { PROVINCIAS, entregaDaEncomenda } from './entregas';
+import type { Modalidade, TarifaEntrega, Zona } from './entregas';
 
 // Criação de encomendas no servidor. O cliente envia apenas o que não pode
 // ser derivado (que produto, que variante, quantidade, dados de entrega); os
@@ -37,6 +39,9 @@ export interface PedidoEncomenda {
   notas?: string;
   pagamento_metodo: string;
   forma_entrega?: FormaEntrega;
+  // Destino para a tarifa de entrega (terminal e domicílio)
+  provincia?: string;
+  zona?: string;
 }
 
 const texto = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
@@ -71,13 +76,14 @@ function lerItens(bruto: unknown): ItemPedido[] {
 
 // Reconstrói cada linha a partir do documento do produto: o preço cobrado é
 // sempre o preço actual no servidor, incluindo o estado da promoção.
-async function materializarItens(pedido: ItemPedido[]): Promise<ItemEncomenda[]> {
+async function materializarItens(pedido: ItemPedido[]): Promise<{ itens: ItemEncomenda[]; pesoKg: number }> {
   const ids = Array.from(new Set(pedido.map(i => i.produto_id)));
   const snaps = await adminDb.getAll(...ids.map(id => adminDb.collection('produtos').doc(id)));
   const produtos = new Map(snaps.filter(s => s.exists).map(s => [s.id, s.data()!]));
 
   const agora = Date.now();
-  return pedido.map((i) => {
+  let pesoKg = 0;
+  const itens = pedido.map((i) => {
     const p = produtos.get(i.produto_id);
     if (!p) throw new ErroEncomenda(`Produto ${i.produto_id} não encontrado`, 404);
     if (p.activo === false) throw new ErroEncomenda(`O produto "${p.nome}" já não está disponível`, 409);
@@ -90,6 +96,8 @@ async function materializarItens(pedido: ItemPedido[]): Promise<ItemEncomenda[]>
     }, agora);
 
     if (!(preco > 0)) throw new ErroEncomenda(`O produto "${p.nome}" não tem preço válido`, 409);
+
+    pesoKg += Math.max(0, Number(p.peso_kg) || 0) * i.quantidade;
 
     const imagens = Array.isArray(p.imagens) ? p.imagens : [];
     return {
@@ -104,6 +112,50 @@ async function materializarItens(pedido: ItemPedido[]): Promise<ItemEncomenda[]>
       ...(p.url_origem ? { url_origem: String(p.url_origem) } : {}),
     };
   });
+  return { itens, pesoKg: Math.round(pesoKg * 1000) / 1000 };
+}
+
+export interface DestinoEntrega {
+  forma_entrega: FormaEntrega;
+  provincia: string;
+  zona: Zona;
+}
+
+// Normaliza o destino pedido pelo cliente: só valores conhecidos passam
+export function lerDestino(bruto: { forma_entrega?: unknown; provincia?: unknown; zona?: unknown }): DestinoEntrega {
+  const f = bruto.forma_entrega;
+  const forma_entrega: FormaEntrega = f === 'domicilio' || f === 'terminal' ? f : 'recolha';
+  const provincia = texto(bruto.provincia, 40);
+  if (forma_entrega !== 'recolha' && !(PROVINCIAS as readonly string[]).includes(provincia)) {
+    throw new ErroEncomenda('Escolhe a província de entrega');
+  }
+  const zona: Zona = forma_entrega !== 'domicilio' ? '' : bruto.zona === 'periferia' ? 'periferia' : 'urbana';
+  return { forma_entrega, provincia, zona };
+}
+
+// Taxa de entrega a partir das tarifas de config/entregas, do destino e do
+// peso dos artigos. Mesma função para a estimativa do checkout e para a
+// encomenda, para o valor mostrado ser o valor cobrado.
+export async function taxaDeEntrega(destino: DestinoEntrega, pesoKg: number) {
+  const [tarifasSnap, cfg] = await Promise.all([
+    adminDb.collection('config').doc('entregas').get(),
+    getConfigSSR(),
+  ]);
+  const tarifas = (tarifasSnap.data()?.itens || []) as TarifaEntrega[];
+  return entregaDaEncomenda(
+    tarifas,
+    { provincia: destino.provincia, modalidade: destino.forma_entrega as Modalidade, zona: destino.zona, pesoKg },
+    { taxa: Number(cfg.entrega_domicilio_taxa) || 0, sobConsulta: !!cfg.entrega_domicilio_sob_consulta },
+  );
+}
+
+// Estimativa para o checkout: não cria nada
+export async function estimarEntrega(itensBrutos: unknown, destinoBruto: Parameters<typeof lerDestino>[0]) {
+  const { itens, pesoKg } = await materializarItens(lerItens(itensBrutos));
+  const destino = lerDestino(destinoBruto);
+  const entrega = await taxaDeEntrega(destino, pesoKg);
+  const subtotal = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
+  return { subtotal, pesoKg, ...entrega, total: Math.round((subtotal + entrega.taxa) * 100) / 100 };
 }
 
 // Número sequencial atribuído atomicamente (contador em
@@ -138,22 +190,18 @@ export async function criarEncomendaServidor(
   caller: { uid: string; email: string | null },
   pedido: PedidoEncomenda,
 ): Promise<EncomendaCriada> {
-  const itens = await materializarItens(lerItens(pedido.itens));
+  const { itens, pesoKg } = await materializarItens(lerItens(pedido.itens));
 
   const metodo = texto(pedido.pagamento_metodo, 32);
   if (!METODOS.includes(metodo as never)) {
     throw new ErroEncomenda('Método de pagamento inválido');
   }
 
-  const forma_entrega: FormaEntrega = pedido.forma_entrega === 'domicilio' ? 'domicilio' : 'recolha';
-
-  // Taxa de entrega e regime "sob consulta" vêm da configuração do site, nunca
-  // do pedido do cliente
-  const cfg = await getConfigSSR();
-  const sobConsulta = forma_entrega === 'domicilio' && !!cfg.entrega_domicilio_sob_consulta;
-  const taxa_entrega = forma_entrega === 'domicilio' && !sobConsulta
-    ? Math.max(0, Number(cfg.entrega_domicilio_taxa) || 0)
-    : 0;
+  // Taxa de entrega e regime "sob consulta" vêm das tarifas configuradas,
+  // nunca do pedido do cliente
+  const destino = lerDestino(pedido);
+  const { forma_entrega, provincia, zona } = destino;
+  const { taxa: taxa_entrega, sobConsulta } = await taxaDeEntrega(destino, pesoKg);
 
   const subtotal = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
   const total = Math.round((subtotal + taxa_entrega) * 100) / 100;
@@ -163,6 +211,9 @@ export async function criarEncomendaServidor(
   const cidade = texto(pedido.cidade, 120);
   if (forma_entrega === 'domicilio' && !morada) {
     throw new ErroEncomenda('Morada obrigatória para entrega ao domicílio');
+  }
+  if (forma_entrega !== 'recolha' && !cidade) {
+    throw new ErroEncomenda('Indica a cidade ou o distrito');
   }
 
   const perfil = (await adminDb.collection('clientes').doc(caller.uid).get()).data();
@@ -184,6 +235,8 @@ export async function criarEncomendaServidor(
     total,
     forma_entrega,
     taxa_entrega,
+    ...(forma_entrega !== 'recolha' ? { provincia_entrega: provincia, peso_kg: pesoKg } : {}),
+    ...(forma_entrega === 'domicilio' ? { zona_entrega: zona } : {}),
     ...(sobConsulta ? { entrega_sob_consulta: true } : {}),
     morada_entrega: morada,
     cidade_entrega: cidade,

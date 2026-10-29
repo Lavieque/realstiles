@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import Nav from '@/components/Nav';
+import NavInferior from '@/components/NavInferior';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'], variable: '--font-playfair' });
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ["600", "700"], variable: '--font-playfair' });
 import Footer from '@/components/Footer';
 import CarrinhoDrawer from '@/components/CarrinhoDrawer';
 import Toast from '@/components/Toast';
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Nav />
         {children}
         <Footer />
+        <NavInferior />
         <CarrinhoDrawer />
         <Toast />
         <Confirmar />
