@@ -10,8 +10,8 @@ export const ASSUNTOS_CONTACTO = [
   'Imprensa e comunicação', 'Publicidade e artistas locais', 'Proposta de parceria',
 ];
 
-export default function FormContacto({ assuntoInicial = '' }: { assuntoInicial?: string }) {
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: ASSUNTOS_CONTACTO.includes(assuntoInicial) ? assuntoInicial : '', referencia: '', mensagem: '' });
+export default function FormContacto({ assuntoInicial = '', mensagemInicial = '' }: { assuntoInicial?: string; mensagemInicial?: string }) {
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', assunto: ASSUNTOS_CONTACTO.includes(assuntoInicial) ? assuntoInicial : '', referencia: '', mensagem: mensagemInicial });
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
 

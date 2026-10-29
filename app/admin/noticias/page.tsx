@@ -123,7 +123,8 @@ export default function AdminNoticiasPage() {
         </div>
         <div className="form-group"><label>Título *</label><input value={form.titulo} onChange={f('titulo')} /></div>
         <div className="form-group"><label>Resumo</label><textarea value={form.resumo} onChange={f('resumo')} style={{ minHeight: 70 }} /></div>
-        <div className="form-group"><label>Texto completo (opcional)</label><textarea value={form.corpo} onChange={f('corpo')} style={{ minHeight: 140 }} /></div>
+        <div className="form-group"><label>Texto completo (opcional)</label><textarea value={form.corpo} onChange={f('corpo')} style={{ minHeight: 160 }} placeholder="Parágrafos separados por linha em branco. Uma linha que começa por ## abre um subtítulo." />
+          <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>Com texto completo, o cartão ganha a ligação &ldquo;Ler artigo&rdquo; para a página do artigo.</p></div>
         <div className="form-grid-2">
           <div className="form-group"><label>Data (opcional)</label><input value={form.data} onChange={f('data')} placeholder="Ex: 12 Out 2026" /></div>
           <div className="form-group"><label>Ligação (opcional)</label><input value={form.link} onChange={f('link')} placeholder="https://…" /></div>

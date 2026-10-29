@@ -22,7 +22,7 @@ const FAQ: { p: string; r: React.ReactNode }[] = [
   { p: 'Como acompanho a encomenda?', r: <>Usa a referência na página <Link href="/acompanhar">Acompanhar encomenda</Link>, ou vê as tuas compras em <Link href="/encomendas">As minhas encomendas</Link>.</> },
 ];
 
-export default async function AjudaPage({ searchParams }: { searchParams: { topic?: string; assunto?: string } }) {
+export default async function AjudaPage({ searchParams }: { searchParams: { topic?: string; assunto?: string; produto?: string } }) {
   if (searchParams.topic === 'reclamacao') redirect('/reclamacao');
   const config = await getConfigSSR();
   const wa = `258${config.tel1.replace(/\D/g, '')}`;
@@ -73,7 +73,7 @@ export default async function AjudaPage({ searchParams }: { searchParams: { topi
       </InfoSecao>
 
       <InfoSecao eyebrow="Vamos conversar" titulo="Deixa a tua " destaque="mensagem.">
-        <div id="mensagem" style={{ scrollMarginTop: 120 }}><FormContacto key={searchParams.assunto || ''} assuntoInicial={searchParams.assunto || ''} /></div>
+        <div id="mensagem" style={{ scrollMarginTop: 120 }}><FormContacto key={`${searchParams.assunto || ''}|${searchParams.produto || ''}`} assuntoInicial={searchParams.assunto || ''} mensagemInicial={searchParams.produto ? `Tenho uma dúvida sobre o tamanho do artigo “${searchParams.produto.slice(0, 120)}”. ` : ''} /></div>
       </InfoSecao>
 
       <InfoSecao>

@@ -3,36 +3,14 @@ export const dynamic = 'force-dynamic';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from '@/components/CloudImage';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getNoticias } from '@/lib/noticias';
+import type { Noticia } from '@/lib/noticias';
 import { InfoHero, InfoSecao, InfoGrelha } from '@/components/InfoPagina';
 
 export const metadata: Metadata = {
   title: 'Notícias e imprensa — Real Stiles',
   description: 'Guias, histórias da equipa e a presença da Real Stiles na comunidade.',
 };
-
-interface Noticia {
-  id: string;
-  tipo?: 'artigo' | 'imprensa';
-  categoria?: string;
-  titulo: string;
-  resumo?: string;
-  corpo?: string;
-  imagem?: string;
-  data?: string;
-  link?: string;
-}
-
-async function getNoticias(): Promise<Noticia[]> {
-  try {
-    const db = getAdminDb();
-    if (!db) return [];
-    const snap = await db.collection('config').doc('noticias').get();
-    return ((snap.data()?.itens || []) as Noticia[]).filter(n => n.titulo?.trim());
-  } catch {
-    return [];
-  }
-}
 
 function Cartao({ n }: { n: Noticia }) {
   return (
@@ -46,12 +24,7 @@ function Cartao({ n }: { n: Noticia }) {
         {(n.categoria || n.data) && <span className="eyebrow" style={{ fontSize: 10 }}>{[n.categoria, n.data].filter(Boolean).join(' · ')}</span>}
         <h3>{n.titulo}</h3>
         {n.resumo && <p>{n.resumo}</p>}
-        {n.corpo && (
-          <details className="faq" style={{ width: '100%', border: 'none' }}>
-            <summary style={{ padding: '4px 0', fontSize: 14 }}>Ler artigo</summary>
-            <p style={{ padding: '8px 0 0', whiteSpace: 'pre-line' }}>{n.corpo}</p>
-          </details>
-        )}
+        {n.corpo && <Link className="info-cartao-link" href={`/noticias/${n.id}`}>Ler artigo →</Link>}
         {n.link && <a className="info-cartao-link" href={n.link} target="_blank" rel="noopener noreferrer">Ver publicação →</a>}
       </div>
     </article>

@@ -66,6 +66,7 @@ export default function ProdutoDetalhe({
   const [zoomAberto, setZoomAberto] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const touchStartX = useRef(0);
+  const guiaRef = useRef<HTMLDialogElement>(null);
   const { adicionarItem, abrirDrawer } = useCarrinho();
   const favorito = useFavoritos(s => s.ids.includes(id));
   const toggleFavorito = useFavoritos(s => s.toggleFavorito);
@@ -358,7 +359,9 @@ export default function ProdutoDetalhe({
             {/* Tamanhos */}
             {produto.tamanhos?.length > 0 && (
               <div style={{ marginBottom: 24 }}>
-                <p className="pd-opcao-label">Tamanho: <span>{tamanho || '—'}</span></p>
+                <p className="pd-opcao-label">Tamanho: <span>{tamanho || '—'}</span>
+                  <button type="button" className="pd-guia-btn" onClick={() => guiaRef.current?.showModal()}>Guia de tamanhos</button>
+                </p>
                 <div className="tamanhos-grid">
                   {produto.tamanhos.map(t => (
                     <button key={t} className={`tamanho-btn${tamanho === t ? ' active' : ''}`} onClick={() => setTamanho(t)}>{t}</button>
@@ -366,6 +369,20 @@ export default function ProdutoDetalhe({
                 </div>
               </div>
             )}
+
+            <dialog ref={guiaRef} className="feedback-dialogo" onClick={e => { if (e.target === guiaRef.current) guiaRef.current?.close(); }}>
+              <button type="button" className="feedback-fechar" onClick={() => guiaRef.current?.close()} aria-label="Fechar"><X size={18} /></button>
+              <div className="feedback-corpo">
+                <span className="eyebrow">Escolhe com clareza</span>
+                <h2>Guia de tamanhos</h2>
+                <p>Tamanhos disponíveis para este artigo:</p>
+                <div className="pd-guia-tamanhos">
+                  {produto.tamanhos?.map(t => <span key={t} className={t === tamanho ? 'activo' : ''}>{t}</span>)}
+                </div>
+                <p>Os tamanhos variam entre produtos e fornecedores. Confirma as medidas específicas do artigo com a equipa antes de encomendar.</p>
+                <Link href={`/ajuda?assunto=Produto%20e%20encomenda&produto=${encodeURIComponent(produto.nome)}#mensagem`} className="btn-escuro" style={{ alignSelf: 'flex-start' }}>Pedir ajuda com o tamanho</Link>
+              </div>
+            </dialog>
 
             {/* Cores */}
             {produto.cores?.length > 0 && (

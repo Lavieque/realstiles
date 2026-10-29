@@ -2170,3 +2170,9 @@ a.parceiro-cartao:hover .parceiro-legenda { color: var(--black); }
 .feedback-corpo textarea { min-height: 90px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical; }
 .feedback-enviar { align-self: stretch; justify-content: center; }
 .feedback-corpo small { font-size: 11px; color: var(--muted); }
+
+/* guia de tamanhos */
+.pd-guia-btn { margin-left: 10px; background: none; border: 0; padding: 0; font: inherit; font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; color: var(--black); cursor: pointer; }
+.pd-guia-tamanhos { display: flex; flex-wrap: wrap; gap: 8px; }
+.pd-guia-tamanhos span { min-width: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-weight: 600; font-size: 14px; }
+.pd-guia-tamanhos span.activo { border-color: var(--black); background: var(--cream); }
