@@ -109,7 +109,7 @@ export default function AdminContactosPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{c.nome}{c.assunto ? ` — ${c.assunto}` : ''}</p>
                   <p style={{ fontSize: 12, color: 'var(--gray-500)', margin: '2px 0 8px' }}>
-                    {[formatar(c), c.email, c.telefone, c.referencia && `Ref. ${c.referencia}`].filter(Boolean).join(' · ')}
+                    {[formatar(c), c.email, c.telefone !== '-' && c.telefone, c.referencia && `Ref. ${c.referencia}`].filter(Boolean).join(' · ')}
                   </p>
                   <p style={{ fontSize: 14, margin: 0, whiteSpace: 'pre-wrap' }}>{c.mensagem}</p>
                   {c.email && <p style={{ margin: '10px 0 0' }}><a href={`mailto:${c.email}?subject=${encodeURIComponent(`Re: ${c.assunto || 'A tua mensagem'}`)}`} style={{ fontSize: 13, fontWeight: 600 }}>Responder por email</a></p>}

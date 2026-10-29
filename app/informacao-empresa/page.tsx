@@ -37,8 +37,8 @@ export default async function InformacaoEmpresaPage() {
 
       <InfoSecao tom="sand" eyebrow="Fala connosco" titulo="Usa os contactos " destaque="oficiais.">
         <InfoGrelha colunas={2}>
-          <InfoCartao icone={<Phone size={20} strokeWidth={1.5} />} titulo="Contactos">
-            Dúvidas sobre uma compra, uma condição ou uma proposta.
+          <InfoCartao icone={<Phone size={20} strokeWidth={1.5} />} titulo="Fala connosco.">
+            Usa os contactos oficiais para dúvidas sobre uma compra, uma condição ou uma proposta.
             <span className="info-contactos" style={{ marginTop: 12 }}>
               <a href={`mailto:${email}`}><Mail size={14} strokeWidth={1.5} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 6 }} />{email}</a>
               <a href={`tel:+258${config.tel1.replace(/\D/g, '')}`}>{config.tel1}</a>

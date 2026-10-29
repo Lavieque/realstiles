@@ -19,6 +19,16 @@ export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 }); }
 
+  // Feedback anónimo do rodapé: avaliação de 1 a 5 e comentário opcional
+  if (body.tipo === 'feedback') {
+    const nota = Number(body.nota);
+    if (!Number.isInteger(nota) || nota < 1 || nota > 5) return NextResponse.json({ error: 'Escolhe uma avaliação' }, { status: 400 });
+    const comentario = String(body.comentario ?? '').trim().slice(0, 2000);
+    body = { nome: 'Feedback do site', assunto: 'Feedback do site', telefone: '-', mensagem: `Avaliação: ${nota}/5${comentario ? `
+
+${comentario}` : ''}` };
+  }
+
   const nome = String(body.nome ?? '').trim().slice(0, 120);
   const email = String(body.email ?? '').trim().slice(0, 160);
   const telefone = String(body.telefone ?? '').trim().slice(0, 40);

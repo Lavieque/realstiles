@@ -2090,9 +2090,9 @@ a.parceiro-cartao:hover .parceiro-legenda { color: var(--black); }
 .rodape-contacto .rodape-cta { display: inline-flex; width: auto; border: 1px solid rgba(255,255,255,0.4); border-radius: 25px; padding: 10px 20px; margin-top: 18px; min-height: 44px; color: white; font-weight: 600; }
 .rodape-contacto .rodape-cta svg { color: white; }
 .rodape-atalhos { display: flex; gap: 4px; width: 192px; max-width: 100%; margin-top: 24px; padding: 4px; background: white; border-radius: 12px; }
-.rodape-atalhos a { display: flex; align-items: center; text-decoration: none; flex: 1 1 0; flex-direction: column; justify-content: center; gap: 7px; min-height: 70px; padding: 11px 6px; color: var(--black); font-size: 12px; text-align: center; border-radius: 8px; }
-.rodape-atalhos a svg { color: var(--black); }
-.rodape-atalhos a:hover { background: #f2efe6; color: var(--black); }
+.rodape-atalhos > a, .rodape-atalhos > button { background: none; border: 0; font: inherit; cursor: pointer; display: flex; align-items: center; text-decoration: none; flex: 1 1 0; flex-direction: column; justify-content: center; gap: 7px; min-height: 70px; padding: 11px 6px; color: var(--black); font-size: 12px; text-align: center; border-radius: 8px; }
+.rodape-atalhos > a svg, .rodape-atalhos > button svg { color: var(--black); }
+.rodape-atalhos > a:hover, .rodape-atalhos > button:hover { background: #f2efe6; color: var(--black); }
 .rodape-fundo { max-width: 1200px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 32px; font-size: 12px; }
 .rodape-legal { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 23px; }
 .rodape-legal a { color: inherit; text-decoration: underline; text-underline-offset: 3px; min-height: 34px; display: flex; align-items: center; }
@@ -2141,3 +2141,32 @@ a.parceiro-cartao:hover .parceiro-legenda { color: var(--black); }
 .checkout-conta { background: var(--cream); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 22px; }
 .checkout-conta .checkout-titulo { margin-bottom: 4px; }
 .checkout-conta p { color: var(--muted); font-size: 14px; margin: 0; }
+
+/* atalhos da área de conta */
+.conta-atalhos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.conta-atalhos a { display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: white; border: 1px solid var(--border); border-radius: 10px; color: var(--black); text-decoration: none; }
+.conta-atalhos a:hover { border-color: var(--black); }
+.conta-atalhos a > span { display: flex; flex-direction: column; gap: 2px; }
+.conta-atalhos strong { font-size: 14px; }
+.conta-atalhos small { font-size: 12px; color: var(--muted); }
+@media (max-width: 900px) { .conta-atalhos { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .conta-atalhos { grid-template-columns: 1fr; } }
+
+/* diálogo de feedback do rodapé */
+.feedback-dialogo { margin: auto; border: 0; border-radius: 14px; padding: 0; width: min(520px, calc(100vw - 32px)); color: var(--black); }
+.feedback-dialogo::backdrop { background: rgba(10, 14, 50, 0.55); }
+.feedback-fechar { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 0; background: none; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.feedback-fechar:hover { background: var(--cream); }
+.feedback-corpo { padding: 40px 28px 26px; display: flex; flex-direction: column; gap: 12px; }
+.feedback-corpo h2 { font-size: 1.35rem; line-height: 1.3; margin: 0; padding-right: 24px; }
+.feedback-corpo p { margin: 0; color: var(--muted); font-size: 14px; }
+.feedback-nota { border: 0; padding: 0; margin: 8px 0 0; }
+.feedback-nota legend { font-size: 14px; font-weight: 600; margin-bottom: 10px; padding: 0; }
+.feedback-nota > div { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.feedback-nota label { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border: 1px solid var(--border); border-radius: 8px; font-size: 11px; text-align: center; cursor: pointer; }
+.feedback-nota label.activo { border-color: var(--black); background: var(--cream); font-weight: 600; }
+.feedback-nota input { position: absolute; opacity: 0; pointer-events: none; }
+.feedback-num { width: 28px; height: 28px; border-radius: 50%; background: var(--sand); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.feedback-corpo textarea { min-height: 90px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical; }
+.feedback-enviar { align-self: stretch; justify-content: center; }
+.feedback-corpo small { font-size: 11px; color: var(--muted); }

@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getConfigSSR } from '@/lib/config-site-ssr';
 import MetodoPagamentoLogo from '@/components/MetodoPagamentoLogo';
 import { METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
-import { MessageSquarePlus, ChevronUp, Mail, Phone, MapPin, ChevronRight } from 'lucide-react';
+import FeedbackSite from '@/components/FeedbackSite';
+import { ChevronUp, Mail, Phone, MapPin, ChevronRight } from 'lucide-react';
 
 // Faixa acima do rodapé. Sem `href` o parceiro aparece sem ligação.
 const PARCEIROS: { nome: string; img: string; href?: string; externo?: boolean; legenda?: string; mostraNome?: boolean }[] = [
@@ -136,7 +137,7 @@ export default async function Footer() {
           <p className="rodape-local"><MapPin size={17} strokeWidth={1.65} /><span>{morada}</span></p>
           <Link href="/ajuda" className="rodape-cta">Pedir apoio <ChevronRight size={16} /></Link>
           <div className="rodape-atalhos">
-            <Link href="/ajuda#mensagem"><MessageSquarePlus size={25} strokeWidth={1.8} />Feedback</Link>
+            <FeedbackSite />
             <a href="#"><ChevronUp size={25} strokeWidth={1.8} />Início</a>
           </div>
         </div>
