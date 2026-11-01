@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Heart, ArrowRight } from 'lucide-react';
 import ProdutoCard from '@/components/ProdutoCard';
+import Rastro from '@/components/Rastro';
 import { useFavoritos } from '@/store/favoritos';
 import { getProduto } from '@/lib/produtos';
 import type { Produto } from '@/lib/produtos';
@@ -27,6 +28,7 @@ export default function FavoritosPage() {
   return (
     <div className="page-wrapper">
       <div className="container">
+        <Rastro pagina="Favoritos" />
         <header className="page-header">
           <span className="eyebrow" style={{ marginBottom: 14 }}>Guarda o que combina contigo</span>
           <h1 className="display-titulo">Os teus favoritos.</h1>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ShoppingBag, Trash2, Minus, Plus, ArrowRight, Truck } from 'lucide-react';
 import { useCarrinho, getTotalPreco } from '@/store/carrinho';
 import Preco from '@/components/Preco';
+import Rastro from '@/components/Rastro';
 
 export default function CarrinhoPage() {
   const { items, removerItem, actualizarQuantidade } = useCarrinho();
@@ -13,9 +14,9 @@ export default function CarrinhoPage() {
     return (
       <div className="page-wrapper">
         <div className="container">
-          <div className="empty-state" style={{ paddingTop: 96 }}>
+          <Rastro pagina="Carrinho" />
+          <div className="empty-state" style={{ paddingTop: 64 }}>
             <div className="icon"><ShoppingBag size={40} strokeWidth={1.5} /></div>
-            <span className="eyebrow" style={{ marginBottom: 14 }}>As tuas escolhas</span>
             <h1 className="display-titulo" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', marginBottom: 10 }}>O teu carrinho espera por ti.</h1>
             <p>Explora a seleção e encontra os teus próximos favoritos.</p>
             <Link href="/loja" className="btn-escuro" style={{ marginTop: 24 }}>Descobrir produtos <ArrowRight size={16} strokeWidth={1.75} /></Link>
@@ -28,6 +29,7 @@ export default function CarrinhoPage() {
   return (
     <div className="page-wrapper">
       <div className="container">
+        <Rastro pagina="Carrinho" />
         <header className="page-header">
           <span className="eyebrow" style={{ marginBottom: 14 }}>As tuas escolhas</span>
           <h1 className="display-titulo">O teu carrinho.</h1>
