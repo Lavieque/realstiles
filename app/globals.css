@@ -341,6 +341,9 @@ footer img { mix-blend-mode: screen; }
 .loja-trilho { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 28px; }
 .loja-trilho a { color: var(--muted); text-decoration: none; }
 .loja-trilho a:hover { color: var(--black); }
+.pd-topo-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pd-partilhar { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 100px; border: 1px solid var(--border); background: var(--white); color: var(--gray-600); cursor: pointer; }
+.pd-partilhar:hover { border-color: var(--black); color: var(--black); }
 .rastro-pagina { padding-top: 28px; margin-bottom: 8px; }
 .loja-topo .eyebrow { margin-bottom: 14px; }
 .loja-topo .display-titulo { font-size: clamp(2rem, 4vw, 3rem); }

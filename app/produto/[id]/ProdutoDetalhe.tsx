@@ -18,7 +18,7 @@ import { uploadParaCloudinary } from '@/lib/cloudinary';
 import type { ComentarioProduto } from '@/lib/comentarios';
 import { formatarData } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn, Play, ImagePlus, Heart, Truck, ShieldCheck } from 'lucide-react';
+import { Frown, AlertTriangle, Link as LinkIcon, X, ZoomIn, Play, ImagePlus, Heart, Truck, ShieldCheck, Share2 } from 'lucide-react';
 
 const COR_MAP: Record<string, string> = {
   'preto':'#111','branco':'#fff','cinzento':'#888','cinza':'#888',
@@ -331,9 +331,22 @@ export default function ProdutoDetalhe({
 
           {/* ── INFO ── */}
           <div className="pd-info">
-            {produto.categoria && (
-              <p className="pd-categoria">{produto.categoria.charAt(0).toUpperCase() + produto.categoria.slice(1)}</p>
-            )}
+            <div className="pd-topo-linha">
+              <p className="pd-categoria">{produto.categoria ? produto.categoria.charAt(0).toUpperCase() + produto.categoria.slice(1) : ''}</p>
+              <button
+                type="button"
+                className="pd-partilhar"
+                onClick={async () => {
+                  const url = window.location.href;
+                  try {
+                    if (navigator.share) await navigator.share({ title: produto.nome, url });
+                    else { await navigator.clipboard.writeText(url); mostrarToast('Link copiado!', 'success'); }
+                  } catch {}
+                }}
+              >
+                <Share2 size={14} strokeWidth={1.5} /> Partilhar
+              </button>
+            </div>
 
             <h1 className="pd-nome">{produto.nome}</h1>
 
