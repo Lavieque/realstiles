@@ -11,7 +11,7 @@ export default function FavoritosPage() {
   const { ids } = useFavoritos();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
-  const prevIds = useRef<string>('');
+  const prevIds = useRef<string | null>(null);
 
   useEffect(() => {
     const key = [...ids].sort().join(',');
