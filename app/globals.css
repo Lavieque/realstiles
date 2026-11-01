@@ -297,6 +297,12 @@ footer img { mix-blend-mode: screen; }
   background: var(--black); color: var(--accent); letter-spacing: 0.02em;
   font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 4px; z-index: 2;
 }
+.produto-card-badge-sale.neutra { background: var(--white); color: var(--black); }
+.home-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+.home-cats a { font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 100px; text-decoration: none; border: 1px solid var(--border); background: var(--white); color: var(--gray-600); }
+.home-cats a:hover, .home-cats a.activo { border-color: var(--black); color: var(--black); }
+.home-hero-botoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.home-hero-botoes .btn-claro { border-color: transparent; background: transparent; padding-inline: 12px; }
 .promo-contagem-card {
   position: absolute; left: 10px; bottom: 10px; z-index: 2;
   display: inline-flex; align-items: center; gap: 4px;
@@ -347,6 +353,12 @@ footer img { mix-blend-mode: screen; }
 .loja-modo:hover { border-color: var(--black); color: var(--black); }
 .loja-modo.activo { background: var(--black); border-color: var(--black); color: white; }
 .catalogo-header.sem-titulo { justify-content: flex-end; }
+.loja-modo { display: inline-flex; align-items: center; gap: 8px; }
+.loja-modo-img { position: relative; width: 28px; height: 28px; margin: -4px 0 -4px -10px; border-radius: 50%; overflow: hidden; background: var(--gray-200); flex-shrink: 0; }
+.cat-tiles { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 24px; }
+.cat-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 84px; background: none; border: 0; cursor: pointer; font-size: 13px; color: var(--gray-600); }
+.cat-tile:hover { color: var(--black); }
+.cat-tile-img { position: relative; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: var(--gray-200); border: 1px solid var(--border); }
 
 /* ── FORMAS DE ENTREGA (checkout) ── */
 .entrega-opcoes { display: flex; flex-direction: column; gap: 8px; }

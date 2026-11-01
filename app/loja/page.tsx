@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import CatalogoProdutos from '@/components/CatalogoProdutos';
@@ -22,32 +21,19 @@ export default function LojaPage({ searchParams }: { searchParams: { mode?: stri
   if (searchParams.mode === 'promocoes') redirect('/promocoes');
   const actual = MODOS.find(m => m.chave === searchParams.mode) || MODOS[0];
   const seed = gerarSeedAleatoria();
+  const topo = {
+    eyebrow: 'A tua seleção Real Stiles',
+    titulo: actual.titulo,
+    sub: actual.sub,
+    modos: [
+      ...MODOS.map(m => ({ rotulo: m.rotulo, href: m.chave ? `/loja?mode=${m.chave}` : '/loja', activo: m.chave === actual.chave })),
+      { rotulo: 'Promoções', href: '/promocoes', activo: false },
+    ],
+  };
 
   return (
-    <>
-      <header className="loja-topo">
-        <div className="loja-topo-inner">
-          <nav className="loja-trilho" aria-label="Localização">
-            <Link href="/">Início</Link><span aria-hidden="true">›</span><span>Explorar</span>
-          </nav>
-          <span className="eyebrow">A tua seleção Real Stiles</span>
-          <h1 className="display-titulo">{actual.titulo}</h1>
-          <p className="loja-sub">{actual.sub}</p>
-          <div className="loja-modos">
-            {MODOS.map(m => (
-              <Link key={m.rotulo} href={m.chave ? `/loja?mode=${m.chave}` : '/loja'} className={`loja-modo${m.chave === actual.chave ? ' activo' : ''}`}>
-                {m.rotulo}
-              </Link>
-            ))}
-            <Link href="/promocoes" className="loja-modo">Promoções</Link>
-          </div>
-        </div>
-      </header>
-      <div className="loja-corpo">
-        <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
-          <CatalogoProdutos inicial={[]} seedInicial={seed} basePath="/loja" modo={actual.chave} ocultarTitulo />
-        </Suspense>
-      </div>
-    </>
+    <Suspense fallback={<div className="loading"><div className="spinner" /> A carregar...</div>}>
+      <CatalogoProdutos inicial={[]} seedInicial={seed} basePath="/loja" modo={actual.chave} ocultarTitulo topo={topo} />
+    </Suspense>
   );
 }

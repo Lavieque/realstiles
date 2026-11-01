@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import Image from '@/components/CloudImage';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
 import FiltrosSidebar, { FiltroGrupo, FiltroCategorias, FiltroPreco, INTERVALOS_PRECO } from './FiltrosSidebar';
@@ -44,7 +46,14 @@ function escolherSeed(seedInicial?: string): string {
 
 export type ModoLoja = 'novidades' | 'cinco-estrelas' | 'mais-vendidos' | null;
 
-export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos', basePath = '/', modo = null, ocultarTitulo = false }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string; basePath?: string; modo?: ModoLoja; ocultarTitulo?: boolean }) {
+export type TopoLoja = {
+  eyebrow: string;
+  titulo: string;
+  sub: string;
+  modos: { rotulo: string; href: string; activo: boolean }[];
+};
+
+export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos', basePath = '/', modo = null, ocultarTitulo = false, topo }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string; basePath?: string; modo?: ModoLoja; ocultarTitulo?: boolean; topo?: TopoLoja }) {
   // URL da listagem para uma categoria, preservando o modo (novidades, 5 estrelas)
   const urlLista = (cat: string | null) => {
     const q = new URLSearchParams();
@@ -293,8 +302,29 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     </>
   );
 
-  return (
+  // Imagem de uma categoria/modo: primeiro artigo carregado que lhe pertence
+  const imgCategoria = (slug: string) => todos.find(p => p.categoria === slug)?.imagens?.[0];
+  const imgModo = (i: number) => todos[i % Math.max(todos.length, 1)]?.imagens?.[0];
+  const slugsTiles = catActual ? categoriasVisiveis : categorias;
+  const nomeCat = catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : '';
+
+  const corpo = (
     <>
+      {/* Subcategorias / categorias com imagem */}
+      {!searchTerm && slugsTiles.length > 0 && (
+        <div className="cat-tiles">
+          {slugsTiles.slice(0, 12).map(slug => {
+            const src = imgCategoria(slug);
+            return (
+              <button key={slug} type="button" className="cat-tile" onClick={() => filtrar(slug)}>
+                <span className="cat-tile-img">{src && <Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="72px" />}</span>
+                <span>{slug.charAt(0).toUpperCase() + slug.slice(1)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Header */}
       <div className={`catalogo-header${ocultarTitulo ? ' sem-titulo' : ''}`}>
         {!ocultarTitulo && <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>}
@@ -307,7 +337,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       </div>
 
       {/* Layout com sidebar */}
-      {mostrarSidebar ? (
+      {mostrarSidebar && catActual ? (
         <div className="catalogo-com-sidebar">
           {/* Sidebar */}
           <FiltrosSidebar
@@ -372,6 +402,45 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       ) : (
         conteudo
       )}
+    </>
+  );
+
+  if (!topo) return corpo;
+
+  return (
+    <>
+      <header className="loja-topo">
+        <div className="loja-topo-inner">
+          <nav className="loja-trilho" aria-label="Localização">
+            <Link href="/">Início</Link><span aria-hidden="true">›</span>
+            {catActual ? (
+              <>
+                <Link href={urlLista(null)} onClick={e => { e.preventDefault(); filtrar(null); }}>Explorar</Link>
+                <span aria-hidden="true">›</span><span>{nomeCat}</span>
+              </>
+            ) : <span>Explorar</span>}
+          </nav>
+          {!catActual && (
+            <>
+              <span className="eyebrow">{topo.eyebrow}</span>
+              <h1 className="display-titulo">{topo.titulo}</h1>
+              <p className="loja-sub">{topo.sub}</p>
+            </>
+          )}
+          <div className="loja-modos">
+            {topo.modos.map((m, i) => {
+              const src = imgModo(i);
+              return (
+                <Link key={m.rotulo} href={m.href} className={`loja-modo${m.activo ? ' activo' : ''}`}>
+                  {src && <span className="loja-modo-img"><Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="28px" /></span>}
+                  {m.rotulo}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+      <div className="loja-corpo">{corpo}</div>
     </>
   );
 }
