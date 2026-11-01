@@ -52,7 +52,22 @@ async function getProdutosAleatoriosSSR(seed: string, max: number): Promise<Prod
   }
 }
 
+async function getCategoriasTopoSSR(): Promise<{ nome: string; slug: string }[]> {
+  try {
+    const db = getAdminDb();
+    if (!db) return [];
+    const snap = await db.collection('config').doc('loja').get();
+    const lista: unknown[] = snap.data()?.categorias || [];
+    return lista
+      .filter((c): c is { nome: string; slug: string } => typeof c === 'object' && c !== null && 'slug' in c)
+      .map(c => ({ nome: c.nome, slug: c.slug }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
+  const categoriasTopo = await getCategoriasTopoSSR();
   const seed = gerarSeedAleatoria();
   const [destaques, produtosIniciais, config] = await Promise.all([
     getProdutosSSR({ destaque: true, max: 12 }),
@@ -78,10 +93,13 @@ export default async function HomePage() {
               {linha2 && <em>{linha2}</em>}
             </h1>
             <p>{config.hero_subtitulo}</p>
-            <a href="#catalogo" className="btn-escuro">{config.hero_btn} <ArrowRight size={16} strokeWidth={1.75} /></a>
+            <div className="home-hero-botoes">
+              <a href="#catalogo" className="btn-escuro">{config.hero_btn} <ArrowRight size={16} strokeWidth={1.75} /></a>
+              <Link href="/entregas" className="btn-claro">Como funciona <ChevronRight size={14} strokeWidth={1.75} /></Link>
+            </div>
             <div className="home-hero-garantia">
               <span><ShieldCheck size={18} strokeWidth={1.5} /></span>
-              Escolhes tu. Tratamos nós.
+              <div>Escolhes tu. Tratamos nós.<br /><small>Preços em MZN · Apoio em Chimoio</small></div>
             </div>
           </div>
 
@@ -107,6 +125,12 @@ export default async function HomePage() {
           <div className="home-cabecalho">
             <span className="eyebrow">A tua seleção Real Stiles</span>
           </div>
+          {categoriasTopo.length > 0 && (
+            <nav className="home-cats" aria-label="Categorias">
+              <Link href="/" className="activo">Em destaque</Link>
+              {categoriasTopo.map(c => <Link key={c.slug} href={`/loja?cat=${c.slug}`}>{c.nome}</Link>)}
+            </nav>
+          )}
           {produtosIniciais.length > 0 ? (
             <div className="produtos-grid">
               {produtosIniciais.slice(0, 10).map(p => <ProdutoCard key={p.id} produto={p} />)}
@@ -115,7 +139,7 @@ export default async function HomePage() {
             <p className="pol-nota">Ainda não há produtos disponíveis.</p>
           )}
           <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <Link href="/loja" className="btn-claro">Ver mais produtos <ArrowRight size={16} strokeWidth={1.75} /></Link>
+            <Link href="/loja" className="btn-claro">Ver toda a seleção <ArrowRight size={16} strokeWidth={1.75} /></Link>
           </div>
         </div>
       </section>

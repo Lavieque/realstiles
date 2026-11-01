@@ -22,6 +22,11 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
   const img = produto.imagens?.[0] || '/placeholder.svg';
   const emPromocao = promo.activa;
   const desconto = promo.desconto;
+  // criado_em chega como Timestamp (cliente) ou como ms (SSR serializado)
+  const criado = produto.criado_em as { toMillis?: () => number } | number | undefined;
+  const criadoMs = typeof criado === 'number' ? criado : criado?.toMillis?.() ?? 0;
+  const novo = criadoMs > 0 && Date.now() - criadoMs < 30 * 24 * 3600 * 1000;
+  const etiqueta = produto.destaque ? 'Seleção 2026' : novo ? 'Novidade' : null;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -45,7 +50,9 @@ export default function ProdutoCard({ produto }: { produto: Produto }) {
     <Link href={`/produto/${produto.id}`} className="produto-card" style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="produto-card-img">
         <Image src={img} alt={produto.nome} fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 50vw, 25vw" />
-        {emPromocao && <span className="produto-card-badge-sale">-{desconto}%</span>}
+        {emPromocao
+          ? <span className="produto-card-badge-sale">-{desconto}%</span>
+          : etiqueta && <span className="produto-card-badge-sale neutra">{etiqueta}</span>}
         {emPromocao && <ContagemPromocao fim={promo.fim} onTerminar={actualizar} />}
         <button
           type="button"
