@@ -10,7 +10,7 @@ import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdu
 import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '@/lib/produtos';
 import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
 import { precoActual } from '@/lib/promocao';
-import { indexarCategorias } from '@/lib/categorias';
+import { indexarCategorias, acharNo, slugsDaSubarvore } from '@/lib/categorias';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
@@ -309,20 +309,32 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   const rotuloCat = (slug: string) => infoCats[slug]?.nome ?? capitalizar(slug);
   const imgCategoria = (slug: string) => infoCats[slug]?.imagem || todos.find(p => p.categoria === slug)?.imagens?.[0];
   const imgModo = (i: number) => todos[i % Math.max(todos.length, 1)]?.imagens?.[0];
-  const slugsTiles = catActual ? categoriasVisiveis : categorias;
+  // Mosaicos: filhos directos da categoria actual (ou categorias de topo) que
+  // têm artigos activos na sua sub-árvore. Mostram o nome e a imagem definidos
+  // no admin; sem imagem, usam a do primeiro artigo da sub-árvore.
+  type Tile = { slug: string; nome: string; src?: string };
+  const ativos = new Set<string>([...categorias, ...(todos.map(p => p.categoria).filter(Boolean) as string[])]);
+  const tilesArvore: Tile[] = (catActual ? acharNo(catTree, catActual)?.subcategorias || [] : catTree)
+    .filter(n => slugsDaSubarvore(n).some(s => ativos.has(s)))
+    .map(n => {
+      const slugs = slugsDaSubarvore(n);
+      return { slug: n.slug, nome: n.nome, src: n.imagem || todos.find(p => p.categoria && slugs.includes(p.categoria))?.imagens?.[0] };
+    });
+  const tiles: Tile[] = catTree.length > 0
+    ? tilesArvore
+    : (catActual ? categoriasVisiveis : categorias).map(slug => ({ slug, nome: rotuloCat(slug), src: imgCategoria(slug) }));
   const nomeCat = catActual ? rotuloCat(catActual) : '';
 
   const corpo = (
     <>
       {/* Subcategorias / categorias com imagem */}
-      {!searchTerm && slugsTiles.length > 0 && (
+      {!searchTerm && tiles.length > 0 && (
         <div className="cat-tiles">
-          {slugsTiles.slice(0, 12).map(slug => {
-            const src = imgCategoria(slug);
+          {tiles.slice(0, 12).map(({ slug, nome, src }) => {
             return (
               <button key={slug} type="button" className="cat-tile" onClick={() => filtrar(slug)}>
                 <span className="cat-tile-img">{src && <Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="72px" />}</span>
-                <span>{rotuloCat(slug)}</span>
+                <span>{nome}</span>
               </button>
             );
           })}

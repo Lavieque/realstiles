@@ -58,3 +58,18 @@ export function normalizarArvore(raw: unknown): CatNo[] {
   });
   return raw.filter((c): c is CatNo => typeof c === 'object' && c !== null).map(norm);
 }
+
+// Primeiro nó com este slug (em qualquer nível)
+export function acharNo(arvore: CatNo[], slug: string): CatNo | null {
+  for (const n of arvore) {
+    if (n.slug === slug) return n;
+    const dentro = acharNo(n.subcategorias || [], slug);
+    if (dentro) return dentro;
+  }
+  return null;
+}
+
+// Slug do nó e de todos os descendentes
+export function slugsDaSubarvore(no: CatNo): string[] {
+  return [no.slug, ...(no.subcategorias || []).flatMap(slugsDaSubarvore)];
+}
