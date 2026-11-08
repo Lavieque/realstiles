@@ -12,7 +12,7 @@ import type { Permissao } from '@/lib/permissoes';
 import type { ReactNode } from 'react';
 import {
   BarChart2, Package, Tag, Layers, Users, Pencil, Bell,
-  ClipboardList, Eye, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare, Percent, ShieldCheck, CreditCard,
+  ClipboardList, Mail, Eye, Zap, MessageCircle, Link as LinkIcon, Wallet, MessageSquare, Percent, ShieldCheck, CreditCard,
 } from 'lucide-react';
 
 
@@ -47,8 +47,10 @@ const NAV: NavItem[] = [
   { href: '/admin/comentarios', label: 'Avaliações', icon: <MessageSquare size={18} strokeWidth={1.5} />, section: 'Catálogo' },
   { href: '/admin/clientes', label: 'Clientes', icon: <Users size={18} strokeWidth={1.5} />, section: 'Clientes' },
   { href: '/admin/conteudo', label: 'Conteúdo do site', icon: <Pencil size={18} strokeWidth={1.5} />, section: 'Site' },
+  { href: '/admin/noticias', label: 'Notícias e imprensa', icon: <Pencil size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/banner', label: 'Barra de anúncios', icon: <Bell size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/reclamacoes', label: 'Reclamações', icon: <ClipboardList size={18} strokeWidth={1.5} />, section: 'Site' },
+  { href: '/admin/contactos', label: 'Contactos', icon: <Mail size={18} strokeWidth={1.5} />, section: 'Site' },
   { href: '/admin/tradeflow', label: 'TradeFlow', icon: <Zap size={18} strokeWidth={1.5} />, section: 'Integrações' },
   { href: '/admin/whatsapp', label: 'WhatsApp Notify', icon: <MessageCircle size={18} strokeWidth={1.5} />, section: 'Integrações' },
   { href: '/admin/pagamentos', label: 'Pagamentos online', icon: <CreditCard size={18} strokeWidth={1.5} />, section: 'Pagamentos' },

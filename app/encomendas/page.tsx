@@ -6,7 +6,8 @@ import { onAuthChange } from '@/lib/auth';
 import { getEncomendasCliente, badgeEstadoClass, badgeEstadoLabel, formatarData, referenciaEncomenda } from '@/lib/encomendas';
 import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import type { User } from 'firebase/auth';
-import { Lock, Package, MessageCircle } from 'lucide-react';
+import { Lock, Package, MessageCircle, ArrowRight } from 'lucide-react';
+import Preco from '@/components/Preco';
 import FiltrosSidebar, { FiltroGrupo, FiltroOpcoes } from '@/components/FiltrosSidebar';
 import { consultarEstadoPagamento } from '@/lib/pagamento-cliente';
 import { mostrarToast } from '@/components/Toast';
@@ -98,9 +99,12 @@ export default function EncomendasPage() {
         <div className="container">
           <div className="empty-state" style={{ paddingTop: 80 }}>
             <div className="icon"><Lock size={40} strokeWidth={1.5} /></div>
-            <h3>Acesso restrito</h3>
-            <p>Tens de entrar na tua conta para ver as encomendas.</p>
-            <Link href="/conta?redirect=/encomendas" className="btn btn-primary" style={{ marginTop: 20 }}>Entrar</Link>
+            <h3>Entra para ver as tuas compras</h3>
+            <p>Tens de entrar na tua conta para ver as encomendas. Sem conta, usa o acompanhamento.</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
+              <Link href="/conta?redirect=/encomendas" className="btn-escuro">Entrar <ArrowRight size={16} strokeWidth={1.75} /></Link>
+              <Link href="/acompanhar" className="btn-claro">Acompanhar encomenda</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -110,10 +114,11 @@ export default function EncomendasPage() {
   return (
     <div className="page-wrapper">
       <div className="container">
-        <div className="page-header">
-          <h1>As minhas encomendas</h1>
+        <header className="page-header">
+          <span className="eyebrow" style={{ marginBottom: 14 }}>As minhas compras</span>
+          <h1 className="display-titulo">As minhas encomendas.</h1>
           <p>{encomendas.length} encomenda{encomendas.length !== 1 ? 's' : ''} no total</p>
-        </div>
+        </header>
 
         <div className="catalogo-com-sidebar">
         <FiltrosSidebar
@@ -144,8 +149,8 @@ export default function EncomendasPage() {
           <div className="empty-state">
             <div className="icon"><Package size={40} strokeWidth={1.5} /></div>
             <h3>{filtro ? 'Sem encomendas nesta categoria' : 'Sem encomendas'}</h3>
-            <p>{filtro ? 'Tenta outro filtro.' : 'Ainda não fizeste nenhuma encomenda.'}</p>
-            <Link href="/" className="btn btn-primary" style={{ marginTop: 20 }}>Ver produtos</Link>
+            <p>{filtro ? 'Tenta outro filtro.' : 'As tuas compras e o acompanhamento aparecem aqui.'}</p>
+            <Link href="/loja" className="btn-escuro" style={{ marginTop: 24 }}>Explorar produtos <ArrowRight size={16} strokeWidth={1.75} /></Link>
           </div>
         ) : (
           <>
@@ -187,7 +192,7 @@ export default function EncomendasPage() {
                     <span className={`badge-estado ${badgeEstadoClass(enc.estado as EstadoEncomenda)}`}>
                       {badgeEstadoLabel(enc.estado as EstadoEncomenda)}
                     </span>
-                    <strong className="enc-row-total">{enc.total?.toFixed(2)} MZN</strong>
+                    <strong className="enc-row-total"><Preco valor={enc.total || 0} /></strong>
                     <Link href={`/encomenda/${enc.id}`} className="btn btn-outline btn-sm">Ver →</Link>
                   </div>
                 </div>

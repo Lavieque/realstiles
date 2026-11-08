@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import Image from '@/components/CloudImage';
 import { useSearchParams } from 'next/navigation';
 import ProdutoCard from './ProdutoCard';
 import FiltrosSidebar, { FiltroGrupo, FiltroCategorias, FiltroPreco, INTERVALOS_PRECO } from './FiltrosSidebar';
@@ -8,6 +10,8 @@ import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdu
 import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '@/lib/produtos';
 import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
 import { precoActual } from '@/lib/promocao';
+import { indexarCategorias, acharNo, slugsDaSubarvore } from '@/lib/categorias';
+import { iconeDaCategoria } from '@/lib/categorias-icones';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
@@ -42,9 +46,28 @@ function escolherSeed(seedInicial?: string): string {
   return seed;
 }
 
-export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos' }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string }) {
+export type ModoLoja = 'novidades' | 'cinco-estrelas' | 'mais-vendidos' | null;
+
+export type TopoLoja = {
+  eyebrow: string;
+  titulo: string;
+  sub: string;
+  modos: { rotulo: string; href: string; activo: boolean }[];
+};
+
+export default function CatalogoProdutos({ inicial, seedInicial, categoriasIniciais = [], tituloDefault = 'Todos os produtos', basePath = '/', modo = null, ocultarTitulo = false, topo }: { inicial: Produto[]; seedInicial?: string; categoriasIniciais?: string[]; tituloDefault?: string; basePath?: string; modo?: ModoLoja; ocultarTitulo?: boolean; topo?: TopoLoja }) {
+  // URL da listagem para uma categoria, preservando o modo (novidades, 5 estrelas)
+  const urlLista = (cat: string | null) => {
+    const q = new URLSearchParams();
+    if (cat) q.set('cat', cat);
+    if (modo) q.set('mode', modo);
+    const qs = q.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  };
+  // 5 estrelas precisa de todo o catálogo para filtrar — sem paginação aleatória
+  const carregaTudo = modo === 'cinco-estrelas' || modo === 'mais-vendidos';
   const searchParams = useSearchParams();
-  const catParam = searchParams.get('cat');
+  const catParam = searchParams.get('sub') || searchParams.get('cat');
   const qParam = searchParams.get('q') || '';
 
   const [todos, setTodos] = useState<Produto[]>(inicial);
@@ -63,7 +86,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   const [precoIdx, setPrecoIdx] = useState(0);
   const [tamActual, setTamActual] = useState<string | null>(null);
   const [corActual, setCorActual] = useState<string | null>(null);
-  const [ordenacao, setOrdenacao] = useState('relevancia');
+  const [ordenacao, setOrdenacao] = useState(modo === 'novidades' ? 'novidades' : 'relevancia');
   const scrollRestored = useRef(false);
   const seedRef = useRef<string | null>(null);
   const cursorAleatorioRef = useRef<CursorAleatorio | null>(null);
@@ -115,7 +138,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       const seed = seedRef.current ?? (seedRef.current = escolherSeed(seedInicial));
       const aleatorio = ordenacaoRef.current !== 'novidades';
       let resultado: Produto[];
-      if (!cat && aleatorio) {
+      if (!cat && aleatorio && !carregaTudo) {
         // Página inicial: amostra aleatória paginada (não sempre os mais recentes)
         const cursor: CursorAleatorio | null = append
           ? cursorAleatorioRef.current
@@ -127,12 +150,12 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
         setUltimoDoc(null);
         setTodos(p => append ? [...p, ...resultado] : resultado);
       } else {
-        const max = cat ? 200 : PAGE + 1;
-        const cursor = cat ? null : (append ? ultimoDocRef.current : null);
+        const max = cat || carregaTudo ? 200 : PAGE + 1;
+        const cursor = cat || carregaTudo ? null : (append ? ultimoDocRef.current : null);
         const slugs = cat ? resolveDescendants(catTreeRef.current, cat) : null;
         const res = await getProdutos({ categorias: slugs, max, ultimoDoc: cursor });
         resultado = res.produtos;
-        const maisDisp = !cat && resultado.length > PAGE;
+        const maisDisp = !cat && !carregaTudo && resultado.length > PAGE;
         let slice = maisDisp ? resultado.slice(0, PAGE) : resultado;
         // Categoria: vem tudo de uma vez — baralhar para não mostrar sempre os mais recentes primeiro
         if (cat && aleatorio) slice = baralhar(slice, seed);
@@ -164,9 +187,12 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   useEffect(() => {
     const intervalo = INTERVALOS_PRECO[precoIdx];
     let filtrados = todos.filter(p => precoActual(p) >= intervalo.min && precoActual(p) <= intervalo.max);
+    if (modo === 'mais-vendidos') filtrados = filtrados.filter(p => (p.vendidos || 0) > 0);
+    if (modo === 'cinco-estrelas') filtrados = filtrados.filter(p => (p.avaliacao || 0) >= 4.5 && !!p.num_avaliacoes);
     if (tamActual) filtrados = filtrados.filter(p => p.tamanhos?.includes(tamActual));
     if (corActual) filtrados = filtrados.filter(p => p.cores?.includes(corActual));
-    if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => precoActual(a) - precoActual(b));
+    if (modo === 'mais-vendidos' && ordenacao === 'relevancia') filtrados = [...filtrados].sort((a, b) => (b.vendidos || 0) - (a.vendidos || 0));
+    else if (ordenacao === 'preco_asc') filtrados = [...filtrados].sort((a, b) => precoActual(a) - precoActual(b));
     else if (ordenacao === 'preco_desc') filtrados = [...filtrados].sort((a, b) => precoActual(b) - precoActual(a));
     else if (ordenacao === 'novidades') filtrados = [...filtrados].sort((a, b) => {
       const ta = (a.criado_em as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0;
@@ -174,7 +200,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       return tb - ta;
     });
     setProdutos(filtrados);
-  }, [todos, precoIdx, tamActual, corActual, ordenacao]);
+  }, [todos, precoIdx, tamActual, corActual, ordenacao, modo]);
 
   // Sem categoria, "Novidades" carrega os mais recentes do servidor e as
   // restantes ordenações partem da amostra aleatória — recarregar ao alternar.
@@ -183,7 +209,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   useEffect(() => {
     if (ehNovidadesAnterior.current === ehNovidades) return;
     ehNovidadesAnterior.current = ehNovidades;
-    if (!catActual && !searchTerm.trim()) carregarProdutos(null, false);
+    if (!catActual && !searchTerm.trim() && !carregaTudo) carregarProdutos(null, false);
   }, [ehNovidades]);
 
   const filtrar = (cat: string | null) => {
@@ -192,7 +218,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     setPrecoIdx(0);
     setTamActual(null);
     setCorActual(null);
-    const url = cat ? `/?cat=${cat}` : '/';
+    const url = urlLista(cat);
     window.history.pushState({}, '', url);
     carregarProdutos(cat, false);
   };
@@ -210,12 +236,12 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   // Debounce pesquisa + sync URL
   useEffect(() => {
     if (!searchTerm.trim()) {
-      const url = catActual ? `/?cat=${catActual}` : '/';
+      const url = urlLista(catActual);
       window.history.replaceState({}, '', url);
       carregarProdutos(catActual, false);
       return;
     }
-    const url = `/?q=${encodeURIComponent(searchTerm)}`;
+    const url = `${basePath}?q=${encodeURIComponent(searchTerm)}`;
     window.history.replaceState({}, '', url);
     const t = setTimeout(async () => {
       setLoading(true);
@@ -278,11 +304,48 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
     </>
   );
 
-  return (
+  // Imagem de uma categoria/modo: primeiro artigo carregado que lhe pertence
+  const infoCats = indexarCategorias(catTree);
+  const capitalizar = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const rotuloCat = (slug: string) => infoCats[slug]?.nome ?? capitalizar(slug);
+  const imgCategoria = (slug: string) => infoCats[slug]?.imagem || todos.find(p => p.categoria === slug)?.imagens?.[0];
+  const imgModo = (i: number) => todos[i % Math.max(todos.length, 1)]?.imagens?.[0];
+  // Mosaicos: filhos directos da categoria actual (ou categorias de topo) que
+  // têm artigos activos na sua sub-árvore. Mostram o nome e a imagem definidos
+  // no admin; sem imagem, usam a do primeiro artigo da sub-árvore.
+  type Tile = { slug: string; nome: string; src?: string };
+  const ativos = new Set<string>([...categorias, ...(todos.map(p => p.categoria).filter(Boolean) as string[])]);
+  const tilesArvore: Tile[] = (catActual ? acharNo(catTree, catActual)?.subcategorias || [] : catTree)
+    .filter(n => slugsDaSubarvore(n).some(s => ativos.has(s)))
+    .map(n => {
+      const slugs = slugsDaSubarvore(n);
+      return { slug: n.slug, nome: n.nome, src: n.imagem || todos.find(p => p.categoria && slugs.includes(p.categoria))?.imagens?.[0] };
+    });
+  const tiles: Tile[] = catTree.length > 0
+    ? tilesArvore
+    : (catActual ? categoriasVisiveis : categorias).map(slug => ({ slug, nome: rotuloCat(slug), src: imgCategoria(slug) }));
+  const nomeCat = catActual ? rotuloCat(catActual) : '';
+
+  const corpo = (
     <>
+      {/* Subcategorias / categorias com imagem */}
+      {!searchTerm && tiles.length > 0 && (
+        <div className="cat-tiles">
+          {tiles.slice(0, 12).map(({ slug, nome, src }) => {
+            const Icone = iconeDaCategoria(infoCats[slug] ?? { nome, slug });
+            return (
+              <button key={slug} type="button" className="cat-tile" onClick={() => filtrar(slug)}>
+                <span className="cat-tile-img">{src ? <Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="72px" /> : <Icone size={26} strokeWidth={1.4} />}</span>
+                <span className="cat-tile-nome"><Icone size={13} strokeWidth={1.6} /> {nome}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="catalogo-header">
-        <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>
+      <div className={`catalogo-header${ocultarTitulo ? ' sem-titulo' : ''}`}>
+        {!ocultarTitulo && <h2>{catActual ? nomeCat : tituloDefault}</h2>}
         <select className="filtro-ordenacao" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}>
           <option value="relevancia">Relevância</option>
           <option value="novidades">Novidades</option>
@@ -292,7 +355,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       </div>
 
       {/* Layout com sidebar */}
-      {mostrarSidebar ? (
+      {mostrarSidebar && catActual ? (
         <div className="catalogo-com-sidebar">
           {/* Sidebar */}
           <FiltrosSidebar
@@ -302,7 +365,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
             fecharQuando={catActual}
           >
             <FiltroGrupo titulo="Categoria" primeiro>
-              <FiltroCategorias categorias={categoriasVisiveis} actual={catActual} onChange={filtrar} visiveis={CAT_VISIVEIS} />
+              <FiltroCategorias categorias={categoriasVisiveis} actual={catActual} onChange={filtrar} visiveis={CAT_VISIVEIS} rotulo={rotuloCat} />
             </FiltroGrupo>
 
             <FiltroGrupo titulo="Preço">
@@ -357,6 +420,45 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       ) : (
         conteudo
       )}
+    </>
+  );
+
+  if (!topo) return corpo;
+
+  return (
+    <>
+      <header className="loja-topo">
+        <div className="loja-topo-inner">
+          <nav className="loja-trilho" aria-label="Localização">
+            <Link href="/">Início</Link><span aria-hidden="true">›</span>
+            {catActual ? (
+              <>
+                <Link href={urlLista(null)} onClick={e => { e.preventDefault(); filtrar(null); }}>Explorar</Link>
+                <span aria-hidden="true">›</span><span>{nomeCat}</span>
+              </>
+            ) : <span>Explorar</span>}
+          </nav>
+          {!catActual && (
+            <>
+              <span className="eyebrow">{topo.eyebrow}</span>
+              <h1 className="display-titulo">{topo.titulo}</h1>
+              <p className="loja-sub">{topo.sub}</p>
+            </>
+          )}
+          <div className="loja-modos">
+            {topo.modos.map((m, i) => {
+              const src = imgModo(i);
+              return (
+                <Link key={m.rotulo} href={m.href} className={`loja-modo${m.activo ? ' activo' : ''}`}>
+                  {src && <span className="loja-modo-img"><Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="28px" /></span>}
+                  {m.rotulo}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+      <div className="loja-corpo">{corpo}</div>
     </>
   );
 }

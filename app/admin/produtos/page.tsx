@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import Image from '@/components/CloudImage';
 import { ShoppingBag, X } from 'lucide-react';
-import { getTodosProdutos, criarProduto, actualizarProduto, apagarProduto, getCategorias } from '@/lib/produtos';
+import { getTodosProdutos, criarProduto, actualizarProduto, apagarProduto } from '@/lib/produtos';
+import { normalizarArvore, caminhoDoArtigo } from '@/lib/categorias';
+import type { CatNo } from '@/lib/categorias';
 import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { mostrarToast } from '@/components/Toast';
 import CampoVideo from '@/components/CampoVideo';
@@ -24,7 +26,7 @@ export default function AdminProdutosPage() {
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [filtro, setFiltro] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'destaque' | 'promocao' | 'novidades'>('todos');
-  const [categorias, setCategorias] = useState<string[]>([]);
+  const [arvore, setArvore] = useState<CatNo[]>([]);
   const [taxas, setTaxas] = useState<Taxa[]>([]);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function AdminProdutosPage() {
       .then(setProdutos)
       .catch(() => mostrarToast('Erro ao carregar produtos', 'error'))
       .finally(() => setLoading(false));
-    getCategorias().then(setCategorias).catch(() => {});
+    fetch('/api/config/categorias').then(r => r.json()).then(d => setArvore(normalizarArvore(d.categorias))).catch(() => {});
     apiFetch('/api/admin/sincronizar-categorias', { method: 'POST' }).catch(() => {});
     apiFetch('/api/config/taxas').then(r => r.json()).then(d => setTaxas(d.itens || [])).catch(() => {});
   }, []);
@@ -92,6 +94,20 @@ export default function AdminProdutosPage() {
 
   const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setSeleccionado(s => ({ ...s, [k]: e.target.value }));
+
+  // Combos em cascata: categoria → subcategoria → sub-subcategoria.
+  // `categoria` guarda o slug mais específico; `categoria_path` o caminho todo.
+  const caminhoActual = caminhoDoArtigo(arvore, seleccionado?.categoria, seleccionado?.categoria_path);
+  const escolherNivel = (nivel: number, slug: string) => {
+    const novo = [...caminhoActual.slice(0, nivel), ...(slug ? [slug] : [])];
+    setSeleccionado(s => ({ ...s, categoria: novo[novo.length - 1] || '', categoria_path: novo }));
+  };
+  const opcoesNivel = (nivel: number): CatNo[] => {
+    let nos = arvore;
+    for (let i = 0; i < nivel; i++) nos = nos.find(n => n.slug === caminhoActual[i])?.subcategorias || [];
+    return nos;
+  };
+  const categoriaDesconhecida = !!seleccionado?.categoria && caminhoActual.length === 0 && arvore.length > 0;
 
   const ehPromocao = (p: Partial<Produto>) => !!(p.preco_original && (p.preco || 0) > 0 && p.preco_original > (p.preco || 0));
   const ehNovidade = (p: Produto) => {
@@ -256,21 +272,38 @@ export default function AdminProdutosPage() {
                     </div>
                   </>
                 )}
-                <div className="form-group">
-                  <label>Categoria</label>
-                  {categorias.length > 0 ? (
-                    <select value={seleccionado.categoria || ''} onChange={f('categoria')}>
-                      <option value="">— Sem categoria —</option>
-                      {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                      {seleccionado.categoria && !categorias.includes(seleccionado.categoria) && (
-                        <option value={seleccionado.categoria}>{seleccionado.categoria} (nova)</option>
-                      )}
-                    </select>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Onde aparece na loja</label>
+                  {arvore.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+                      {[0, 1, 2].map(nivel => {
+                        if (nivel > 0 && !caminhoActual[nivel - 1]) return null;
+                        const opcoes = opcoesNivel(nivel);
+                        if (nivel > 0 && opcoes.length === 0) return null;
+                        return (
+                          <select key={nivel} value={caminhoActual[nivel] || ''} onChange={e => escolherNivel(nivel, e.target.value)} aria-label={['Categoria', 'Subcategoria', 'Sub-subcategoria'][nivel]}>
+                            <option value="">{['— Sem categoria —', '— Sem subcategoria —', '— Sem sub-subcategoria —'][nivel]}</option>
+                            {opcoes.map(c => <option key={c.slug} value={c.slug}>{c.nome}</option>)}
+                          </select>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <input value={seleccionado.categoria || ''} onChange={f('categoria')} placeholder="Ex: Camisas" />
                   )}
+                  {categoriaDesconhecida && (
+                    <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>
+                      A categoria actual «{seleccionado.categoria}» já não existe na árvore. Escolhe uma acima para a substituir.
+                    </p>
+                  )}
+                  {caminhoActual.length > 0 && (
+                    <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 6 }}>
+                      Aparece em: {caminhoActual.map((s, i) => opcoesNivel(i).find(n => n.slug === s)?.nome || s).join(' › ')}
+                    </p>
+                  )}
                 </div>
                 <div className="form-group"><label>Stock</label><input type="number" value={seleccionado.stock || ''} onChange={f('stock')} /></div>
+                <div className="form-group"><label>Peso por unidade (kg, opcional)</label><input type="number" step="0.01" min="0" value={seleccionado.peso_kg || ''} onChange={f('peso_kg')} placeholder="Ex: 0,5" /></div>
               </div>
               {seleccionado.url_origem && (
                 <div className="form-group">

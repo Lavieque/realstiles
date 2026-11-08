@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { NextRequest, NextResponse } from 'next/server';
 import { exigirPermissao } from '@/lib/permissoes-server';
 import { adminDb } from '@/lib/firebase-admin';
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
       temuAccountId = info.accountId;
     }
 
-    const ref = await adminDb.collection('produtos').add({
+    const ref = await adminDb.collection(COL_PRODUTOS).add({
       ...dados,
       // Necessário para aparecer em /promocoes (query por em_promocao)
       em_promocao: Number(dados.preco_original) > Number(dados.preco) && Number(dados.preco) > 0,

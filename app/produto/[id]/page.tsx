@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { cache } from 'react';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { serializar } from '@/lib/serializar';
@@ -12,7 +13,7 @@ const getProduto = cache(async (id: string): Promise<Produto | null> => {
   try {
     const db = getAdminDb();
     if (!db) return null;
-    const snap = await db.collection('produtos').doc(id).get();
+    const snap = await db.collection(COL_PRODUTOS).doc(id).get();
     if (!snap.exists) return null;
     return { ...serializar<Produto>(snap.data()!), id: snap.id };
   } catch {
@@ -26,7 +27,7 @@ async function getProdutosRelacionados(produto: Produto): Promise<Produto[]> {
     if (!db) return [];
 
     // 1.ª tentativa: mesma categoria
-    const snapCat = await db.collection('produtos')
+    const snapCat = await db.collection(COL_PRODUTOS)
       .where('activo', '==', true)
       .where('categoria', '==', produto.categoria || '')
       .limit(5)
@@ -40,7 +41,7 @@ async function getProdutosRelacionados(produto: Produto): Promise<Produto[]> {
 
     // 2.ª tentativa: completar com outros produtos (excluindo já obtidos + o actual)
     const excluir = new Set([produto.id, ...daCat.map(p => p.id)]);
-    const snapResto = await db.collection('produtos')
+    const snapResto = await db.collection(COL_PRODUTOS)
       .where('activo', '==', true)
       .limit(4 - daCat.length + excluir.size)
       .get();

@@ -10,10 +10,11 @@ export { referenciaEncomenda } from './referencia';
 
 export type EstadoEncomenda = 'pendente' | 'confirmada' | 'enviada' | 'entregue' | 'cancelada';
 
-export type FormaEntrega = 'recolha' | 'domicilio';
+export type FormaEntrega = 'recolha' | 'terminal' | 'domicilio';
 
 export const FORMAS_ENTREGA: Record<FormaEntrega, string> = {
   recolha: 'Ponto de recolha',
+  terminal: 'Levantamento em terminal',
   domicilio: 'Entrega ao domicílio',
 };
 
@@ -44,6 +45,10 @@ export interface Encomenda {
   total: number;
   subtotal?: number;
   forma_entrega?: FormaEntrega;
+  // Destino usado para calcular a taxa (tarifas por província, modo e zona)
+  provincia_entrega?: string;
+  zona_entrega?: string;
+  peso_kg?: number;
   taxa_entrega?: number;
   // Entrega ao domicílio com preço a combinar (não incluído no total)
   entrega_sob_consulta?: boolean;
@@ -85,7 +90,7 @@ export interface EncomendaCriada {
 // em `encomendas`, por isso este é o único caminho.
 export async function criarEncomendaPendente({
   itens, morada, cidade, telefone, notas = '', pagamento_metodo,
-  forma_entrega = 'domicilio',
+  forma_entrega = 'domicilio', provincia = '', zona = '',
 }: {
   itens: ItemEncomenda[];
   morada: string;
@@ -94,6 +99,8 @@ export async function criarEncomendaPendente({
   notas?: string;
   pagamento_metodo: 'mpesa' | 'emola' | 'mkesh' | 'cartao' | 'paysuite';
   forma_entrega?: FormaEntrega;
+  provincia?: string;
+  zona?: string;
 }): Promise<EncomendaCriada> {
   const res = await apiFetch('/api/encomendas', {
     method: 'POST',
@@ -108,6 +115,8 @@ export async function criarEncomendaPendente({
       morada, cidade, telefone, notas,
       pagamento_metodo,
       forma_entrega,
+      provincia,
+      zona,
     }),
   });
 

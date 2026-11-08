@@ -12,7 +12,7 @@ import type { Encomenda, EstadoEncomenda } from '@/lib/encomendas';
 import { mostrarToast } from '@/components/Toast';
 import type { Perfil } from '@/lib/auth';
 import type { User } from 'firebase/auth';
-import { AlertTriangle, Package, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText, Trash2 } from 'lucide-react';
+import { AlertTriangle, Package, Heart, Truck, MessageCircle, Settings, Key, LogOut, Check, Mail, Smartphone, ArrowLeft, Pencil, MessageSquareText, Trash2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
 import { caminhoInternoSeguro } from '@/lib/sessao';
 
@@ -43,6 +43,7 @@ function ContaInner() {
   const [user, setUser] = useState<User | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [encomendas, setEncomendas] = useState<Encomenda[]>([]);
+  const [totalEncomendas, setTotalEncomendas] = useState(0);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ nome: '', email: '', password: '', telefone: '', codigo: '' });
   const [editando, setEditando] = useState(false);
@@ -73,6 +74,7 @@ function ContaInner() {
         if (p && await sincronizarEmailPerfil(u, p).catch(() => false)) p.email = u.email || p.email;
         setPerfil(p);
         setEncomendas(enc.slice(0, 3));
+        setTotalEncomendas(enc.length);
       }
     });
     return unsub;
@@ -280,7 +282,10 @@ function ContaInner() {
     return (
       <div className="page-wrapper">
         <div className="container">
-          <div className="page-header"><h1>A minha conta</h1></div>
+          <header className="page-header">
+            <span className="eyebrow" style={{ marginBottom: 14 }}>A tua área Real Stiles</span>
+            <h1 className="display-titulo">A minha conta.</h1>
+          </header>
 
           {!user.emailVerified && user.email && (
             <div style={{ background: '#fff8e1', border: '1px solid #f39c12', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -293,6 +298,13 @@ function ContaInner() {
               </button>
             </div>
           )}
+
+          <nav className="conta-atalhos" aria-label="Atalhos da conta">
+            <Link href="/encomendas"><Package size={20} strokeWidth={1.5} /><span><strong>As minhas encomendas</strong><small>{totalEncomendas} {totalEncomendas === 1 ? 'encomenda' : 'encomendas'}</small></span></Link>
+            <Link href="/favoritos"><Heart size={20} strokeWidth={1.5} /><span><strong>Favoritos</strong><small>Os artigos que guardaste</small></span></Link>
+            <Link href="/acompanhar"><Truck size={20} strokeWidth={1.5} /><span><strong>Acompanhar encomenda</strong><small>Com a referência</small></span></Link>
+            <Link href="/ajuda"><MessageCircle size={20} strokeWidth={1.5} /><span><strong>Ajuda e contacto</strong><small>Fala com a equipa</small></span></Link>
+          </nav>
 
           <div className="conta-grid">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -466,12 +478,12 @@ function ContaInner() {
           <Link href="/">
             <Image src="/img/logo.png" alt="Real Stiles" width={48} height={48} style={{ height: 48, width: 48 }} />
           </Link>
-          <h2 className="auth-marca-titulo">Veste o teu<br /><em>estilo.</em></h2>
-          <p className="auth-marca-sub">As melhores peças de vestuário, cuidadosamente seleccionadas para ti.</p>
+          <h2 className="auth-marca-titulo">Tudo o que precisas.<br /><em>Num só lugar.</em></h2>
+          <p className="auth-marca-sub">Moda, eletrónica, beleza e casa. Escolhes tu, tratamos nós.</p>
           <div className="auth-marca-pontos">
             <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Entrega em todo o país</div>
             <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Pagamento seguro</div>
-            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Devoluções em 30 dias</div>
+            <div className="auth-ponto"><span><Check size={14} strokeWidth={1.5} /></span> Apoio em cada etapa</div>
           </div>
           {/* WhatsApp info — só aparece quando o serviço está activo */}
           {whatsappActivo && (
@@ -487,6 +499,7 @@ function ContaInner() {
           )}
         </div>
         <Link href="/" className="auth-volta-loja" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} strokeWidth={1.5} /> Voltar à loja</Link>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', margin: '8px 0 0' }}>Também podes comprar como visitante. <Link href="/loja" style={{ color: 'white', fontWeight: 600 }}>Continuar sem conta</Link></p>
       </div>
 
       <div className="auth-lado-form">

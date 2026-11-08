@@ -3,6 +3,7 @@ import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { METODOS_PAGAMENTO } from './metodos-pagamento';
 import type { MetodoPagamento } from './metodos-pagamento';
 import { notificarEncomendaPaga } from './email';
+import { sincronizarVendas } from './vendas-server';
 
 export type { MetodoPagamento };
 
@@ -195,6 +196,13 @@ export async function marcarPagamentoPago(
     });
   }
   await batch.commit();
+
+  // Contador de vendas dos produtos (idempotente; falhar não pode travar o pagamento)
+  try {
+    await sincronizarVendas(pagamento.encomenda_id);
+  } catch (e) {
+    console.error('[pagamentos] contagem de vendas falhou', e);
+  }
 
   // Depois do commit: só se avisa quando o estado já está gravado. A guarda
   // de idempotência no topo evita que webhook e polling mandem dois emails.

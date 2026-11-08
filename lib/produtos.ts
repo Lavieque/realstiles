@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   getDoc, getDocs, query, where, orderBy, limit, arrayUnion, arrayRemove,
@@ -6,8 +7,8 @@ import {
 import { db } from './firebase';
 import { correspondePesquisa } from './pesquisa';
 
-const COL = 'produtos';
-const CONFIG_DOC = doc(db, 'config', 'loja');
+const COL = COL_PRODUTOS;
+const CONFIG_DOC = doc(db, 'config', DOC_LOJA);
 
 function comTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
   return Promise.race([
@@ -26,10 +27,15 @@ export interface Produto {
   // Período opcional da promoção, em ms (null = sem limite)
   promocao_inicio?: number | null;
   promocao_fim?: number | null;
+  // Slug da categoria mais específica escolhida (o site filtra por este campo)
   categoria?: string;
+  // Slugs do topo até `categoria` (categoria, subcategoria, sub-subcategoria)
+  categoria_path?: string[];
   fonte?: string;
   url_origem?: string;
   stock: number;
+  // Peso de uma unidade em kg (opcional): soma-se ao custo por kg da entrega
+  peso_kg?: number;
   imagens: string[];
   // URL do vídeo (Cloudinary), mostrado na galeria depois das imagens
   video?: string | null;
@@ -40,6 +46,8 @@ export interface Produto {
   activo: boolean;
   avaliacao?: number;
   num_avaliacoes?: number;
+  // Unidades vendidas (encomendas confirmadas) — mantido por lib/vendas-server
+  vendidos?: number;
   criado_em?: unknown;
 }
 
@@ -247,7 +255,9 @@ export async function pesquisarProdutos(termo: string, max = Infinity): Promise<
 export interface CategoriaConfig {
   nome: string;
   slug: string;
-  subcategorias: { nome: string; slug: string; subcategorias?: { nome: string; slug: string }[] }[];
+  imagem?: string;
+  icone?: string;
+  subcategorias: { nome: string; slug: string; imagem?: string; icone?: string; subcategorias?: { nome: string; slug: string; imagem?: string; icone?: string }[] }[];
 }
 
 let lojaConfigCache: { data: (string | CategoriaConfig)[]; categoriasAtivas: string[]; ts: number } | null = null;

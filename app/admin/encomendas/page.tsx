@@ -92,6 +92,12 @@ export default function AdminEncomendasPage() {
     setSalvando(true);
     try {
       await actualizarEstado(id, estado, notas);
+      // Mantém o contador de vendas dos produtos em linha com o estado
+      apiFetch('/api/admin/vendas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ encomenda_id: id }),
+      }).catch(() => {});
       setEncomendas(enc => enc.map(e => e.id === id ? { ...e, estado } : e));
       setSeleccionada(s => s ? { ...s, estado } : s);
       mostrarToast('Estado actualizado', 'success');
