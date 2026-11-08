@@ -8,6 +8,7 @@ import { uploadParaCloudinary } from '@/lib/cloudinary';
 import { confirmar } from '@/components/Confirmar';
 import { normalizarArvore } from '@/lib/categorias';
 import type { CatNo } from '@/lib/categorias';
+import { ICONES_CATEGORIA, iconeDaCategoria } from '@/lib/categorias-icones';
 
 const NIVEIS = ['categoria', 'subcategoria', 'sub-subcategoria'];
 const MAX_NIVEL = 2;
@@ -37,7 +38,7 @@ function AddRow({ placeholder, onAdd, disabled }: { placeholder: string; onAdd: 
   );
 }
 
-function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRenomear, onImagem, onRemover, onAdicionar }: {
+function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRenomear, onImagem, onIcone, onRemover, onAdicionar }: {
   no: CatNo;
   caminho: string[];
   nivel: number;
@@ -46,6 +47,7 @@ function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRen
   alternar: (chave: string) => void;
   onRenomear: (caminho: string[], nome: string) => void;
   onImagem: (caminho: string[], file: File | null) => Promise<void>;
+  onIcone: (caminho: string[], icone: string | undefined) => void;
   onRemover: (caminho: string[], no: CatNo) => void;
   onAdicionar: (caminho: string[], nome: string) => void;
 }) {
@@ -55,6 +57,8 @@ function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRen
   const podeTerFilhos = nivel < MAX_NIVEL;
   const [nome, setNome] = useState(no.nome);
   const [enviando, setEnviando] = useState(false);
+  const [iconesAbertos, setIconesAbertos] = useState(false);
+  const IconeActual = iconeDaCategoria(no);
   useEffect(() => setNome(no.nome), [no.nome]);
 
   const confirmarNome = () => {
@@ -95,6 +99,10 @@ function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRen
           <input type="file" accept="image/*" onChange={escolherImagem} disabled={disabled || enviando} style={{ display: 'none' }} />
         </label>
 
+        <button type="button" title="Escolher ícone" aria-label="Escolher ícone" aria-expanded={iconesAbertos} onClick={() => setIconesAbertos(o => !o)} disabled={disabled} style={{ width: tamanhoImg, height: tamanhoImg, borderRadius: 8, background: 'var(--accent-light)', color: 'var(--accent-dark)', border: iconesAbertos ? '1px solid var(--accent)' : '1px solid transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <IconeActual size={nivel === 0 ? 20 : 16} strokeWidth={1.5} />
+        </button>
+
         <span style={{ flex: 1, minWidth: 0 }}>
           <input
             value={nome}
@@ -117,10 +125,21 @@ function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRen
         <button type="button" onClick={() => onRemover(caminho, no)} disabled={disabled} aria-label="Remover" style={{ background: nivel === 0 ? 'var(--red)' : 'none', color: nivel === 0 ? 'white' : 'var(--gray-400)', border: 'none', borderRadius: 6, padding: nivel === 0 ? '3px 9px' : '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={nivel === 0 ? 14 : 16} strokeWidth={1.5} /></button>
       </div>
 
+      {iconesAbertos && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 12px', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--gray-200)', margin: '6px 0 0 8px' }}>
+          <button type="button" onClick={() => { onIcone(caminho, undefined); setIconesAbertos(false); }} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--gray-200)', background: !no.icone ? 'var(--accent-light)' : 'white', cursor: 'pointer' }}>Automático</button>
+          {Object.entries(ICONES_CATEGORIA).map(([chave, { rotulo, Icon }]) => (
+            <button key={chave} type="button" title={rotulo} aria-label={rotulo} onClick={() => { onIcone(caminho, chave); setIconesAbertos(false); }} style={{ width: 32, height: 32, borderRadius: 8, border: no.icone === chave ? '1px solid var(--accent)' : '1px solid var(--gray-200)', background: no.icone === chave ? 'var(--accent-light)' : 'white', color: 'var(--accent-dark)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon size={16} strokeWidth={1.5} />
+            </button>
+          ))}
+        </div>
+      )}
+
       {podeTerFilhos && aberto && (
         <div style={{ padding: nivel === 0 ? '12px 16px 16px' : '6px 0 0 8px', background: nivel === 0 ? 'var(--gray-50)' : undefined }}>
           {subs.map(s => (
-            <NoCategoria key={s.slug} no={s} caminho={[...caminho, s.slug]} nivel={nivel + 1} disabled={disabled} expandidos={expandidos} alternar={alternar} onRenomear={onRenomear} onImagem={onImagem} onRemover={onRemover} onAdicionar={onAdicionar} />
+            <NoCategoria key={s.slug} no={s} caminho={[...caminho, s.slug]} nivel={nivel + 1} disabled={disabled} expandidos={expandidos} alternar={alternar} onRenomear={onRenomear} onImagem={onImagem} onIcone={onIcone} onRemover={onRemover} onAdicionar={onAdicionar} />
           ))}
           <AddRow placeholder={`Nova ${NIVEIS[nivel + 1]}...`} disabled={disabled} onAdd={n => onAdicionar(caminho, n)} />
         </div>
@@ -197,6 +216,9 @@ export default function AdminCategoriasPage() {
     if (ok) guardar(mapearNo(categorias, caminho, () => null));
   };
 
+  const mudarIcone = (caminho: string[], icone: string | undefined) =>
+    guardar(mapearNo(categorias, caminho, n => ({ ...n, icone })), 'Ícone actualizado');
+
   // file === null remove a imagem
   const mudarImagem = async (caminho: string[], file: File | null) => {
     try {
@@ -228,7 +250,7 @@ export default function AdminCategoriasPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {categorias.map(cat => (
             <div key={cat.slug} style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
-              <NoCategoria no={cat} caminho={[cat.slug]} nivel={0} disabled={salvando} expandidos={expandidos} alternar={alternar} onRenomear={renomear} onImagem={mudarImagem} onRemover={remover} onAdicionar={adicionar} />
+              <NoCategoria no={cat} caminho={[cat.slug]} nivel={0} disabled={salvando} expandidos={expandidos} alternar={alternar} onRenomear={renomear} onImagem={mudarImagem} onIcone={mudarIcone} onRemover={remover} onAdicionar={adicionar} />
             </div>
           ))}
         </div>

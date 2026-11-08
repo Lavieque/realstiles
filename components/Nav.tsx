@@ -7,7 +7,8 @@ import { onAuthChange, getPerfil, logout, temAcessoAdmin } from '@/lib/auth';
 import type { Perfil } from '@/lib/auth';
 import { getCategoriasConfig } from '@/lib/produtos';
 import type { CategoriaConfig } from '@/lib/produtos';
-import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, ThumbsUp, PackageSearch, ArrowRight, Headphones, Globe } from 'lucide-react';
+import { iconeDaCategoria } from '@/lib/categorias-icones';
+import { ShoppingCart, Heart, Search, User, Truck, ChevronDown, Menu, X, Sparkles, Star, Tag, ThumbsUp, PackageSearch, ArrowRight, Headphones, Globe, ChevronRight, LayoutGrid } from 'lucide-react';
 
 export default function Nav() {
   const { items, bumped, abrirDrawer } = useCarrinho();
@@ -174,19 +175,34 @@ export default function Nav() {
                     onFocus={() => setCatActiva(c.slug)}
                     onClick={fecharTudo}
                   >
-                    {c.nome}
+                    <span className="nav-mega-ico">{(() => { const I = iconeDaCategoria(c); return <I size={16} strokeWidth={1.6} />; })()}</span>
+                    <span className="nav-mega-nome">{c.nome}</span>
+                    <ChevronRight size={14} strokeWidth={1.5} className="nav-mega-seta" />
                   </Link>
                 </li>
               ))}
-              <li><Link href="/loja" className="nav-mega-todos" onClick={fecharTudo}>Todos os produtos</Link></li>
+              <li><Link href="/loja" className="nav-mega-todos" onClick={fecharTudo}><span className="nav-mega-ico"><LayoutGrid size={16} strokeWidth={1.6} /></span><span className="nav-mega-nome">Todos os produtos</span><ChevronRight size={14} strokeWidth={1.5} className="nav-mega-seta" /></Link></li>
             </ul>
             {catAberta && (
               <div className="nav-mega-subs">
-                <Link href={`/loja?cat=${catAberta.slug}`} className="nav-mega-ver" onClick={fecharTudo}>Ver tudo em {catAberta.nome} <ArrowRight size={14} strokeWidth={1.5} /></Link>
+                <div className="nav-mega-cab">
+                  <strong>{catAberta.nome}</strong>
+                  <Link href={`/loja?cat=${catAberta.slug}`} className="nav-mega-ver" onClick={fecharTudo}>Ver tudo <ArrowRight size={14} strokeWidth={1.5} /></Link>
+                </div>
                 <ul>
-                  {catAberta.subcategorias.map(s => (
-                    <li key={s.slug}><Link href={`/loja?cat=${s.slug}`} onClick={fecharTudo}>{s.nome}</Link></li>
-                  ))}
+                  {catAberta.subcategorias.map(sub => {
+                    const I = iconeDaCategoria(sub);
+                    return (
+                      <li key={sub.slug}>
+                        <Link href={`/loja?cat=${sub.slug}`} onClick={fecharTudo}>
+                          <span className="nav-mega-circ">
+                            {sub.imagem ? <Image src={sub.imagem} alt="" fill sizes="72px" style={{ objectFit: 'cover' }} unoptimized /> : <I size={26} strokeWidth={1.4} />}
+                          </span>
+                          <span className="nav-mega-sub-nome"><I size={13} strokeWidth={1.6} /> {sub.nome}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

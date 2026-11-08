@@ -6,6 +6,8 @@ export interface CatNo {
   slug: string;
   // URL da imagem da categoria (Cloudinary)
   imagem?: string;
+  // Chave de ICONES_CATEGORIA (lib/categorias-icones.ts)
+  icone?: string;
   subcategorias?: CatNo[];
 }
 
@@ -13,6 +15,7 @@ export interface CatInfo {
   nome: string;
   slug: string;
   imagem?: string;
+  icone?: string;
   // Slugs do topo até esta categoria (inclusive)
   caminho: string[];
 }
@@ -24,7 +27,7 @@ export function indexarCategorias(arvore: CatNo[]): Record<string, CatInfo> {
   const visitar = (nos: CatNo[], pai: string[]) => {
     for (const n of nos) {
       const caminho = [...pai, n.slug];
-      if (!out[n.slug]) out[n.slug] = { nome: n.nome, slug: n.slug, imagem: n.imagem, caminho };
+      if (!out[n.slug]) out[n.slug] = { nome: n.nome, slug: n.slug, imagem: n.imagem, icone: n.icone, caminho };
       if (n.subcategorias?.length) visitar(n.subcategorias, caminho);
     }
   };

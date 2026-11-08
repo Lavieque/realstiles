@@ -11,6 +11,7 @@ import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '
 import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
 import { precoActual } from '@/lib/promocao';
 import { indexarCategorias, acharNo, slugsDaSubarvore } from '@/lib/categorias';
+import { iconeDaCategoria } from '@/lib/categorias-icones';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
@@ -331,10 +332,11 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
       {!searchTerm && tiles.length > 0 && (
         <div className="cat-tiles">
           {tiles.slice(0, 12).map(({ slug, nome, src }) => {
+            const Icone = iconeDaCategoria(infoCats[slug] ?? { nome, slug });
             return (
               <button key={slug} type="button" className="cat-tile" onClick={() => filtrar(slug)}>
-                <span className="cat-tile-img">{src && <Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="72px" />}</span>
-                <span>{nome}</span>
+                <span className="cat-tile-img">{src ? <Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="72px" /> : <Icone size={26} strokeWidth={1.4} />}</span>
+                <span className="cat-tile-nome"><Icone size={13} strokeWidth={1.6} /> {nome}</span>
               </button>
             );
           })}

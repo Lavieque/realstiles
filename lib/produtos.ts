@@ -256,7 +256,8 @@ export interface CategoriaConfig {
   nome: string;
   slug: string;
   imagem?: string;
-  subcategorias: { nome: string; slug: string; imagem?: string; subcategorias?: { nome: string; slug: string; imagem?: string }[] }[];
+  icone?: string;
+  subcategorias: { nome: string; slug: string; imagem?: string; icone?: string; subcategorias?: { nome: string; slug: string; imagem?: string; icone?: string }[] }[];
 }
 
 let lojaConfigCache: { data: (string | CategoriaConfig)[]; categoriasAtivas: string[]; ts: number } | null = null;
