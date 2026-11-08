@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { FieldPath } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { gerarSeedAleatoria } from '@/lib/aleatorio';
@@ -19,7 +20,7 @@ async function getProdutosSSR(opts: { destaque?: boolean; max?: number } = {}): 
     // 'activo' + 'destaque' + orderBy exigiria um índice composto que não
     // existe — filtra por destaque sem orderBy e ordena depois em memória.
     const comDestaque = opts.destaque !== undefined;
-    let q = db.collection('produtos').where('activo', '==', true);
+    let q = db.collection(COL_PRODUTOS).where('activo', '==', true);
     if (comDestaque) q = q.where('destaque', '==', opts.destaque) as typeof q;
     if (!comDestaque) q = q.orderBy('criado_em', 'desc') as typeof q;
     q = q.limit(opts.max || 20) as typeof q;
@@ -39,7 +40,7 @@ async function getProdutosAleatoriosSSR(seed: string, max: number): Promise<Prod
   try {
     const db = getAdminDb();
     if (!db) return [];
-    const base = db.collection('produtos').where('activo', '==', true).orderBy(FieldPath.documentId());
+    const base = db.collection(COL_PRODUTOS).where('activo', '==', true).orderBy(FieldPath.documentId());
     const snap = await base.startAt(seed).limit(max).get();
     let docs = snap.docs;
     if (docs.length < max) {
@@ -56,7 +57,7 @@ async function getCategoriasTopoSSR(): Promise<{ nome: string; slug: string }[]>
   try {
     const db = getAdminDb();
     if (!db) return [];
-    const snap = await db.collection('config').doc('loja').get();
+    const snap = await db.collection('config').doc(DOC_LOJA).get();
     const lista: unknown[] = snap.data()?.categorias || [];
     return lista
       .filter((c): c is { nome: string; slug: string } => typeof c === 'object' && c !== null && 'slug' in c)

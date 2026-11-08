@@ -85,6 +85,12 @@ service cloud.firestore {
       }
     }
 
+    // Cópia do catálogo usada só no preview (NEXT_PUBLIC_DADOS_PREVIEW=1).
+    match /produtos_preview/{produtoId} {
+      allow read: if true;
+      allow write: if temPerm('produtos');
+    }
+
     // Config do site — leitura pública (textos, títulos, etc.); escrita só
     // para a equipa. O contador de encomendas (config/contador_encomendas) é
     // incrementado pela transacção do Admin SDK em lib/encomendas-server.ts,

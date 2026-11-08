@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { serializar } from '@/lib/serializar';
 
@@ -17,7 +18,7 @@ export async function getOpinioes(): Promise<Opiniao[]> {
   try {
     const db = getAdminDb();
     if (!db) return [];
-    const produtos = await db.collection('produtos').where('activo', '==', true).get();
+    const produtos = await db.collection(COL_PRODUTOS).where('activo', '==', true).get();
     const comAvaliacoes = produtos.docs.filter(d => Number(d.data().num_avaliacoes) > 0).slice(0, 60);
     const listas = await Promise.all(comAvaliacoes.map(async p => {
       const snap = await p.ref.collection('comentarios').where('estado', '==', 'aprovado').get();

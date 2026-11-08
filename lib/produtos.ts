@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   getDoc, getDocs, query, where, orderBy, limit, arrayUnion, arrayRemove,
@@ -6,8 +7,8 @@ import {
 import { db } from './firebase';
 import { correspondePesquisa } from './pesquisa';
 
-const COL = 'produtos';
-const CONFIG_DOC = doc(db, 'config', 'loja');
+const COL = COL_PRODUTOS;
+const CONFIG_DOC = doc(db, 'config', DOC_LOJA);
 
 function comTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
   return Promise.race([

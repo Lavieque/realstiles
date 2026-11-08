@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
 import { getConfigSSR } from './config-site-ssr';
@@ -78,7 +79,7 @@ function lerItens(bruto: unknown): ItemPedido[] {
 // sempre o preço actual no servidor, incluindo o estado da promoção.
 async function materializarItens(pedido: ItemPedido[]): Promise<{ itens: ItemEncomenda[]; pesoKg: number }> {
   const ids = Array.from(new Set(pedido.map(i => i.produto_id)));
-  const snaps = await adminDb.getAll(...ids.map(id => adminDb.collection('produtos').doc(id)));
+  const snaps = await adminDb.getAll(...ids.map(id => adminDb.collection(COL_PRODUTOS).doc(id)));
   const produtos = new Map(snaps.filter(s => s.exists).map(s => [s.id, s.data()!]));
 
   const agora = Date.now();

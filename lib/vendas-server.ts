@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
 
@@ -30,7 +31,7 @@ export async function sincronizarVendas(encomendaId: string): Promise<'contada' 
     }
 
     // Leituras antes de escritas (regra das transacções do Firestore)
-    const refs = [...porProduto.keys()].map(id => adminDb.collection('produtos').doc(id));
+    const refs = [...porProduto.keys()].map(id => adminDb.collection(COL_PRODUTOS).doc(id));
     const produtos = await Promise.all(refs.map(r => tx.get(r)));
 
     produtos.forEach((p, i) => {

@@ -1,3 +1,4 @@
+import { COL_PRODUTOS, DOC_LOJA } from '@/lib/colecoes';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { exigirPermissao } from '@/lib/permissoes-server';
@@ -42,7 +43,7 @@ const DEFAULTS = [
 
 export async function GET() {
   try {
-    const snap = await adminDb.collection('config').doc('loja').get();
+    const snap = await adminDb.collection('config').doc(DOC_LOJA).get();
     const data = snap.exists ? snap.data() : null;
     const raw = data?.categorias;
     // Se vazio ou formato antigo (strings), devolve defaults
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { categorias } = await req.json();
-    await adminDb.collection('config').doc('loja').set({ categorias }, { merge: true });
+    await adminDb.collection('config').doc(DOC_LOJA).set({ categorias }, { merge: true });
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
