@@ -26,7 +26,10 @@ export interface Produto {
   // Período opcional da promoção, em ms (null = sem limite)
   promocao_inicio?: number | null;
   promocao_fim?: number | null;
+  // Slug da categoria mais específica escolhida (o site filtra por este campo)
   categoria?: string;
+  // Slugs do topo até `categoria` (categoria, subcategoria, sub-subcategoria)
+  categoria_path?: string[];
   fonte?: string;
   url_origem?: string;
   stock: number;
@@ -251,7 +254,8 @@ export async function pesquisarProdutos(termo: string, max = Infinity): Promise<
 export interface CategoriaConfig {
   nome: string;
   slug: string;
-  subcategorias: { nome: string; slug: string; subcategorias?: { nome: string; slug: string }[] }[];
+  imagem?: string;
+  subcategorias: { nome: string; slug: string; imagem?: string; subcategorias?: { nome: string; slug: string; imagem?: string }[] }[];
 }
 
 let lojaConfigCache: { data: (string | CategoriaConfig)[]; categoriasAtivas: string[]; ts: number } | null = null;

@@ -1,128 +1,212 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Image from '@/components/CloudImage';
 import { mostrarToast } from '@/components/Toast';
-import { ClipboardList, X } from 'lucide-react';
+import { ClipboardList, X, ImagePlus } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
+import { uploadParaCloudinary } from '@/lib/cloudinary';
+import { confirmar } from '@/components/Confirmar';
+import { normalizarArvore } from '@/lib/categorias';
+import type { CatNo } from '@/lib/categorias';
 
-interface SubSub {
-  nome: string;
-  slug: string;
-}
-
-interface Sub {
-  nome: string;
-  slug: string;
-  subcategorias: SubSub[];
-}
-
-interface Categoria {
-  nome: string;
-  slug: string;
-  subcategorias: Sub[];
-}
+const NIVEIS = ['categoria', 'subcategoria', 'sub-subcategoria'];
+const MAX_NIVEL = 2;
 
 function slugify(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 }
 
-function ItemRow({ label, slug, onRemove, disabled }: { label: string; slug: string; onRemove: () => void; disabled: boolean }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'white', borderRadius: 8, border: '1px solid var(--gray-200)' }}>
-      <span style={{ flex: 1 }}>
-        <span style={{ fontWeight: 500, fontSize: 13 }}>{label}</span>
-        <span style={{ fontSize: 11, color: 'var(--gray-400)', marginLeft: 6 }}>/{slug}</span>
-      </span>
-      <button onClick={onRemove} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', padding: '2px 6px' }}><X size={16} strokeWidth={1.5} /></button>
-    </div>
-  );
+// Aplica `fn` ao nó em `caminho` (slugs do topo ao nó); devolve nova árvore
+function mapearNo(arvore: CatNo[], caminho: string[], fn: (n: CatNo) => CatNo | null): CatNo[] {
+  const [slug, ...resto] = caminho;
+  return arvore.flatMap(n => {
+    if (n.slug !== slug) return [n];
+    if (resto.length === 0) { const r = fn(n); return r ? [r] : []; }
+    return [{ ...n, subcategorias: mapearNo(n.subcategorias || [], resto, fn) }];
+  });
 }
 
 function AddRow({ placeholder, onAdd, disabled }: { placeholder: string; onAdd: (nome: string) => void; disabled: boolean }) {
   const [val, setVal] = useState('');
+  const enviar = () => { if (val.trim()) { onAdd(val.trim()); setVal(''); } };
   return (
     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-      <input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} onKeyDown={e => { if (e.key === 'Enter' && val.trim()) { onAdd(val.trim()); setVal(''); } }} style={{ flex: 1, fontSize: 13, padding: '7px 12px' }} />
-      <button className="btn btn-outline btn-sm" onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal(''); } }} disabled={!val.trim() || disabled}>+</button>
+      <input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} onKeyDown={e => { if (e.key === 'Enter') enviar(); }} style={{ flex: 1, fontSize: 13, padding: '7px 12px' }} />
+      <button className="btn btn-outline btn-sm" onClick={enviar} disabled={!val.trim() || disabled}>+</button>
+    </div>
+  );
+}
+
+function NoCategoria({ no, caminho, nivel, disabled, expandidos, alternar, onRenomear, onImagem, onRemover, onAdicionar }: {
+  no: CatNo;
+  caminho: string[];
+  nivel: number;
+  disabled: boolean;
+  expandidos: Record<string, boolean>;
+  alternar: (chave: string) => void;
+  onRenomear: (caminho: string[], nome: string) => void;
+  onImagem: (caminho: string[], file: File | null) => Promise<void>;
+  onRemover: (caminho: string[], no: CatNo) => void;
+  onAdicionar: (caminho: string[], nome: string) => void;
+}) {
+  const chave = caminho.join('/');
+  const subs = no.subcategorias || [];
+  const aberto = !!expandidos[chave];
+  const podeTerFilhos = nivel < MAX_NIVEL;
+  const [nome, setNome] = useState(no.nome);
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => setNome(no.nome), [no.nome]);
+
+  const confirmarNome = () => {
+    const limpo = nome.trim();
+    if (!limpo) { setNome(no.nome); return; }
+    if (limpo !== no.nome) onRenomear(caminho, limpo);
+  };
+
+  const escolherImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setEnviando(true);
+    try { await onImagem(caminho, file); } finally { setEnviando(false); }
+  };
+
+  const tamanhoImg = nivel === 0 ? 44 : 34;
+
+  return (
+    <div style={{ marginBottom: nivel === 0 ? 0 : 8, marginLeft: nivel === 0 ? 0 : 16 }}>
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, background: 'white',
+          padding: nivel === 0 ? '12px 16px' : '8px 12px',
+          borderRadius: nivel === 0 ? 0 : 8,
+          border: nivel === 0 ? 'none' : '1px solid var(--gray-200)',
+          borderBottom: nivel === 0 && aberto ? '1px solid var(--gray-100)' : undefined,
+        }}
+      >
+        {podeTerFilhos ? (
+          <button type="button" onClick={() => alternar(chave)} aria-label={aberto ? 'Fechar' : 'Abrir'} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--gray-400)', transition: 'transform 0.15s', transform: aberto ? 'rotate(90deg)' : 'none', padding: 4 }}>▶</button>
+        ) : <span style={{ width: 20 }} />}
+
+        <label title="Alterar imagem" style={{ width: tamanhoImg, height: tamanhoImg, borderRadius: 8, background: 'var(--gray-100)', border: '1px dashed var(--gray-300)', position: 'relative', overflow: 'hidden', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray-400)' }}>
+          {no.imagem
+            ? <Image src={no.imagem} alt="" fill style={{ objectFit: 'cover' }} sizes="48px" />
+            : enviando ? <span className="spinner" style={{ width: 14, height: 14 }} /> : <ImagePlus size={16} strokeWidth={1.5} />}
+          <input type="file" accept="image/*" onChange={escolherImagem} disabled={disabled || enviando} style={{ display: 'none' }} />
+        </label>
+
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <input
+            value={nome}
+            onChange={e => setNome(e.target.value)}
+            onBlur={confirmarNome}
+            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setNome(no.nome); (e.target as HTMLInputElement).blur(); } }}
+            disabled={disabled}
+            aria-label={`Nome da ${NIVEIS[nivel]}`}
+            style={{ fontWeight: nivel === 0 ? 700 : 500, fontSize: nivel === 0 ? 14 : 13, padding: '4px 8px', width: '100%', maxWidth: 260, border: '1px solid transparent', background: 'transparent' }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--gray-300)'; e.currentTarget.style.background = 'white'; }}
+            onBlurCapture={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+          />
+          <span style={{ fontSize: 11, color: 'var(--gray-400)', marginLeft: 6 }}>/{no.slug}</span>
+        </span>
+
+        {no.imagem && (
+          <button type="button" onClick={() => onImagem(caminho, null)} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--gray-400)', textDecoration: 'underline' }}>sem imagem</button>
+        )}
+        {podeTerFilhos && <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{subs.length} sub</span>}
+        <button type="button" onClick={() => onRemover(caminho, no)} disabled={disabled} aria-label="Remover" style={{ background: nivel === 0 ? 'var(--red)' : 'none', color: nivel === 0 ? 'white' : 'var(--gray-400)', border: 'none', borderRadius: 6, padding: nivel === 0 ? '3px 9px' : '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={nivel === 0 ? 14 : 16} strokeWidth={1.5} /></button>
+      </div>
+
+      {podeTerFilhos && aberto && (
+        <div style={{ padding: nivel === 0 ? '12px 16px 16px' : '6px 0 0 8px', background: nivel === 0 ? 'var(--gray-50)' : undefined }}>
+          {subs.map(s => (
+            <NoCategoria key={s.slug} no={s} caminho={[...caminho, s.slug]} nivel={nivel + 1} disabled={disabled} expandidos={expandidos} alternar={alternar} onRenomear={onRenomear} onImagem={onImagem} onRemover={onRemover} onAdicionar={onAdicionar} />
+          ))}
+          <AddRow placeholder={`Nova ${NIVEIS[nivel + 1]}...`} disabled={disabled} onAdd={n => onAdicionar(caminho, n)} />
+        </div>
+      )}
     </div>
   );
 }
 
 export default function AdminCategoriasPage() {
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categorias, setCategorias] = useState<CatNo[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [seeded, setSeeded] = useState(false);
-  const [expandCat, setExpandCat] = useState<Record<string, boolean>>({});
-  const [expandSub, setExpandSub] = useState<Record<string, boolean>>({});
+  const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
   const [novaCategoria, setNovaCategoria] = useState('');
 
   useEffect(() => {
     fetch('/api/config/categorias')
       .then(r => r.json())
       .then(d => {
-        setCategorias((d.categorias || []).map((c: Categoria) => ({
-          ...c,
-          subcategorias: (c.subcategorias || []).map((s: Sub) => ({ ...s, subcategorias: s.subcategorias || [] })),
-        })));
+        setCategorias(normalizarArvore(d.categorias));
         if (d.seeded) setSeeded(true);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  const guardar = async (novas: Categoria[]) => {
+  const guardar = async (novas: CatNo[], msg = 'Categorias guardadas!') => {
     setSalvando(true);
     try {
       const res = await apiFetch('/api/config/categorias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categorias: novas }) });
       if (!res.ok) throw new Error(await res.text());
       setCategorias(novas);
       setSeeded(false);
-      mostrarToast('Categorias guardadas!', 'success');
+      mostrarToast(msg, 'success');
     } catch { mostrarToast('Erro ao guardar', 'error'); }
     finally { setSalvando(false); }
   };
+
+  const alternar = (chave: string) => setExpandidos(e => ({ ...e, [chave]: !e[chave] }));
 
   const addCat = () => {
     const nome = novaCategoria.trim();
     if (!nome) return;
     const slug = slugify(nome);
-    if (categorias.some(c => c.slug === slug)) return;
+    if (!slug || categorias.some(c => c.slug === slug)) { mostrarToast('Já existe uma categoria com esse nome', 'error'); return; }
     guardar([...categorias, { nome, slug, subcategorias: [] }]);
     setNovaCategoria('');
-    setExpandCat(e => ({ ...e, [slug]: true }));
+    setExpandidos(e => ({ ...e, [slug]: true }));
   };
 
-  const removeCat = (slug: string) => guardar(categorias.filter(c => c.slug !== slug));
-
-  const addSub = (catSlug: string, nome: string) => {
+  const adicionar = (caminho: string[], nome: string) => {
     const slug = slugify(nome);
-    guardar(categorias.map(c => c.slug === catSlug && !c.subcategorias.some(s => s.slug === slug)
-      ? { ...c, subcategorias: [...c.subcategorias, { nome, slug, subcategorias: [] }] }
-      : c));
-    setExpandSub(e => ({ ...e, [`${catSlug}/${slug}`]: true }));
+    if (!slug) return;
+    const pai = caminho.join('/');
+    guardar(mapearNo(categorias, caminho, n => (n.subcategorias || []).some(s => s.slug === slug)
+      ? n
+      : { ...n, subcategorias: [...(n.subcategorias || []), { nome, slug, subcategorias: [] }] }));
+    setExpandidos(e => ({ ...e, [pai]: true, [`${pai}/${slug}`]: true }));
   };
 
-  const removeSub = (catSlug: string, subSlug: string) =>
-    guardar(categorias.map(c => c.slug === catSlug ? { ...c, subcategorias: c.subcategorias.filter(s => s.slug !== subSlug) } : c));
+  // O slug mantém-se: os artigos referem-se à categoria pelo slug
+  const renomear = (caminho: string[], nome: string) =>
+    guardar(mapearNo(categorias, caminho, n => ({ ...n, nome })), 'Nome actualizado');
 
-  const addSubSub = (catSlug: string, subSlug: string, nome: string) => {
-    const slug = slugify(nome);
-    guardar(categorias.map(c => c.slug === catSlug ? {
-      ...c,
-      subcategorias: c.subcategorias.map(s => s.slug === subSlug && !s.subcategorias.some(ss => ss.slug === slug)
-        ? { ...s, subcategorias: [...s.subcategorias, { nome, slug }] }
-        : s)
-    } : c));
+  const remover = async (caminho: string[], no: CatNo) => {
+    const filhos = (no.subcategorias || []).length;
+    const ok = await confirmar({
+      titulo: `Remover "${no.nome}"?`,
+      mensagem: filhos ? `Remove também as ${filhos} subcategorias. Os artigos mantêm-se, mas deixam de aparecer nesta categoria.` : 'Os artigos mantêm-se, mas deixam de aparecer nesta categoria.',
+      confirmar: 'Remover',
+      perigo: true,
+    });
+    if (ok) guardar(mapearNo(categorias, caminho, () => null));
   };
 
-  const removeSubSub = (catSlug: string, subSlug: string, ssSlug: string) =>
-    guardar(categorias.map(c => c.slug === catSlug ? {
-      ...c,
-      subcategorias: c.subcategorias.map(s => s.slug === subSlug ? { ...s, subcategorias: s.subcategorias.filter(ss => ss.slug !== ssSlug) } : s)
-    } : c));
+  // file === null remove a imagem
+  const mudarImagem = async (caminho: string[], file: File | null) => {
+    try {
+      const imagem = file ? await uploadParaCloudinary(file) : undefined;
+      await guardar(mapearNo(categorias, caminho, n => ({ ...n, imagem })), file ? 'Imagem guardada' : 'Imagem removida');
+    } catch { mostrarToast('Erro no upload da imagem', 'error'); }
+  };
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: 32 }}>
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: 32 }}>
       <div className="admin-topbar" style={{ marginBottom: 24 }}><h1>Categorias</h1></div>
 
       {seeded && (
@@ -144,59 +228,14 @@ export default function AdminCategoriasPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {categorias.map(cat => (
             <div key={cat.slug} style={{ background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
-
-              {/* Nível 1 — Categoria */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', cursor: 'pointer', gap: 10, borderBottom: expandCat[cat.slug] ? '1px solid var(--gray-100)' : 'none' }} onClick={() => setExpandCat(e => ({ ...e, [cat.slug]: !e[cat.slug] }))}>
-                <span style={{ fontSize: 12, color: 'var(--gray-400)', transition: 'transform 0.15s', display: 'inline-block', transform: expandCat[cat.slug] ? 'rotate(90deg)' : 'none' }}>▶</span>
-                <span style={{ flex: 1 }}>
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>{cat.nome}</span>
-                  <span style={{ fontSize: 12, color: 'var(--gray-400)', marginLeft: 8 }}>/{cat.slug}</span>
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--gray-400)', marginRight: 8 }}>{cat.subcategorias.length} sub</span>
-                <button onClick={e => { e.stopPropagation(); removeCat(cat.slug); }} disabled={salvando} style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={14} strokeWidth={1.5} /></button>
-              </div>
-
-              {expandCat[cat.slug] && (
-                <div style={{ padding: '12px 16px 16px', background: 'var(--gray-50)' }}>
-
-                  {/* Nível 2 — Subcategorias */}
-                  {cat.subcategorias.map(sub => {
-                    const subKey = `${cat.slug}/${sub.slug}`;
-                    return (
-                      <div key={sub.slug} style={{ marginBottom: 8, marginLeft: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'white', borderRadius: 8, border: '1px solid var(--gray-200)', cursor: 'pointer' }}
-                          onClick={() => setExpandSub(e => ({ ...e, [subKey]: !e[subKey] }))}>
-                          <span style={{ fontSize: 11, color: 'var(--gray-300)' }}>└</span>
-                          <span style={{ fontSize: 12, color: 'var(--gray-400)', transition: 'transform 0.15s', display: 'inline-block', transform: expandSub[subKey] ? 'rotate(90deg)' : 'none' }}>▶</span>
-                          <span style={{ flex: 1 }}>
-                            <span style={{ fontWeight: 500, fontSize: 13 }}>{sub.nome}</span>
-                            <span style={{ fontSize: 11, color: 'var(--gray-400)', marginLeft: 6 }}>/{sub.slug}</span>
-                          </span>
-                          <span style={{ fontSize: 11, color: 'var(--gray-400)', marginRight: 6 }}>{sub.subcategorias.length} sub</span>
-                          <button onClick={e => { e.stopPropagation(); removeSub(cat.slug, sub.slug); }} disabled={salvando} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex', alignItems: 'center' }}><X size={16} strokeWidth={1.5} /></button>
-                        </div>
-
-                        {/* Nível 3 — Sub-subcategorias */}
-                        {expandSub[subKey] && (
-                          <div style={{ marginLeft: 24, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {sub.subcategorias.map(ss => (
-                              <ItemRow key={ss.slug} label={ss.nome} slug={ss.slug} disabled={salvando} onRemove={() => removeSubSub(cat.slug, sub.slug, ss.slug)} />
-                            ))}
-                            <AddRow placeholder="Nova sub-subcategoria..." disabled={salvando} onAdd={nome => addSubSub(cat.slug, sub.slug, nome)} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  <AddRow placeholder="Nova subcategoria..." disabled={salvando} onAdd={nome => addSub(cat.slug, nome)} />
-                </div>
-              )}
+              <NoCategoria no={cat} caminho={[cat.slug]} nivel={0} disabled={salvando} expandidos={expandidos} alternar={alternar} onRenomear={renomear} onImagem={mudarImagem} onRemover={remover} onAdicionar={adicionar} />
             </div>
           ))}
         </div>
       )}
-      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 16 }}>Categoria → Subcategoria → Sub-subcategoria. Apenas as categorias com artigos aparecem na loja.</p>
+      <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 16 }}>
+        Categoria → Subcategoria → Sub-subcategoria. Clica no nome para o editar (o endereço /slug não muda) e no quadrado à esquerda para definir a imagem. Apenas as categorias com artigos aparecem na loja.
+      </p>
     </div>
   );
 }

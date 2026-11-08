@@ -119,12 +119,14 @@ export function FiltroCategorias({
   onChange,
   visiveis = 8,
   rotuloTodos = 'Todos',
+  rotulo = capitalizar,
 }: {
   categorias: string[];
   actual: string | null;
   onChange: (cat: string | null) => void;
   visiveis?: number;
   rotuloTodos?: string;
+  rotulo?: (slug: string) => string;
 }) {
   const [expandida, setExpandida] = useState(false);
   const lista = expandida ? categorias : categorias.slice(0, visiveis);
@@ -137,7 +139,7 @@ export function FiltroCategorias({
         </button>
         {lista.map(cat => (
           <button key={cat} className={`filtro-cat-item${actual === cat ? ' active' : ''}`} onClick={() => { setExpandida(false); onChange(cat); }}>
-            {capitalizar(cat)}
+            {rotulo(cat)}
           </button>
         ))}
       </div>

@@ -10,6 +10,7 @@ import { getProdutos, getProdutosAleatorios, getCategoriasAtivas, pesquisarProdu
 import type { Produto, CategoriaConfig, ProdutosResult, CursorAleatorio } from '@/lib/produtos';
 import { gerarSeedAleatoria, baralhar } from '@/lib/aleatorio';
 import { precoActual } from '@/lib/promocao';
+import { indexarCategorias } from '@/lib/categorias';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 function resolveDescendants(tree: CategoriaConfig[], slug: string): string[] {
@@ -303,10 +304,13 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
   );
 
   // Imagem de uma categoria/modo: primeiro artigo carregado que lhe pertence
-  const imgCategoria = (slug: string) => todos.find(p => p.categoria === slug)?.imagens?.[0];
+  const infoCats = indexarCategorias(catTree);
+  const capitalizar = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const rotuloCat = (slug: string) => infoCats[slug]?.nome ?? capitalizar(slug);
+  const imgCategoria = (slug: string) => infoCats[slug]?.imagem || todos.find(p => p.categoria === slug)?.imagens?.[0];
   const imgModo = (i: number) => todos[i % Math.max(todos.length, 1)]?.imagens?.[0];
   const slugsTiles = catActual ? categoriasVisiveis : categorias;
-  const nomeCat = catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : '';
+  const nomeCat = catActual ? rotuloCat(catActual) : '';
 
   const corpo = (
     <>
@@ -318,7 +322,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
             return (
               <button key={slug} type="button" className="cat-tile" onClick={() => filtrar(slug)}>
                 <span className="cat-tile-img">{src && <Image src={src} alt="" fill style={{ objectFit: 'cover' }} sizes="72px" />}</span>
-                <span>{slug.charAt(0).toUpperCase() + slug.slice(1)}</span>
+                <span>{rotuloCat(slug)}</span>
               </button>
             );
           })}
@@ -327,7 +331,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
 
       {/* Header */}
       <div className={`catalogo-header${ocultarTitulo ? ' sem-titulo' : ''}`}>
-        {!ocultarTitulo && <h2>{catActual ? catActual.charAt(0).toUpperCase() + catActual.slice(1) : tituloDefault}</h2>}
+        {!ocultarTitulo && <h2>{catActual ? nomeCat : tituloDefault}</h2>}
         <select className="filtro-ordenacao" value={ordenacao} onChange={e => setOrdenacao(e.target.value)}>
           <option value="relevancia">Relevância</option>
           <option value="novidades">Novidades</option>
@@ -347,7 +351,7 @@ export default function CatalogoProdutos({ inicial, seedInicial, categoriasInici
             fecharQuando={catActual}
           >
             <FiltroGrupo titulo="Categoria" primeiro>
-              <FiltroCategorias categorias={categoriasVisiveis} actual={catActual} onChange={filtrar} visiveis={CAT_VISIVEIS} />
+              <FiltroCategorias categorias={categoriasVisiveis} actual={catActual} onChange={filtrar} visiveis={CAT_VISIVEIS} rotulo={rotuloCat} />
             </FiltroGrupo>
 
             <FiltroGrupo titulo="Preço">
