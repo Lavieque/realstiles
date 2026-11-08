@@ -4,6 +4,8 @@ import Image from '@/components/CloudImage';
 import { ShoppingBag, Sparkles, MessageCircle, ShieldCheck, Package, ArrowRight, ChevronRight } from 'lucide-react';
 import Estrelas from '@/components/Estrelas';
 import { getOpinioes } from '@/lib/opinioes';
+import MetodoPagamentoLogo from '@/components/MetodoPagamentoLogo';
+import { METODOS_PAGAMENTO } from '@/lib/metodos-pagamento';
 
 export const metadata: Metadata = {
   title: 'Porquê escolher a Real Stiles?',
@@ -14,7 +16,7 @@ export const dynamic = 'force-dynamic';
 
 type Aba = 'seguranca' | 'encomenda';
 
-const PASSOS: Record<Aba, { titulo: string; passos: { t: string; c: string; href: string; acao: string; nota?: string }[] }> = {
+const PASSOS: Record<Aba, { titulo: string; passos: { t: string; c: string; href: string; acao: string; logos?: boolean }[] }> = {
   seguranca: {
     titulo: 'Segurança e privacidade.',
     passos: [
@@ -23,6 +25,7 @@ const PASSOS: Record<Aba, { titulo: string; passos: { t: string; c: string; href
         c: 'M-Pesa, e-Mola, mKesh ou cartão, consoante o que estiver disponível no resumo da compra. Confere o valor total e guarda a referência do pedido.',
         href: '/politicas?tab=compras',
         acao: 'Consultar as condições de compra',
+        logos: true,
       },
       {
         t: 'Informação clara sobre os teus dados.',
@@ -131,6 +134,15 @@ export default async function PorqueEscolherPage({ searchParams }: { searchParam
               <div>
                 <h3>{p.t}</h3>
                 <p>{p.c}</p>
+                {p.logos && (
+                  <div className="footer-pagamentos pe-pagamentos" aria-label="Meios de pagamento">
+                    {METODOS_PAGAMENTO.filter(m => m !== 'cartao').map(m => <span key={m}><MetodoPagamentoLogo metodo={m} altura={30} /></span>)}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <span><img src="/img/payment-mastercard.svg" alt="Mastercard" /></span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <span><img src="/img/payment-visa.svg" alt="Visa" /></span>
+                  </div>
+                )}
                 <Link href={p.href} className="pe-link">{p.acao} <ChevronRight size={14} /></Link>
               </div>
             </li>
