@@ -6,6 +6,7 @@ export interface Opiniao {
   id: string;
   produto_id: string;
   produto_nome: string;
+  produto_imagem?: string;
   cliente_nome: string;
   texto: string;
   estrelas: number;
@@ -28,6 +29,7 @@ export async function getOpinioes(): Promise<Opiniao[]> {
           id: `${p.id}_${c.id}`,
           produto_id: p.id,
           produto_nome: String(p.data().nome || ''),
+          produto_imagem: (p.data().imagens as string[] | undefined)?.[0],
           cliente_nome: String(d.cliente_nome || 'Cliente'),
           texto: String(d.texto || ''),
           estrelas: Number(d.estrelas) || 0,
