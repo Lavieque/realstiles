@@ -70,7 +70,7 @@ const PALAVRAS: [RegExp, string][] = [
   [/ferrament|bricolage/, 'ferramentas'],
   [/animal|pet|cao|gato/, 'animais'],
   [/presente|oferta/, 'presentes'],
-  [/b(lar|casa)b|decor|organiza/, 'casa'],
+  [/\b(lar|casa)\b|decor|organiza/, 'casa'],
   [/roupa|moda|mulher|homem|vestid|camis|calca|casaco|saia|t-shirt|tshirt|camisola|hoodie|lingerie|fato/, 'roupa'],
   [/promo|desconto/, 'promocao'],
 ];
